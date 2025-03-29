@@ -1,0 +1,1 @@
+shared.WindowStyle = wax.shared.ExecutorSupport.SupportFileSystem and wax.shared.FileHelper:CheckFile("MFeee~New/WindowStyle.txt", "Obsidian")
