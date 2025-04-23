@@ -1,5 +1,5 @@
 # MFeee~ New
-### 🚀*A open source Roblox script hub*
+### 🚀*A Free Open-Source Roblox Script Hub*
 <br>
 
 ## 🧩Universal Features:
