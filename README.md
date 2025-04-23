@@ -1,12 +1,24 @@
 # MFeee~ New
 ### 🚀*A Free Open-Source Roblox Script Hub*
-<br>
-
-## 🧩Universal Features:
-
+### 🌍*Supports Multiple Languages*
 <br>
 
 ## 📊Supported Games:
+### 🧩Universal
+- **1. Anti AFK**
+- **2. Anti kick**
+- **3. Walk speed overrides**
+- **4. jump height overrides**
+- **5. Gravity overrides**
+- **6. No acceleration**
+- **7. Anti Roblox void**
+- **8. Speed boost**
+- **9. Noclip**
+- **10. Vehicle noclip**
+- **11. Roblox gui controller**
+- **12. Bloxstrap RPC**
+- **13. More features work in progress!**
+
 ### 🔪Murder Mystery (WIP🔥)
 - **1. Auto collect coins**
 - **2. Aimbot/silent aim (knife, gun)**
@@ -15,7 +27,7 @@
 - **5. Second life (sheriff, innocent)**
 - **6. Trolls**
 - **7. Auto pickup gun**
-- **8. ESP for *players*, *innocent*, *sheriff*, *murder*, *gun*, *coins***
+- **8. ESP for *players*, *innocent*, *sheriff*, *murderer*, *gun*, *coins*, *interactive***
 - **9. Universal features available...**
 <br>
 
@@ -42,7 +54,7 @@
 
 ### 🔫Weaponry (WIP🔥)
 - **1. Hitbox extender**
-- **2. Universal features available... (server validation makes exploits rare)**
+- **2. Universal features available... (server validation makes exploits hard, and blatant cheating is detectable)**
 <br>
 
 ### 🧱Block Tycoon (WIP🔥)
