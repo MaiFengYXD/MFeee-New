@@ -5,7 +5,7 @@
     "luau-lsp.types.definitionFiles": [".vscode/exploitTypes.d.luau"],
     "luau-lsp.types.robloxSecurityLevel": "RobloxScriptSecurity",
 
-    "luau-lsp.plugin.maximumRequestBodySize": "1gb",
+    "luau-lsp.plugin.maximumRequestBodySize": "4gb",
     "luau-lsp.plugin.enabled": true,
 
     "luau-lsp.diagnostics.strictDatamodelTypes": false,
@@ -31,4 +31,5 @@
         "editor.defaultFormatter": "JohnnyMorganz.stylua"
     },
     "stylua.disableVersionCheck": true,
+    "markdown.validate.enabled": false,
 }
