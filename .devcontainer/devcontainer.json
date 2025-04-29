@@ -1,0 +1,8 @@
+{
+  "name": "MFeee~ New",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {}
+  }
+}
