@@ -1,23 +1,31 @@
 # MFeee~ New
-### 🚀*A Free Open-Source Roblox Script Hub*
-### 🌍*Supports Multiple Languages*
+> **🚀*A Free Open-Source Roblox Script Hub***
+> **🌍*Supports 24 Languages***
+> **🛠️*Work In Progress, Many Features are Buggy!***
+
 <br>
 
 ## 📊Supported Games:
 ### 🧩Universal
-- **1. Anti AFK**
-- **2. Anti kick**
-- **3. Walk speed overrides**
-- **4. jump height overrides**
-- **5. Gravity overrides**
-- **6. No acceleration**
-- **7. Anti Roblox void**
-- **8. Speed boost**
-- **9. Noclip**
-- **10. Vehicle noclip**
-- **11. Roblox gui controller**
-- **12. Bloxstrap RPC**
-- **13. More features work in progress!**
+>- Anti AFK
+>- Anti kick
+>- Walk speed overrides
+>- Jump height overrides
+>- Gravity overrides
+>- No acceleration
+>- Anti Roblox void
+>- Speed boost
+>- Noclip
+>- Vehicle noclip
+>- Instant interaction
+>- Interact distance
+>- Noclip interaction
+>- Fly (BodyMovers, constrains, CFrame)
+>- Roblox gui controller
+>- Bloxstrap RPC
+>- More features work in progress!
+
+<br>
 
 ### 🔪Murder Mystery (WIP🔥)
 - **1. Auto collect coins**
@@ -28,13 +36,15 @@
 - **6. Trolls**
 - **7. Auto pickup gun**
 - **8. ESP for *players*, *innocent*, *sheriff*, *murderer*, *gun*, *coins*, *interactive***
-- **9. Universal features available...**
+- **9. Autoplay (unstable)**
+- **10. Universal features available...**
+- **Event: auto collect rare eggs**
 <br>
 
 ### 👁️THE FOUNDATION (WIP🔥)
 - **1. Skip Seek (client-side)**
 - **2. Auto cage minigames**
-- **3. Auto/skip breaker minigames**
+- **3. Autoplay/skip breaker minigames**
 - **4. Lader speed boost**
 - **5. Anti Decoy (lockers)**
 - **6. Get free badges**
@@ -49,14 +59,26 @@
 - **15. Anti Eyes**
 - **16. Skip terminal minigames**
 - **17. Seek no damage (client-side)**
-- **18. Universal features available...**
+- **18. ESP for *entities*, *players*, *interactive***
+- **19. Universal features available...**
 <br>
 
 ### 🔫Weaponry (WIP🔥)
 - **1. Hitbox extender**
-- **2. Universal features available... (server validation makes exploits hard, and blatant cheating is detectable)**
+- **2. ESP for *players*, *guns***
+- **3. Bullet breadcrumbs**
+- **4. Universal features available...**
+- ***(server validation makes exploits hard, and blatant cheating is detectable)***
 <br>
 
 ### 🧱Block Tycoon (WIP🔥)
-- **1.**
+- **1. Collecting aura**
+- **2. Underworld Trophy farm**
+- **3. Extra reach**
+- **4. Instant break**
+- **5. Heavy drops**
+- **6. ESP for *players*, *drops***
+- **7. *Physgun* for drops**
+- **8. Universal features available...**
+- **Event: collect all eggs in 1 second**
 <br>
