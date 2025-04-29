@@ -1,12 +1,18 @@
 # MFeee~ New
-> **🚀*A Free Open-Source Roblox Script Hub***
-> **🌍*Supports 24 Languages***
-> **🛠️*Work In Progress, Many Features are Buggy!***
+
+>[!NOTE]
+>### 🛠️Work In Progress, Many Features are Buggy!
+
+---
+
+**🚀*A Free Open-Source Roblox Script Hub***
+
+**🌍*Supports 24 Languages***
 
 <br>
 
 ## 📊Supported Games:
-### 🧩Universal
+### 🧩UNIVERSAL
 >- Anti AFK
 >- Anti kick
 >- Walk speed overrides
@@ -27,7 +33,7 @@
 
 <br>
 
-### 🔪Murder Mystery (WIP🔥)
+### 🔪MURDER MYSTERY 2 (WIP🔥)
 - **1. Auto collect coins**
 - **2. Aimbot/silent aim (knife, gun)**
 - **3. Kill all**
@@ -63,7 +69,7 @@
 - **19. Universal features available...**
 <br>
 
-### 🔫Weaponry (WIP🔥)
+### 🔫WEAPONRY (WIP🔥)
 - **1. Hitbox extender**
 - **2. ESP for *players*, *guns***
 - **3. Bullet breadcrumbs**
@@ -71,7 +77,7 @@
 - ***(server validation makes exploits hard, and blatant cheating is detectable)***
 <br>
 
-### 🧱Block Tycoon (WIP🔥)
+### 🧱BLOCK TYCOON (WIP🔥)
 - **1. Collecting aura**
 - **2. Underworld Trophy farm**
 - **3. Extra reach**
