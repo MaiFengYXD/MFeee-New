@@ -122,10 +122,136 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                 -- The added line here is the "\nend" below every arbitrary closure
                 ClosureSourceLineCounts[RefId] = StringUtils.LineCount(ScriptSource) + 1
 
+                -- Helper function to perform heuristic checks for comments and strings on the line of the found word
+                local function IsLikelyInCommentOrString(FullText, WordStartIndex)
+                    -- Find the start and end positions of the line containing the word
+                    local LineStartPos = 1
+                    -- Efficiently search backwards for the previous newline character
+                    for I = WordStartIndex - 1, 1, -1 do
+                        if string.sub(FullText, I, I) == "\n" then
+                            LineStartPos = I + 1
+                            break
+                        end
+                    end
+
+                    local LineEndPos = string.find(FullText, "\n", WordStartIndex, true)
+                    if not LineEndPos then
+                        LineEndPos = #FullText + 1 -- Use end of the full text if no newline is found after the word
+                    end
+
+                    -- Extract the content of the current line
+                    local CurrentLine = string.sub(FullText, LineStartPos, LineEndPos - 1)
+                    -- Calculate the word's starting position relative to the beginning of the current line
+                    local WordIndexInLine = WordStartIndex - LineStartPos + 1
+
+                    -- 1. Check for single-line comment marker '--' appearing before the word on the current line
+                    local CommentMarkerPos = string.find(CurrentLine, "--", 1, true)
+                    if CommentMarkerPos and CommentMarkerPos < WordIndexInLine then
+                        -- If '--' is found, check if it's the start of a multi-line comment '--[['
+                        -- If it's not a multi-line comment start, the word is likely in a single-line comment
+                        if not string.match(CurrentLine, "^%-%-%[", CommentMarkerPos) then
+                            return true -- Likely inside a single-line comment
+                        end
+                        -- Note: This heuristic doesn't reliably handle cases where the word is within
+                        -- a multi-line comment block that started on a previous line.
+                    end
+
+                    -- 2. Check if the word is inside a string literal by tracking quote status
+                    --    Iterate through the line up to the character before the word starts
+                    local SubLineBeforeWord = string.sub(CurrentLine, 1, WordIndexInLine - 1)
+                    local InString = false
+                    local CurrentQuote = nil -- Stores the type of quote ('"', "'", "`") that opened the current string
+                    local Escaped = false
+                    for I = 1, #SubLineBeforeWord do
+                        local Char = string.sub(SubLineBeforeWord, I, I)
+                        -- Handle backslash escape character
+                        if Char == '\\' and not Escaped then
+                            Escaped = true
+                        else
+                            if CurrentQuote then -- Currently inside a string literal
+                                -- Check if the current character closes the string (and is not escaped)
+                                if Char == CurrentQuote and not Escaped then
+                                    InString = false
+                                    CurrentQuote = nil
+                                end
+                            else -- Not currently inside a string literal
+                                -- Check if the current character starts a string literal (and is not escaped)
+                                if (Char == '"' or Char == '\'' or Char == '`') and not Escaped then
+                                    InString = true
+                                    CurrentQuote = Char
+                                end
+                            end
+                            -- Reset escape status after processing the character
+                            Escaped = false
+                        end
+                    end
+
+                    -- If the loop finishes while still inside a string, the word starts within that string
+                    if InString then
+                        return true -- Likely inside a string literal
+                    end
+
+                    -- Note: This heuristic doesn't handle Luau's multi-line strings like [=[...]=]
+
+                    -- If neither comment nor string heuristics matched, assume it's likely code
+                    return false
+                end
+
+                -- Main function to find a 'whole word' match that is likely not inside a comment or string literal
+                local function ContainsWholeWord(Text, Word)
+                    local WordLen = #Word
+                    local TextLen = #Text
+                    local StartIndex = 1 -- Start searching from the beginning of the text
+
+                    -- Basic input validation
+                    if type(Text) ~= "string" or type(Word) ~= "string" or WordLen == 0 then
+                        return false
+                    end
+
+                    -- Loop to find all occurrences of the word
+                    while true do
+                        -- Find the next occurrence of the word (case-sensitive, plain search)
+                        local FoundIndex = string.find(Text, Word, StartIndex, true)
+
+                        -- If no more occurrences are found, return false
+                        if not FoundIndex then
+                            return false
+                        end
+
+                        local EndIndex = FoundIndex + WordLen - 1
+
+                        -- Check for word boundaries:
+                        -- The character before the word (if it exists) must not be a 'word' character (%w: alphanumeric or underscore)
+                        local IsStartBoundary = (FoundIndex == 1) or (not string.match(string.sub(Text, FoundIndex - 1, FoundIndex - 1), "%w"))
+                        -- The character after the word (if it exists) must not be a 'word' character (%w)
+                        local IsEndBoundary = (EndIndex == TextLen) or (not string.match(string.sub(Text, EndIndex + 1, EndIndex + 1), "%w"))
+
+                        -- If both start and end boundaries are valid
+                        if IsStartBoundary and IsEndBoundary then
+                            -- Perform heuristic checks to see if the found word is likely inside a comment or string
+                            if not IsLikelyInCommentOrString(Text, FoundIndex) then
+                                -- If the heuristics suggest it's not in a comment or string, we found a valid match
+                                return true
+                            end
+                        end
+
+                        -- If boundaries were invalid, or if heuristics indicated comment/string,
+                        -- continue the search starting from the character *after* the current found index.
+                        -- This prevents getting stuck on the same invalid match.
+                        StartIndex = FoundIndex + 1
+                    end
+                end
+
                 -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
                 -- to the rew value, which is the script closure
                 ClosureBindings[RefId] = function()
-                    return "function()local wax,script,require=ImportGlobals(" .. RefId .. ")local ImportGlobals return (function(...)" .. ScriptSource .. "\nend)() end"
+                    -- Here's a little change because luau-lsp makes me do this:sob:
+                    -- Let's silence unused variables
+                    local UsesWax     = ContainsWholeWord(ScriptSource, "wax")
+                    local UsesScript  = ContainsWholeWord(ScriptSource, "script")
+                    local UsesRequire = ContainsWholeWord(ScriptSource, "require")
+                    return ("function()\nlocal %s = ImportGlobals(%d)\n\nlocal ImportGlobals = nil\nlocal _ = ImportGlobals\n\nreturn (function()\n\n%s\nend)() end")
+                           :format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}`, RefId, ScriptSource)
                 end
             else
                 local FirstLineOfError = string.match(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")

@@ -23,8 +23,8 @@ local EnvName = "${EnvName}"
 -- ++++++++ RUNTIME IMPL BELOW ++++++++ --
 
 -- Localizing certain libraries and built-ins for runtime efficiency
-local string, task, setmetatable, error, next, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION =
-      string, task, setmetatable, error, next, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION
+local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION =
+      string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -94,7 +94,7 @@ local InstanceMethods = {
     GetChildren = { {}, function(self)
         local ReturnArray = {}
 
-        for Child in next, RefChildren[self] do
+        for Child in RefChildren[self] do
             table_insert(ReturnArray, Child)
         end
 
@@ -104,10 +104,10 @@ local InstanceMethods = {
     GetDescendants = { {}, function(self)
         local ReturnArray = {}
 
-        for Child in next, RefChildren[self] do
+        for Child in RefChildren[self] do
             table_insert(ReturnArray, Child)
 
-            for _, Descendant in next, Child:GetDescendants() do
+            for _, Descendant in Child:GetDescendants() do
                 table_insert(ReturnArray, Descendant)
             end
         end
@@ -118,19 +118,20 @@ local InstanceMethods = {
     FindFirstChild = { {"string", "boolean?"}, function(self, name, recursive)
         local Children = RefChildren[self]
 
-        for Child in next, Children do
+        for Child in Children do
             if Child.Name == name then
                 return Child
             end
         end
 
         if recursive then
-            for Child in next, Children do
+            for Child in Children do
                 -- Yeah, Roblox follows this behavior- instead of searching the entire base of a
                 -- ref first, the engine uses a direct recursive call
                 return Child:FindFirstChild(name, true)
             end
         end
+        return
     end},
 
     FindFirstAncestor = { {"string"}, function(self, name)
@@ -142,6 +143,7 @@ local InstanceMethods = {
 
             RefPointer = RefPointer.Parent
         end
+        return
     end},
 
     -- Just to implement for traversal usage
@@ -152,12 +154,12 @@ local InstanceMethods = {
 
 -- "Proxies" to instance methods, with err checks etc
 local InstanceMethodProxies = {}
-for MethodName, MethodObject in next, InstanceMethods do
+for MethodName, MethodObject in InstanceMethods do
     local Types = MethodObject[1]
     local Method = MethodObject[2]
 
     local EvaluatedTypeInfo = {}
-    for ArgIndex, TypeInfo in next, Types do
+    for ArgIndex, TypeInfo in Types do
         local ExpectedType, IsOptional = string_match(TypeInfo, "^([^%?]+)(%??)")
         EvaluatedTypeInfo[ArgIndex] = {ExpectedType, IsOptional}
     end
@@ -168,7 +170,7 @@ for MethodName, MethodObject in next, InstanceMethods do
         end
 
         local Args = {...}
-        for ArgIndex, TypeInfo in next, EvaluatedTypeInfo do
+        for ArgIndex, TypeInfo in EvaluatedTypeInfo do
             local RealArg = Args[ArgIndex]
             local RealArgType = type(RealArg)
             local ExpectedType, IsOptional = TypeInfo[1], TypeInfo[2]
@@ -227,14 +229,14 @@ local function CreateRef(className, name, parent)
         end
 
         -- Next we'll look thru child refs
-        for Child in next, Children do
+        for Child in Children do
             if Child.Name == index then
                 return Child
             end
         end
 
         -- At this point, no member was found; this is the same err format as Roblox
-        InvalidMember(index)
+        return InvalidMember(index)
     end
 
     RefMetatable.__newindex = function(_, index, value)
@@ -299,13 +301,13 @@ local function CreateRefFromObject(object, parent)
     RefBindings[RefId] = Ref
 
     if Properties then
-        for PropertyName, PropertyValue in next, Properties do
+        for PropertyName, PropertyValue in Properties do
             Ref[PropertyName] = PropertyValue
         end
     end
 
     if Children then
-        for _, ChildObject in next, Children do
+        for _, ChildObject in Children do
             CreateRefFromObject(ChildObject, Ref)
         end
     end
@@ -314,12 +316,12 @@ local function CreateRefFromObject(object, parent)
 end
 
 local RealObjectRoot = CreateRef("Folder", "[" .. EnvName .. "]")
-for _, Object in next, ObjectTree do
+for _, Object in ObjectTree do
     CreateRefFromObject(Object, RealObjectRoot)
 end
 
 -- Now we'll set script closure refs and check if they should be ran as a BaseScript
-for RefId, Closure in next, ClosureBindings do
+for RefId, Closure in ClosureBindings do
     local Ref = RefBindings[RefId]
 
     ScriptClosures[Ref] = Closure
@@ -373,8 +375,9 @@ local function LoadScript(scriptRef)
             return debug.traceback(msg, 2)
         end)
         if not RunSuccess then
-            error(FormatError(ErrorMessage), 0)
+            return error(FormatError(ErrorMessage), 0)
         end
+        return
     else
         local PCallReturn = {xpcall(Closure, function(msg)
             return debug.traceback(msg, 2)
@@ -419,7 +422,7 @@ function ImportGlobals(refId)
             return #SharedEnvironment
         end,
         __iter = function()
-            return next, SharedEnvironment
+            return SharedEnvironment
         end,
     }))
 
@@ -469,24 +472,28 @@ function ImportGlobals(refId)
             local PreviousPathMatch
             for PathMatch in string_gmatch(module, "([^/]*)/?") do
                 local RealIndex = PathMatch
-                if PathMatch == ".." then
-                    RealIndex = "Parent"
-                end
 
                 -- Don't advance dir if it's just another "/" either
                 if RealIndex ~= "" then
-                    local ResultRef = CurrentRefPointer:FindFirstChild(RealIndex)
-                    if not ResultRef then
-                        local CurrentRefParent = CurrentRefPointer.Parent
-                        if CurrentRefParent then
-                            ResultRef = CurrentRefParent:FindFirstChild(RealIndex)
+                    if PathMatch == ".." then
+                        CurrentRefPointer = CurrentRefPointer.Parent
+                        if not CurrentRefPointer then
+                            error("Virtual script path \"" .. module .. "\" not found - attempt to go above root", 2)
                         end
-                    end
+                    else
+                        local ResultRef = CurrentRefPointer:FindFirstChild(RealIndex)
+                        if not ResultRef then
+                            local CurrentRefParent = CurrentRefPointer.Parent
+                            if CurrentRefParent then
+                                ResultRef = CurrentRefParent:FindFirstChild(RealIndex)
+                            end
+                        end
 
-                    if ResultRef then
-                        CurrentRefPointer = ResultRef
-                    elseif PathMatch ~= PreviousPathMatch and PathMatch ~= "init" and PathMatch ~= "init.server" and PathMatch ~= "init.client" then
-                        error("Virtual script path \"" .. module .. "\" not found", 2)
+                        if ResultRef then
+                            CurrentRefPointer = ResultRef
+                        elseif PathMatch ~= PreviousPathMatch and PathMatch ~= "init" and PathMatch ~= "init.server" and PathMatch ~= "init.client" then
+                            error("Virtual script path \"" .. module .. "\" not found", 2)
+                        end
                     end
                 end
 
@@ -510,7 +517,7 @@ function ImportGlobals(refId)
     return Global_wax, Global_script, Global_require
 end
 
-for _, ScriptRef in next, ScriptsToRun do
+for _, ScriptRef in ScriptsToRun do
     Defer(LoadScript, ScriptRef)
 end
 ]]

@@ -1,80 +1,126 @@
-
 --// Pre-Checks //
-local Services = require("Utils/Services")
-
-Services:GetServices({
-    "Players",
-    "Workspace",
+require("Utils/Services"):GetServices({
+    "ContextActionService",
+    "MarketplaceService",
+    "CollectionService",
+    "ReplicatedStorage",
+    "UserInputService",
+    "ContentProvider",
+    "SoundService",
+    "TweenService",
+    "TextService",
+    "HttpService",
     "StarterGui",
-    "UserInputService"
+    "RunService",
+    "Workspace",
+    "Players",
+    "Teams"
 })
 
+shared.Speaker = shared.Players.LocalPlayer
+
+if type(getgenv) ~= "function" then
+    shared.Speaker:Kick("This script doesn't support non-executor environments.");return
+end
+
 local function Notify(Title: string, Text: string)
-    print(Title, Text)
+    print(`[MFeee~ New] {Title} {Text}`)
 
     shared.StarterGui:SetCore("SendNotification", {
-        Title = Title,
-        Text = Text,
-        Button1 = "Close",
+        Title    = Title,
+        Text     = Text,
+        Button1  = "Close",
         Duration = 5
     })
 end
 
-if getgenv().MFeeeLoaded then return Notify("Loading Stopped!", "Error: Already loaded.") end
-if getgenv().MFeeeLoading then return Notify("Loading Stopped!", "Error: Loading.") end
+if getgenv().MFeeeLoaded  then Notify("Loading Stopped!", "Error: Already loaded.");return end
+if getgenv().MFeeeLoading then Notify("Loading Stopped!", "Error: Loading.")       ;return end
 
+getgenv().MFeeeLoaded  = false
 getgenv().MFeeeLoading = true
+
+task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
+    "rbxassetid://77335290652571",
+    "rbxassetid://4590662766",
+    "rbxassetid://4590657391"
+})
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
---// Loader //
+--// Start to Load //
+task.spawn(pcall, function()
+    shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
+end)
 
---// Prepare
-shared.Speaker = shared.Players.LocalPlayer
-shared.Camera = shared.Workspace.CurrentCamera
+shared.Camera  = shared.Workspace.CurrentCamera
 
-wax.shared.ExecutorSupport = wax.shared.ExecutorSupport or require("Utils/ExecutorSupport")
-wax.shared.FileHelper = wax.shared.FileHelper or require("Utils/FileHelper")
+wax.shared.Emoji           = require("Utils/ArtEmoji")
+wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
+wax.shared.FileHelper      = require("Utils/FileHelper")
 
-wax.shared.ScriptBaseFolder = wax.shared.FileHelper:CreateFolder("MFeee~New")
-wax.shared.Langauge = wax.shared.FileHelper:CheckFile("MFeee~New/Langauge.txt", "en")
+shared.Connection  = require("Utils/Connection")
+shared.ToClipboard = type(shared.ToClipboard) == "function" and shared.ToClipboard or function(...) end
 
-if not wax.shared.GotPlace then
-    wax.shared.GotPlace = true
+local FileHelper = wax.shared.FileHelper
 
-    shared.ScriptName = "Universal"
-    shared.ScriptLoader = "Universal"
+wax.shared.Language = FileHelper:CheckFile("MFeee~New/Language.txt", "en", {
+    "am", "ar", "az", "de", "en",
+    "es", "fa", "fr", "hi", "hr",
+    "hu", "id", "ja", "kz", "ms",
+    "pt", "ru", "sv", "tr", "ua",
+    "ur", "vi", "zh-cn", "zh-hant"
+})
+
+do
+    wax.shared.ScriptName    = "Universal"
+    wax.shared.ScriptLoader  = "Universal"
+    wax.shared.ScriptDisplay = "Universal"
 
     local Mappings = require("Mappings")
-    local MappingID = Mappings[game.GameId]
+    local Mapping  = Mappings[game.PlaceId]
 
-    if MappingID then
-        local Folder = MappingID["Folder"]
-        local Name = MappingID["Name"] or Folder
-        local GameExclusions = MappingID["Exclusions"] or {}
-        local Exclusion = GameExclusions[game.PlaceId]
-
-        shared.ScriptName = Name
-        shared.ScriptLoader = `{Folder}/{MappingID["Loader"]}`
-
-        shared.Mapping = MappingID
-        shared.ScriptFolder = Folder
-        shared.ScriptExclusion = Exclusion
-
-        if Exclusion then
-            shared.ScriptName = `{Name} ({Exclusion})`
-            shared.ScriptLoader = `{Folder}/{Exclusion}`
-        end
+    if Mapping then
+        wax.shared.ScriptName    = Mapping.Name
+        wax.shared.ScriptLoader  = Mapping.Folder
+        wax.shared.ScriptDisplay = Mapping.Display
     end
 end
 
-wax.shared.Translations = wax.shared.Translations or require("Translations")
+wax.shared.Translations  = require("Translations/Main")
+wax.shared.EasingLibrary = require("Utils/EasingLibrary")
 
-shared.Connection = shared.Connection or require("Utils/Connections")
-shared.ControlModule = shared.ControlModule or require("Utils/ControlModule")
+wax.shared.PlayerUniversal = require("Utils/PlayerUniversal")
+wax.shared.MISCUniversal   = require("Utils/MISCUniversal")
+wax.shared.VisualUniversal = require("Utils/VisualUniversal")
+wax.shared.NpcHandler      = require("Utils/NPCHandler")
 
-shared.Connection:GiveSignal("CameraChangeSignal", shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+shared.ControlModule = require("Utils/ControlModule")
+
+wax.shared.BloxstrapRPC = require("Utils/BloxstrapRPC")
+wax.shared.TempStorage  = {}
+
+shared.Connection:GiveSignal("CameraChangedSignal", shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     shared.Camera = shared.Workspace.CurrentCamera
 end))
 
---// Loader
+shared.Connection:GiveSignal("PlayerNameChangedSignal", shared.Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
+    shared.Speaker = shared.Players.LocalPlayer
+end))
+
+--// Loader //
+shared.ScriptVersion = "Build 1"
+
+wax.shared.Icons     = require("Utils/Gui/Lucide")
+wax.shared.UiManager = require("Utils/Gui/UiManager")
+
+local UiManager = wax.shared.UiManager
+
+wax.shared.Window = UiManager:CreateWindow()
+
+require(`Places/{shared.ScriptLoader}/Loader`)
+
+UiManager:CreateUniversalTabs()
+
+getgenv().MFeeeLoading = false
+getgenv().MFeeeLoaded = true

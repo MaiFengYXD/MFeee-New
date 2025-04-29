@@ -78,13 +78,13 @@ SUBCOMMANDS:
             your PATH environment variable.
             Additionally, with Darklua, if a ".darklua.json/json5" file isn't found in the
             CWD (your dir "position" in your terminal), it'll use the default configuration
-            we provide (see `lune/Lib/Data/DefaultDarkluaConfig.luau`)
-    
+            we provide (see `Build/Lib/Data/DefaultDarkluaConfig.luau`)
+
       * env-name[="Wax Script"]
             The name of the "environment" of the bundled script. This is the "name" of
             the root object (like the `game` DataModel in Roblox) and displays in virtual
             runtime errors (e.g. "[Wax Script].Script:1: Some error message")
-    
+
       * darklua-config-path[=(".darklua.json", ".darklua.json5")]
             When `minify` is set as true, this path can be used to directly pass your own
             Darklua config file's path, instead of only checking for the default paths
@@ -102,7 +102,7 @@ SUBCOMMANDS:
             accurate to its name (*extra* lines, so you may want to do something like
             `#ExtraHeader - 1` if you're using this option)
 
-      * ci-mode[=false]
+      * ci-mode[=true]
             (*Primarily* for automated CI pipelines or deployment systems) Never gives
             any user input prompts, and will *always* exit with a `1` status code upon an
             'error' or warning during the build process
@@ -152,13 +152,13 @@ elseif Subcommand == "bundle" then
         ["input"] = {"string", "default.project.json"},
         ["output"] = {"string", "Distribution/Script.luau"},
         ["minify"] = {"boolean", false},
-        ["env-name"] = {"string", "Wax Script"},
-        ["darklua-config-path"] = {"string", "Build/DarkLua.json"},
+        ["env-name"] = {"string", "LocalScript"},
+        ["darklua-config-path"] = {"string", "Build/Darklua.json"},
         ["temp-dir-base"] = {"string", "Distribution"},
         ["extra-offset-lines"] = {"number", 0},
-        ["ci-mode"] = {"boolean", false},
+        ["ci-mode"] = {"boolean", true},
         ["verbose"] = {"boolean", true},
-        ["header"] = {"string", nil}
+        ["header"] = {"string", "Build/Header.luau"},
     }, UsageMessage)
 
     local Verbose = Options["verbose"]
