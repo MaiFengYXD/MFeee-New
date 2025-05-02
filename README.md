@@ -28,7 +28,6 @@
 >- Noclip interaction
 >- Fly (BodyMovers, constrains, CFrame)
 >- Roblox gui controller
->- Bloxstrap RPC
 >- More features work in progress!
 
 <br>

@@ -80,10 +80,10 @@ SUBCOMMANDS:
             CWD (your dir "position" in your terminal), it'll use the default configuration
             we provide (see `Build/Lib/Data/DefaultDarkluaConfig.luau`)
 
-      * env-name[="Wax Script"]
+      * env-name[="MFeee~ New"]
             The name of the "environment" of the bundled script. This is the "name" of
             the root object (like the `game` DataModel in Roblox) and displays in virtual
-            runtime errors (e.g. "[Wax Script].Script:1: Some error message")
+            runtime errors (e.g. "[MFeee~ New].Script:1: Some error message")
 
       * darklua-config-path[=(".darklua.json", ".darklua.json5")]
             When `minify` is set as true, this path can be used to directly pass your own
@@ -152,7 +152,7 @@ elseif Subcommand == "bundle" then
         ["input"] = {"string", "default.project.json"},
         ["output"] = {"string", "Distribution/Script.luau"},
         ["minify"] = {"boolean", false},
-        ["env-name"] = {"string", "LocalScript"},
+        ["env-name"] = {"string", "MFeee~ New"},
         ["darklua-config-path"] = {"string", "Build/Darklua.json"},
         ["temp-dir-base"] = {"string", "Distribution"},
         ["extra-offset-lines"] = {"number", 0},

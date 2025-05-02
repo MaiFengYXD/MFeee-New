@@ -50,10 +50,11 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 
 --// Start to Load //
 task.spawn(pcall, function()
+    shared.GameName = nil
     shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
 end)
 
-shared.Camera  = shared.Workspace.CurrentCamera
+shared.Camera = shared.Workspace.CurrentCamera
 
 wax.shared.Emoji           = require("Utils/ArtEmoji")
 wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
@@ -97,8 +98,7 @@ wax.shared.NpcHandler      = require("Utils/NPCHandler")
 
 shared.ControlModule = require("Utils/ControlModule")
 
-wax.shared.BloxstrapRPC = require("Utils/BloxstrapRPC")
-wax.shared.TempStorage  = {}
+wax.shared.TempStorage = {}
 
 shared.Connection:GiveSignal("CameraChangedSignal", shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     shared.Camera = shared.Workspace.CurrentCamera
@@ -109,7 +109,7 @@ shared.Connection:GiveSignal("PlayerNameChangedSignal", shared.Players:GetProper
 end))
 
 --// Loader //
-shared.ScriptVersion = "Build 1"
+wax.shared.ScriptVersion = "Build 1"
 
 wax.shared.Icons     = require("Utils/Gui/Lucide")
 wax.shared.UiManager = require("Utils/Gui/UiManager")
@@ -120,7 +120,5 @@ wax.shared.Window = UiManager:CreateWindow()
 
 require(`Places/{shared.ScriptLoader}/Loader`)
 
-UiManager:CreateUniversalTabs()
-
 getgenv().MFeeeLoading = false
-getgenv().MFeeeLoaded = true
+getgenv().MFeeeLoaded  = true

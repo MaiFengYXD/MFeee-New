@@ -1,8 +1,11 @@
-local TweenInfonew,  tableclear
-    = TweenInfo.new, table.clear
+local TweenInfonew,  tableclear,  type
+    = TweenInfo.new, table.clear, type
 
 local TweenService
     = shared.TweenService
+
+local Create
+    = TweenService.Create
 
 local EasingLibrary = {
     RunningTween = {},
@@ -40,9 +43,8 @@ local EasingLibrary = {
 }
 
 type StoredTween = {
-    Tween:      Tween,
-    OnCompleted: RBXScriptConnection,
-    Destroy:    () -> nil
+    Tween:       Tween | TweenBase,
+    OnCompleted: RBXScriptConnection
 }
 
 function EasingLibrary:CancelTween(Index: string)
@@ -50,17 +52,15 @@ function EasingLibrary:CancelTween(Index: string)
     self.RunningTween[Index].Tween:Cancel() --/ OnCompleted will automatically clean the RunningTween
 end
 
-function EasingLibrary:PlayTween(Tween: Tween, Index: string): StoredTween
+function EasingLibrary:PlayTween(Tween: Tween | TweenBase, Index: string): StoredTween
     self.RunningTween[Index] = self:CancelTween(Index) or {
-        Tween       = Tween,
+        Tween = Tween,
+
         OnCompleted = Tween.Completed:Once(function()
             self.RunningTween[Index] = tableclear(self.RunningTween[Index])
-        end),
-
-        Destroy = function()
-            self:CancelTween(Index)
-        end
+        end)
     } :: StoredTween
+
     Tween:Play()
 
     return self.RunningTween[Index]
@@ -87,7 +87,7 @@ function EasingLibrary:Ease(
     )
     local Goal = if type(Property) == "table" then Property else {[Property] = EndValue}
 
-    return self:PlayTween(TweenService:Create(Target, TweenInfo, Goal), Index)
+    return self:PlayTween(Create(TweenService, Target, TweenInfo, Goal), Index)
 end
 
 return EasingLibrary

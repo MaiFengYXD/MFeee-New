@@ -1,7 +1,10 @@
 --[[
 Source by mstudio45 (https://docs.mstudio45.com)
-Type errors fixed by me 鈾?(because luau-lsp I had to do it :<)
+Type errors fixed by me ?(because luau-lsp I had to do it :<)
 --]]
+
+local randomstring
+    = randomstring
 
 local _VERSION = "2.0.2";
 
@@ -93,15 +96,6 @@ local function GetPivot(Instance: Instance): CFrame
     return CFrame.identity
 end
 
-local function RandomString()
-    local array = {}
-    for i = 1, math.random(10, 20) do
-        array[i] = string.char(math.random(32, 126))
-    end
-
-    return table.concat(array)
-end
-
 --// Instances //
 local InstancesLib = {
     Create = function(instanceType, properties)
@@ -161,17 +155,17 @@ local InstancesLib = {
 --// GUI //
 local ActiveFolder = InstancesLib.Create("Folder", {
     Parent = gethui(),
-    Name = RandomString()
+    Name = randomstring()
 })
 
 local StorageFolder = InstancesLib.Create("Folder", {
     Parent = if typeof(game) == "userdata" then shared.Players.Parent else game,
-    Name = RandomString()
+    Name = randomstring()
 })
 
 local MainGUI = InstancesLib.Create("ScreenGui", {
     Parent = gethui(),
-    Name = RandomString(),
+    Name = randomstring(),
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
@@ -180,7 +174,7 @@ local MainGUI = InstancesLib.Create("ScreenGui", {
 
 local BillboardGUI = InstancesLib.Create("ScreenGui", {
     Parent = gethui(),
-    Name = RandomString(),
+    Name = randomstring(),
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
@@ -223,16 +217,14 @@ local Library = {
 --// Player Variables //
 local character: Model
 local rootPart: Part?
-local camera: Camera = shared.Camera
+local Camera: Camera = shared.Camera
 
 local function worldToViewport(...)
-    camera = (camera or shared.Camera);
-
-    if camera == nil then
+    if Camera == nil then
         return Vector2.new(0, 0), false
     end
 
-    return camera:WorldToViewportPoint(...)
+    return Camera:WorldToViewportPoint(...)
 end
 
 local function UpdatePlayerVariables(newCharacter: any, force: boolean?)
@@ -459,7 +451,7 @@ function Library:Add(espSettings: ESPSettings)
 
     --// ESP Data //
     local ESP = {
-        Index = RandomString(),
+        Index = randomstring(),
         OriginalSettings = tablefreeze(espSettings),
         CurrentSettings = espSettings,
 
@@ -753,7 +745,7 @@ function Library:Add(espSettings: ESPSettings)
         if not (ESP and ESP.CurrentSettings and ESP.Deleted ~= true) then return end
         if
             ESP.CurrentSettings.Visible == false or
-            not camera or
+            not Camera or
             (if Library.GlobalConfig.IgnoreCharacter == true then false else not rootPart)
         then
             Hide()
@@ -772,7 +764,7 @@ function Library:Add(espSettings: ESPSettings)
 
         local distanceFromPlayer = InstancesLib.DistanceFrom(
             (ModelRoot or ESP.CurrentSettings.Model),
-            (if Library.GlobalConfig.IgnoreCharacter == true then (camera or rootPart) else rootPart)
+            (if Library.GlobalConfig.IgnoreCharacter == true then (Camera or rootPart) else rootPart)
         )
 
         if distanceFromPlayer > ESP.CurrentSettings.MaxDistance then
@@ -785,7 +777,7 @@ function Library:Add(espSettings: ESPSettings)
             Arrow.Visible = Library.GlobalConfig.Arrows == true and ArrowData.Enabled == true and (isOnScreen ~= true)
 
             if Arrow.Visible then
-                local screenSize = camera.ViewportSize
+                local screenSize = Camera.ViewportSize
                 local centerPos = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
 
                 --[[use aspect to make oval circle
@@ -832,11 +824,11 @@ function Library:Add(espSettings: ESPSettings)
                     local mousePos = shared.UserInputService:GetMouseLocation()
                     Tracer.From = Vector2.new(mousePos.X, mousePos.Y)
                 elseif TracerData.From == "Top" then
-                    Tracer.From = Vector2.new(camera.ViewportSize.X / 2, 0)
+                    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
                 elseif TracerData.From == "Center" then
-                    Tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
                 else
-                    Tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                    Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                 end
 
                 Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
@@ -920,13 +912,13 @@ function Library:Add(espSettings: ESPSettings)
 end
 
 --// Update Player Variables //
-table.insert(Library.Connections, workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-    camera = shared.Camera;
+table.insert(Library.Connections, shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    Camera = shared.Workspace.CurrentCamera;
 end))
 table.insert(Library.Connections, shared.Players.LocalPlayer.CharacterAdded:Connect(UpdatePlayerVariables))
 
 --// Rainbow Handler //
-table.insert(Library.Connections, shared.RunService.RenderStepped:Connect(function(Delta)
+table.insert(Library.Connections, shared.RunService.PreRender:Connect(function(Delta)
     Library.RainbowStep = Library.RainbowStep + Delta
 
     if Library.RainbowStep >= (1 / 60) then
@@ -943,7 +935,7 @@ table.insert(Library.Connections, shared.RunService.RenderStepped:Connect(functi
 end))
 
 --// Main Handler //
-table.insert(Library.Connections, shared.RunService.RenderStepped:Connect(function()
+table.insert(Library.Connections, shared.RunService.PreRender:Connect(function()
     for Index, ESP in Library.ESP do
         if not (ESP and ESP.CurrentSettings and ESP.Deleted ~= true) then
             if ESP and ESP.RenderThread then
@@ -964,4 +956,3 @@ table.insert(Library.Connections, shared.RunService.RenderStepped:Connect(functi
 end))
 
 return Library
-

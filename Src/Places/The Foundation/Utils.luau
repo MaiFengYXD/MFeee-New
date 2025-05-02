@@ -499,7 +499,7 @@ Utils.AutoCageMinigame = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("AutoCageMinigameRenderStepped", shared.RunService.RenderStepped:Connect(function()
+            shared.Connection:GiveSignal("AutoCageMinigamePreRender", shared.RunService.PreRender:Connect(function()
                 if self.AutoPlayMode == "Skip" then
                     self.Event:FireServer()
                     return
@@ -508,7 +508,7 @@ Utils.AutoCageMinigame = {
                 pcall(self.Function, self)
             end))
         else
-            shared.Connection:DisconnectSignal("AutoCageMinigameRenderStepped")
+            shared.Connection:DisconnectSignal("AutoCageMinigamePreRender")
 
             for Id in self.ConnectionIds do
                 shared.Connection:DisconnectSignal(`AutoCageMinigameChanged{Id}`)

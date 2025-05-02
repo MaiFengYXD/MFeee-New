@@ -1,5 +1,8 @@
 --// Source by deividcomsono //
 
+local randomstring
+    = randomstring
+
 local SetClipboard = setclipboard or nil
 local ProtectGui = protectgui or (syn and syn.protect_gui) or function() end
 local GetHUi = gethui or function() 
@@ -505,20 +508,9 @@ local function FillInstance(Table: { [string]: any }, Instance: GuiObject)
     end
 end
 
-local function RandomString()
-    local Random = Random.new()
-    local String = ""
-
-    for _ = 1, Random:NextInteger(8, 16) do
-        String ..= string.char(Random:NextInteger(33, 126))
-    end
-
-    return String
-end
-
 local function New(ClassName: string, Properties: { [string]: any }): any
     local Instance = Instance.new(ClassName)
-    Instance.Name = RandomString()
+    Instance.Name = randomstring()
 
     if Templates[ClassName] then
         FillInstance(Templates[ClassName], Instance)
@@ -546,7 +538,7 @@ local function ParentUI(UI: Instance)
 end
 
 local ScreenGui = New("ScreenGui", {
-    Name = RandomString(),
+    Name = randomstring(),
     DisplayOrder = 2^31 - 1,
     ResetOnSpawn = false,
 })
@@ -4001,7 +3993,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
             end,
-            Name = RandomString(),
+            Name = randomstring(),
             Position = WindowInfo.Position,
             Size = WindowInfo.Size,
             Visible = false,
@@ -4224,7 +4216,7 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
             end,
-            Name = RandomString(),
+            Name = randomstring(),
             Position = UDim2.new(1, 0, 0, 49),
             Size = UDim2.new(0.7, -1, 1, -70),
             Parent = MainFrame,

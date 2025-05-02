@@ -13,27 +13,11 @@ local PromptController = {
 }
 
 --// Local Caches //
-local type
-    = type
+local type, randomstring
+    = type, randomstring
 
 local IsA = Instance.new("Part").IsA
 local PropertyChanged = Instance.new("Part").GetPropertyChangedSignal
-
-local RandomString;do
-    local Random      = Random.new()
-    local NextInteger = Random.NextInteger
-    local Char        = string.char
-
-    function RandomString()
-        local String = ""
-
-        for _ = 1, NextInteger(Random, 8, 16) do
-            String ..= Char(NextInteger(Random, 33, 126))
-        end
-
-        return String
-    end
-end
 
 --// Init //
 local function InsertPrompt(Instance: ProximityPrompt)
@@ -41,7 +25,7 @@ local function InsertPrompt(Instance: ProximityPrompt)
 
     local self = PromptController
 
-    self.Instance    [Instance] = RandomString()
+    self.Instance    [Instance] = randomstring()
     self.HoldDuration[Instance] = Instance.HoldDuration
 
     self.MaxActivationDistance[Instance] = Instance.MaxActivationDistance

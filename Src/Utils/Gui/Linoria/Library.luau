@@ -1,5 +1,8 @@
 --// Source by mstudio45 //
 
+local randomstring
+    = randomstring;
+
 local PreRender = shared.RunService.PreRender;
 local LocalPlayer = shared.Speaker;
 local Mouse = LocalPlayer:GetMouse();
@@ -198,17 +201,6 @@ local function GetTeams(ReturnInstances)
     return FixedTeamList;
 end;
 
-local function RandomString()
-    local Random = Random.new();
-    local String = "";
-
-    for _ = 1, Random:NextInteger(8, 16) do
-        String ..= string.char(Random:NextInteger(33, 126));
-    end;
-
-    return String;
-end;
-
 function Library:SetDPIScale(value: number) 
     assert(type(value) == "number", "Expected type number for DPI scale but got " .. typeof(value))
     
@@ -222,7 +214,7 @@ function Library:Create(Class, Properties)
 
     if typeof(Class) == "string" then
         _Instance = Instance.new(Class);
-        _Instance.Name = RandomString();
+        _Instance.Name = randomstring();
     end;
 
     for Property, Value in Properties do
@@ -410,7 +402,7 @@ function Library:Notify(...)
             SoundId = "rbxassetid://" .. tostring(Data.SoundId):gsub("rbxassetid://", "");
             Volume = 3;
             PlayOnRemove = true;
-            Parent = game:GetService("SoundService");
+            Parent = shared.SoundService;
         }):Destroy();
     end
 

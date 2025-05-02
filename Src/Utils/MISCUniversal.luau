@@ -12,11 +12,7 @@ Universal.AntiAFK = {
         if not Support.getconnections then return end
 
         for _, Connection in shared.GetConnections(shared.Speaker.Idled) do
-            if Enabled then
-                pcall(Connection.Disable, Connection)
-            else
-                pcall(Connection.Enable, Connection)
-            end
+            pcall(Connection[Enabled and "Enable" or "Disable"], Connection)
         end
     end
 }

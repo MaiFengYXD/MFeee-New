@@ -1,24 +1,35 @@
 local assert:<T>(T, string?) -> T
     = assert
 
-local taskwait,  stringfind
-    = task.wait, string.find
+local taskwait,  stringfind,  Instancenew,  tablefind
+    = task.wait, string.find, Instance.new, table.find
 
 local pcall, print
     = pcall, print
 
---// Prepere Environment //
+--// Prepare Environment //
 local ExecutorSupport = {}
+local Fixable         = {
+    "fireproximityprompt",
+    "firetouchinterest",
+    "randomstring"
+}
 
 local function Test(Name: string, Function: (...any) -> (...any))
+    local CanBeFixed = tablefind(Fixable, Name)
+
     local Support, Message = pcall(Function)
-    ExecutorSupport[Name]  = Support
+    ExecutorSupport[Name]  = if CanBeFixed then true else Support
 
     if stringfind(Message, "attempt to call a nil value") then
         Message = `{Name} doesn't exist`
     end
 
-    print(Support and `✅ [{Name}]` or `❌ [{Name}] {Message}`)
+    if not Support and CanBeFixed then
+        Message ..= ", but it can be fixed"
+    end
+
+    print(Support and `✅ [{Name}]` or `{CanBeFixed and "⚠️" or "❌"} [{Name}] {Message}`)
 end
 
 --// File System //
@@ -120,98 +131,10 @@ Test("checkcaller", function()
     assert(checkcaller() == true, "Check caller test should return true cause we are in the main thread")
 end)
 
---[[ Important CoreGui Detection Bypass:
-
-```luau
-while true do
-    local CoreGui = game:GetService("CoreGui")
-    local Table   = {}
-
-    local MetaTable = setmetatable({}, {
-        __mode = "kv"
-    })
-
-    MetaTable[1] = CoreGui
-    MetaTable[2] = Table
-
-    CoreGui = nil
-    Table   = nil
-
-    while MetaTable[2] do
-        --// Waiting for Lua garbage collection
-        task.wait()
-    end
-
-    if MetaTable[1] then
-        --// CoreGui exists, and an object uses CoreGui (most likely an exploit)
-        game:GetService("Players").LocalPlayer:Kick()
-    end
-end
-```
-Creator can use the above code to detect CoreGui exploits.
-
-This is a pretty clever CoreGui detection method,
-so let's use a hook to make GetService("CoreGui") and game.CoreGui return nil or error every time.
-
---]]
-
-type Object = Instance | DataModel
-
-if ExecutorSupport.checkcaller then
-    local game, checkcaller
-        = game, checkcaller
-
-    if ExecutorSupport.hookmetamethod then
-        local OldIndex: (self: Object, Key: string) -> (...any)
-
-        OldIndex = hookmetamethod(game, "__index", function(self: Object, Key: string)
-            if self == game and Key == "CoreGui" and not checkcaller() then
-                return error("The current thread cannot access 'CoreGui' (lacking capability Plugin)", 2)
-            end
-
-            return OldIndex(self, Key)
-        end)
-
-        if ExecutorSupport.getnamecallmethod then
-            local getnamecallmethod
-                = getnamecallmethod
-
-            local OldNameCall: (self: Object, ...any) -> (...any)
-
-            OldNameCall = hookmetamethod(game, "__namecall", function(self: Object, ...: any)
-                if self == game and getnamecallmethod() == "GetService" and not checkcaller() and ... == "CoreGui" then
-                    local Success = pcall(OldNameCall, self, ...)
-
-                    if Success then return nil
-                    else return error("The current thread cannot access 'CoreGui' (lacking capability Plugin)", 2) end
-                end
-
-                return OldNameCall(self, ...)
-            end)
-        end
-    end
-
-    if ExecutorSupport.hookfunction then
-        local OldFunction: (self: Object, ServiceName: string) -> (...any)
-
-        OldFunction = hookfunction(game.GetService, function(self: Object, ServiceName: string)
-            if ServiceName == "CoreGui" and not checkcaller() then
-                local Success = pcall(OldFunction, self, ServiceName)
-
-                if Success then return nil
-                else return error("The current thread cannot access 'CoreGui' (lacking capability Plugin)", 2) end
-            end
-
-            return OldFunction(self, ServiceName)
-        end)
-    end
-end
-
-require("Services"):GetServices({"CoreGui"})
-
 --// Instances //
 Test("fireproximityprompt", function()
-    local Prompt = Instance.new("ProximityPrompt")
+    assert(type(fireproximityprompt) == "function", "attempt to call a nil value")
+    local Prompt = Instancenew("ProximityPrompt")
 
     Prompt.Triggered:Once(function()
         Prompt = Prompt:Destroy()
@@ -222,9 +145,10 @@ end)
 
 Test("firetouchinterest", function()
     shared.FireTouch = firetouchinterest or firetouchtransmitter
+    assert(type(shared.FireTouch) == "function", "attempt to call a nil value")
 
-    local Part1 = Instance.new("Part")
-    local Part2 = Instance.new("Part")
+    local Part1 = Instancenew("Part")
+    local Part2 = Instancenew("Part")
 
     Part2.Touched:Once(function()
         Part1 = Part1:Destroy()
@@ -236,6 +160,8 @@ end)
 
 Test("getconnections", function()
     shared.GetConnections = getconnections or get_signal_cons
+    assert(type(shared.GetConnections) == "function", "attempt to call a nil value")
+
     local Types = {
         Enabled = "boolean",
         ForeignState = "boolean",
@@ -249,7 +175,7 @@ Test("getconnections", function()
         Enable = "function"
     }
 
-    local Signal = Instance.new("BindableEvent")
+    local Signal = Instancenew("BindableEvent")
     Signal.Event:Once(function() end)
 
     local Connection = shared.GetConnections(Signal.Event)[1]
@@ -277,21 +203,21 @@ Test("require", function()
     end
 
     assert(ModuleScript, "Failed to find a ModuleScript")
-    assert(require(ModuleScript) ~= nil, "No content in the ModuleScript?")
 end)
 
 Test("gethui", function()
-    local HiddenUi = gethui()
-    local Gui      = Instance.new("ScreenGui", HiddenUi)
+    local IsA
+        = game.IsA
 
-    assert(Gui.Parent == (shared.Speaker:FindFirstChildWhichIsA("PlayerGui") or shared.CoreGui), "Failed to get hidden UI")
-    Gui:Destroy()
+    local HiddenUi = gethui()
+    assert(IsA(HiddenUi, "PlayerGui") or IsA(HiddenUi, "CoreGui"), "Failed to get a GUI place")
 end)
 
 Test("protectgui", function()
     shared.ProtectGui = protectgui or syn and syn.protect_gui
+    assert(type(shared.ProtectGui) == "function", "attempt to call a nil value")
 
-    local Gui = Instance.new("ScreenGui")
+    local Gui = Instancenew("ScreenGui")
     shared.ProtectGui(Gui)
 
     Gui.Parent = shared.Workspace
@@ -303,13 +229,9 @@ Test("protectgui", function()
 end)
 
 --// Miscellaneous //
-Test("decompile", function()
-    assert(type(getgenv()["decompile"]) == "function", "Decompiler doesn't exist")
-end)
-
 Test("queue_on_teleport", function()
     shared.QueueTeleport = queue_on_teleport or queueonteleport or syn and syn.queue_on_teleport or fluxus and fluxus.queue_on_teleport
-    assert(type(getgenv()[shared.QueueTeleport]) == "function", "Seems like queue_on_teleport doesn't exist")
+    assert(type(shared.QueueTeleport) == "function", "Seems like queue_on_teleport doesn't exist")
 end)
 
 Test("toclipboard", function()
@@ -317,7 +239,7 @@ Test("toclipboard", function()
         toclipboard or setclipboard or write_clipboard or setrbxclipboard or
         syn and syn.write_clipboard or Clipboard and Clipboard.set
     )
-    assert(type(getgenv()[shared.ToClipboard]) == "function", "Seems like toclipboard doesn't exist")
+    assert(type(shared.ToClipboard) == "function", "Seems like toclipboard doesn't exist")
 end)
 
 Test("Drawing", function()
@@ -327,13 +249,18 @@ Test("Drawing", function()
     assert(pcall(Draw.Remove, Draw), "Drawing API is incomplete")
 end)
 
+Test("randomstring", function()
+    local String = randomstring(128)
+    assert(type(String) == "string" and #String == 128, "Failed to generate a random string")
+end)
+
 --// Fixes //
 local Global = getgenv()
 
 if not ExecutorSupport.fireproximityprompt then
     local Inf = (1 / 0)
 
-    function Global.fireproximityprompt(Prompt: ProximityPrompt, Distance: number?)
+    function Global.fireproximityprompt(Prompt: ProximityPrompt, Distance: number | nil)
         local PreDuration = Prompt.HoldDuration
         local PreDistance = Prompt.MaxActivationDistance
         local PreNoclip   = Prompt.RequiresLineOfSight
@@ -355,17 +282,38 @@ if not ExecutorSupport.fireproximityprompt then
 end
 
 if not ExecutorSupport.firetouchinterest then
-    local PreTouch1    = {}
-    local PreTouch2    = {}
+    local PreTouch1 = {}
+    local PreTouch2 = {}
+
+    local PreCollided1 = {}
+    local PreCollided2 = {}
+
+    local PreTransparency1 = {}
+    local PreTransparency2 = {}
+
     local PrePositions = {}
 
     local function Touch1(Part1: BasePart, Part2: BasePart)
-        PreTouch1   [Part1] = Part1
-        PreTouch2   [Part2] = Part2
+        PreTouch1[Part1] = Part1.CanTouch
+        PreTouch2[Part2] = Part2.CanTouch
+
+        PreCollided1[Part1] = Part1.CanCollide
+        PreCollided2[Part2] = Part2.CanCollide
+
+        PreTransparency1[Part1] = Part1.Transparency
+        PreTransparency2[Part2] = Part2.Transparency
+
         PrePositions[Part2] = Part2.Position
 
         Part1.CanTouch = true
         Part2.CanTouch = true
+
+        Part1.CanCollide = false
+        Part2.CanCollide = false
+
+        Part1.Transparency = 1
+        Part2.Transparency = 1
+
         Part2.Position = Part1.Position
     end
 
@@ -373,10 +321,24 @@ if not ExecutorSupport.firetouchinterest then
         Part2.Touched:Once(function()
             Part1.CanTouch = PreTouch1[Part1]
             Part2.CanTouch = PreTouch2[Part2]
+
+            Part1.CanCollide = PreCollided1[Part1]
+            Part2.CanCollide = PreCollided2[Part2]
+
+            Part1.Transparency = PreTransparency1[Part1]
+            Part2.Transparency = PreTransparency2[Part2]
+
             Part2.Position = PrePositions[Part2]
 
-            PreTouch1   [Part1] = nil
-            PreTouch2   [Part2] = nil
+            PreTouch1[Part1] = nil
+            PreTouch2[Part2] = nil
+
+            PreCollided1[Part1] = nil
+            PreCollided2[Part2] = nil
+
+            PreTransparency1[Part1] = nil
+            PreTransparency2[Part2] = nil
+
             PrePositions[Part2] = nil
         end)
 
@@ -393,6 +355,108 @@ if not ExecutorSupport.firetouchinterest then
 
     shared.FireTouch = Global.firetouchinterest
 end
+
+if not ExecutorSupport.randomstring then
+    local stringchar
+        = string.char
+
+    local Random      = Random.new()
+    local NextInteger = Random.NextInteger
+
+    function Global.randomstring(Length: number | nil): string
+        local String = ""
+
+        for _ = 1, Length or 16 do
+            String ..= stringchar(NextInteger(Random, 33, 126))
+        end
+
+        return String
+    end
+end
+
+--[[ CoreGui Detection Bypass:
+
+```luau
+while true do
+    local CoreGui = game:GetService("CoreGui") --/ Get CoreGui strong reference
+    local Dummy   = {} :: any
+
+    local MetaTable = setmetatable({}, {
+        --// Set as weak table so Lua garbage collection can collect it without any strong references
+        __mode = "kv"
+    })
+
+    --// Add these two variables to the weak table as weak references in the weak table
+    MetaTable[1] = CoreGui
+    MetaTable[2] = Dummy
+
+    --// Clean up the two strong references so Lua can collect CoreGui on the next garbage collection
+    CoreGui = nil
+    Dummy   = nil
+
+    while MetaTable[2] do
+        --// Waiting for Lua garbage collection
+        task.wait()
+    end
+
+    if MetaTable[1] then
+        --// CoreGui reference exists, and an object uses CoreGui (most likely an exploit)
+        game:GetService("Players").LocalPlayer:Kick()
+    end
+end
+```
+Creator can use the above code to detect CoreGui exploits.
+
+So let's use a hook to make GetService("CoreGui") and game.CoreGui return nil or error every time.
+
+--]]
+
+type Object = Instance | DataModel
+
+if not ExecutorSupport.gethui and ExecutorSupport.checkcaller then
+    --// ↑ gethui can bypass this detection
+    local game, checkcaller
+        = game, checkcaller
+
+    local OldIndex, OldNameCall, OldFunction
+
+    local ErrorMessage = "The current thread cannot access 'CoreGui' (lacking capability Plugin)"
+
+    if ExecutorSupport.hookmetamethod then
+        OldIndex = hookmetamethod(game, "__index", function(self: Object, Key: string): (...any)
+            if self == game and Key == "CoreGui" and not checkcaller() then
+                return error(ErrorMessage, 2)
+            end
+
+            return OldIndex(self, Key)
+        end)
+
+        if ExecutorSupport.getnamecallmethod then
+            local getnamecallmethod
+                = getnamecallmethod
+
+            OldNameCall = hookmetamethod(game, "__namecall", function(self: Object, ...: any): (...any)
+                if self == game and getnamecallmethod() == "GetService" and ... == "CoreGui" and not checkcaller() then
+                    return if pcall(OldNameCall, self, ...) then nil else error(ErrorMessage, 2)
+                end
+
+                return OldNameCall(self, ...)
+            end)
+        end
+    end
+
+    if ExecutorSupport.hookfunction then
+        OldFunction = hookfunction(game.GetService, function(self: Object, ServiceName: string): (...any)
+            if not checkcaller() and ServiceName == "CoreGui" then
+                return if pcall(OldFunction, self, ServiceName) then nil else error(ErrorMessage, 2)
+            end
+
+            return OldFunction(self, ServiceName)
+        end)
+    end
+end
+
+require("Services"):GetServices({"CoreGui"})
 
 --// Summary //
 local FileSystem = {

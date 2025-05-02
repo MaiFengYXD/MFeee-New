@@ -5,7 +5,7 @@ export type IETFLanguageTag =
     | "pt" | "ru" | "sv" | "tr" | "ua"
     | "ur" | "vi" | "zh-cn" | "zh-hant"
 
-export type DisplayLanguage = 
+export type NativeNames = 
     | "አማርኛ" | "العربية" | "Azərbaycan dili" | "Deutsch" | "English"
     | "Español" | "فارسی" | "Français" | "हिन्दी" | "Hrvatski"
     | "Magyar" | "Bahasa Indonesia" | "日本語" | "Қазақ тілі" | "Bahasa Melayu"
@@ -13,7 +13,7 @@ export type DisplayLanguage =
     | "اردو" | "Tiếng Việt" | "简体中文" | "繁體中文"
 
 local Translations = {
-    Registry = {
+    NativeNames = {
         ["am"] = "አማርኛ",
         ["ar"] = "العربية",
         ["az"] = "Azərbaycan dili",
@@ -36,9 +36,9 @@ local Translations = {
         ["ua"] = "Українська мова",
         ["ur"] = "اردو",
         ["vi"] = "Tiếng Việt",
-        ["zh-cn"] = "简体中文",
+        ["zh-cn"]   = "简体中文",
         ["zh-hant"] = "繁體中文"
-    } :: {[IETFLanguageTag]: DisplayLanguage}
+    } :: {[IETFLanguageTag]: NativeNames}
 }
 
 local Language = wax.shared.Language

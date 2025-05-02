@@ -7,7 +7,6 @@ return {
     ["Anti Roblox Void"] = "反虚空 (Roblox 虚空)",
     ["Avatar Context Menu"] = "头像上下文菜单",
     ["Avatar \"selfie\" (with facial capture enabled)"] = "头像“自拍”（启用面部捕捉时）",
-    ["Bloxstrap RPC"] = "Bloxstrap RPC",
     ["Boost Speed"] = "提升速度",
     ["Bottom Left"] = "左下",
     ["Bottom Right"] = "右下",
