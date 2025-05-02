@@ -539,7 +539,6 @@ local function ParentUI(UI: Instance)
 end
 
 local ScreenGui = New("ScreenGui", {
-    Name = randomstring(),
     DisplayOrder = 999,
     ResetOnSpawn = false,
 })
@@ -3996,7 +3995,6 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, -1)
             end,
-            Name = randomstring(),
             Position = WindowInfo.Position,
             Size = WindowInfo.Size,
             Visible = false,
@@ -4219,7 +4217,6 @@ function Library:CreateWindow(WindowInfo)
             BackgroundColor3 = function()
                 return Library:GetBetterColor(Library.Scheme.BackgroundColor, 1)
             end,
-            Name = randomstring(),
             Position = UDim2.new(1, 0, 0, 49),
             Size = UDim2.new(0.7, -1, 1, -70),
             Parent = MainFrame,
