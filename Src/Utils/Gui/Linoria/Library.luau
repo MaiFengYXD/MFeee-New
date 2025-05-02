@@ -21,6 +21,9 @@ local ScreenGui = Instance.new('ScreenGui');
 pcall(ProtectGui, ScreenGui);
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+ScreenGui.DisplayOrder = 999;
+ScreenGui.ResetOnSpawn = false;
+
 local Parented = pcall(function() ScreenGui.Parent = GetHUI(); end);
 if not Parented then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 9e9) end;
 
@@ -4796,6 +4799,7 @@ function Library:CreateWindow(...)
         Size = UDim2.fromOffset(550, 600);
         Center = true;
         Resizable = true;
+        AlwaysOnTop = false;
     }
 
     if typeof(...) == 'table' then
@@ -4838,6 +4842,7 @@ function Library:CreateWindow(...)
         OriginalTitle = Config.Title; Title = Config.Title;
     };
 
+    ScreenGui.OnTopOfCoreBlur = Config.AlwaysOnTop == true
     local Outer = Library:Create('Frame', {
         AnchorPoint = Config.AnchorPoint;
         BackgroundColor3 = Color3.new(0, 0, 0);

@@ -159,6 +159,7 @@ local Templates = {
         Font = Enum.Font.Code,
         ToggleKeybind = Enum.KeyCode.RightControl,
         MobileButtonsSide = "Left",
+        AlwaysOnTop = false,
     },
     Toggle = {
         Text = Translations:GetTranslation("Toggle"),
@@ -539,7 +540,7 @@ end
 
 local ScreenGui = New("ScreenGui", {
     Name = randomstring(),
-    DisplayOrder = 2^31 - 1,
+    DisplayOrder = 999,
     ResetOnSpawn = false,
 })
 ParentUI(ScreenGui)
@@ -3948,6 +3949,8 @@ end
 
 function Library:CreateWindow(WindowInfo)
     WindowInfo = Library:Validate(WindowInfo, Templates.Window)
+    ScreenGui.OnTopOfCoreBlur = WindowInfo.AlwaysOnTop == true
+
     local ViewportSize: Vector2 = workspace.CurrentCamera.ViewportSize
     if shared.RunService:IsStudio() and ViewportSize.X <= 5 and ViewportSize.Y <= 5 then
         repeat

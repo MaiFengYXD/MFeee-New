@@ -12,13 +12,14 @@ local MISCUniversal   = wax.shared.MISCUniversal
 
 local WindowStyle   = FileHelper:CheckFile("MFeee~New/WindowStyle.txt", "Obsidian", {"Obsidian", "Linoria"})
 local NotifySound   = FileHelper:CheckFile("MFeee~New/NotifySound.txt", WindowStyle, {"Obsidian", "Linoria"})
-local NotifySide    = FileHelper:CheckFile("MFeee~New/NotifySide.txt", "TopRight", {"TopLeft", "TopRight", "BottomLeft", "BottomRight"})
+local NotifySide    = FileHelper:CheckFile("MFeee~New/NotifySide.txt" , "TopRight", {"TopLeft", "TopRight", "BottomLeft", "BottomRight"})
 local ForceCheckbox = FileHelper:CheckFile("MFeee~New/ForceCheckbox.txt", "false", {"false", "true"}) == "true"
-local CustomCursor  = FileHelper:CheckFile("MFeee~New/CustomCursor.txt", "false", {"false", "true"}) == "true"
-local KeybindFrame  = FileHelper:CheckFile("MFeee~New/KeybindFrame.txt", "false", {"false", "true"}) == "true"
+local CustomCursor  = FileHelper:CheckFile("MFeee~New/CustomCursor.txt" , "false", {"false", "true"}) == "true"
+local KeybindFrame  = FileHelper:CheckFile("MFeee~New/KeybindFrame.txt" , "false", {"false", "true"}) == "true"
+local AlwaysOnTop   = FileHelper:CheckFile("MFeee~New/AlwaysOnTop.txt"  , "false", {"false", "true"}) == "true"
 local UiCorner      = FileHelper:CheckFile("MFeee~New/UiCorner.txt", 5, 5)
 local DPIScale      = FileHelper:CheckFile("MFeee~New/DPIScale.txt", 1, 1)
-local Clicked       = FileHelper:CheckFile("MFeee~New/Clicked.txt", 0, 0)
+local Clicked       = FileHelper:CheckFile("MFeee~New/Clicked.txt" , 0, 0)
 
 UiManager.Library      = require(`{WindowStyle}/Library`)
 UiManager.SaveManager  = require(`{WindowStyle}/SaveManager`)
@@ -48,15 +49,16 @@ end
 
 function UiManager:CreateWindow()
     self.Window  = self.Library:CreateWindow({
+        Icon     = 77335290652571,
         Title    = `MFeee~ New {wax.shared.Emoji}`,
         Footer   = `{wax.shared.ScriptDisplay} | {wax.shared.ScriptVersion}`,
         Center   = true,
         AutoShow = true,
-        CornerRadius     = UiCorner,
-        ShowCustomCursor = CustomCursor,
-        DPIScale   = DPIScale,
-        NotifySide = NotifySide,
-        Icon = 77335290652571
+        AlwaysOnTop  = AlwaysOnTop,
+        CornerRadius = UiCorner,
+        DPIScale     = DPIScale,
+        NotifySide   = NotifySide,
+        ShowCustomCursor = CustomCursor
     })
 
     self.Library.KeybindFrame.Visible = KeybindFrame
@@ -606,6 +608,11 @@ function UiManager:CreateUniversalTabs()
     --// UI Groupbox (Right)
     self.SettingsTabUiGroup = self.SettingsTab:AddRightGroupbox(Translations:GetTranslation("UI"))
 
+    self.SettingsTabUiGroup:AddToggle("AlwaysOnTop", {
+        Text = Translations:GetTranslation("Always On Top"),
+        Default = AlwaysOnTop
+    })
+
     local NativeLanguage = {
         Tag  = {},
         Name = {}
@@ -703,6 +710,13 @@ function UiManager:CreateUniversalTabs()
     end)
 
     --// UI Groupbox OnChanged
+    self.Toggles.AlwaysOnTop:OnChanged(function(Enabled)
+        AlwaysOnTop = Enabled
+        self.Library.ScreenGui.OnTopOfCoreBlur = Enabled
+
+        FileHelper:WriteFile("MFeee~New/AlwaysOnTop.txt", tostring(Enabled))
+    end)
+
     self.Options.ChangeLanguage:OnChanged(function(Language)
         local Index = table.find(NativeLanguage.Tag, Language)
         if not Index then return end
@@ -717,13 +731,13 @@ function UiManager:CreateUniversalTabs()
     end)
 
     self.Options.DPIScale:OnChanged(function(Scale)
-        local DPI = tonumber(string.sub(Scale, 1, -2))
-        if not DPI then return end
+        local Dpi = tonumber(string.sub(Scale, 1, -2))
+        if not Dpi then return end
 
-        DPI = DPI / 100
-        FileHelper:WriteFile("MFeee~New/DPIScale.txt", tostring(DPI))
+        Dpi = Dpi / 100
+        FileHelper:WriteFile("MFeee~New/DPIScale.txt", tostring(Dpi))
 
-        self.Library:SetDPIScale(DPI)
+        self.Library:SetDPIScale(Dpi)
     end)
 
     self.Options.UICorner:OnChanged(function(Corner)
