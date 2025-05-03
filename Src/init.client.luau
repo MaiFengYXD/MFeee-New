@@ -88,7 +88,7 @@ do
     end
 end
 
-wax.shared.Translations  = require("Translations/Main")
+wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
 
 wax.shared.PlayerUniversal = require("Utils/PlayerUniversal")
