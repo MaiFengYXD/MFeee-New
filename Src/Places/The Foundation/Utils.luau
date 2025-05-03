@@ -12,7 +12,7 @@ wax.shared.CurrentRoomObject = CurrentRoomValue.Value
 
 local Rooms = shared.Workspace:WaitForChild("GeneratedRooms")
 
-shared.Connection:GiveSignal("CurrentRoomObjectChanged", CurrentRoomValue:GetPropertyChangedSignal("Value"):Connect(function()
+shared.Connect:GiveSignal("CurrentRoomObjectChanged", CurrentRoomValue:GetPropertyChangedSignal("Value"):Connect(function()
     wax.shared.CurrentRoomObject = CurrentRoomValue.Value
 end))
 
@@ -35,7 +35,7 @@ Utils.LadderSpeed = {
                     until Align.Parent ~= Character
                 end)
 
-                shared.Connection:GiveSignal("LadderSpeedChildAdded", Character.ChildAdded:Connect(function(Child)
+                shared.Connect:GiveSignal("LadderSpeedChildAdded", Character.ChildAdded:Connect(function(Child)
                     if Child:IsA("AlignPosition") then
                         repeat
                             Child.MaxVelocity = self.Speed
@@ -48,10 +48,10 @@ Utils.LadderSpeed = {
             local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
             DoBoost(Character)
 
-            shared.Connection:GiveSignal("LadderSpeedCharacterAdded", shared.Speaker.CharacterAdded:Connect(DoBoost))
+            shared.Connect:GiveSignal("LadderSpeedCharacterAdded", shared.Speaker.CharacterAdded:Connect(DoBoost))
         else
-            shared.Connection:DisconnectSignal("LadderSpeedChildAdded")
-            shared.Connection:DisconnectSignal("LadderSpeedCharacterAdded")
+            shared.Connect:DisconnectSignal("LadderSpeedChildAdded")
+            shared.Connect:DisconnectSignal("LadderSpeedCharacterAdded")
 
             pcall(function()
                 shared.Speaker.Character.AlignPosition.MaxVelocity = 10
@@ -71,11 +71,11 @@ Utils.AntiScreech = {
         if Enabled then
             self.ScreechValue.Value = true
 
-            shared.Connection:GiveSignal("ScreechValueChanged", self.ScreechValue:GetPropertyChangedSignal("Value"):Connect(function()
+            shared.Connect:GiveSignal("ScreechValueChanged", self.ScreechValue:GetPropertyChangedSignal("Value"):Connect(function()
                 self.ScreechValue.Value = true
             end))
         else
-            shared.Connection:DisconnectSignal("ScreechValueChanged")
+            shared.Connect:DisconnectSignal("ScreechValueChanged")
             self.ScreechValue.Value = false
         end
     end
@@ -127,7 +127,7 @@ Utils.DoorReach = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("DoorReachDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
+            shared.Connect:GiveSignal("DoorReachDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
                 if (
                    Descendant.Name == "Hitbox" and
                    Descendant:IsA("Part") and
@@ -139,12 +139,12 @@ Utils.DoorReach = {
                 end
             end))
 
-            shared.Connection:GiveSignal("DoorReachDescendantRemoving", Rooms.DescendantRemoving:Connect(function(Descendant)
+            shared.Connect:GiveSignal("DoorReachDescendantRemoving", Rooms.DescendantRemoving:Connect(function(Descendant)
                 self.DoorHitboxes[Descendant] = nil
             end))
         else
-            shared.Connection:DisconnectSignal("DoorReachDescendantAdded")
-            shared.Connection:DisconnectSignal("DoorReachDescendantRemoving")
+            shared.Connect:DisconnectSignal("DoorReachDescendantAdded")
+            shared.Connect:DisconnectSignal("DoorReachDescendantRemoving")
         end
 
         self:Handle()
@@ -172,7 +172,7 @@ Utils.AntiDarkRoom = {
         if Enabled then
             self.DarkRoomValue.Value = false
 
-            shared.Connection:GiveSignal("DarkRoomValueChanged", self.DarkRoomValue:GetPropertyChangedSignal("Value"):Connect(function()
+            shared.Connect:GiveSignal("DarkRoomValueChanged", self.DarkRoomValue:GetPropertyChangedSignal("Value"):Connect(function()
                 self.DarkRoomValue.Value = false
             end))
 
@@ -183,15 +183,15 @@ Utils.AntiDarkRoom = {
                 table.insert(self.BrightRooms, Object)
             end
 
-            shared.Connection:GiveSignal("DarkRoomAdded", wax.shared.CurrentRoomObject.ChildAdded:Connect(function(Object)
+            shared.Connect:GiveSignal("DarkRoomAdded", wax.shared.CurrentRoomObject.ChildAdded:Connect(function(Object)
                 if not Object:HasTag("DarkRoom") then return end
 
                 shared.CollectionService:RemoveTag(Object, "DarkRoom")
                 table.insert(self.BrightRooms, Object)
             end))
         else
-            shared.Connection:DisconnectSignal("DarkRoomValueChanged")
-            shared.Connection:DisconnectSignal("DarkRoomAdded")
+            shared.Connect:DisconnectSignal("DarkRoomValueChanged")
+            shared.Connect:DisconnectSignal("DarkRoomAdded")
 
             for _, Object in self.BrightRooms do
                 if Object.Parent ~= wax.shared.CurrentRoomObject then continue end
@@ -243,7 +243,7 @@ Utils.AutoBreaker = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("AutoBreakerDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
+            shared.Connect:GiveSignal("AutoBreakerDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
                 if self.AutoPlayMode ~= "Skip" then return end
                 if self.Condition(Descendant) then return end
 
@@ -287,7 +287,7 @@ Utils.AutoBreaker = {
                 end
             end
         else
-            shared.Connection:DisconnectSignal("AutoBreakerDescendantAdded")
+            shared.Connect:DisconnectSignal("AutoBreakerDescendantAdded")
 
             if not (self.OldRunNumber and self.Script) then return end
 
@@ -355,19 +355,19 @@ Utils.AntiDecoyLockers = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("DecoyLockerDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
+            shared.Connect:GiveSignal("DecoyLockerDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
                 if Descendant.Name == "AttackRange" and Descendant:IsA("Part") and Descendant.Parent.Name == "decoyLocker" then
                     self.DecoyLockers[Descendant] = Descendant
                     Descendant.CanTouch = not self.Enabled
                 end
             end))
 
-            shared.Connection:GiveSignal("DecoyLockerDescendantRemoving", Rooms.DescendantRemoving:Connect(function(Descendant)
+            shared.Connect:GiveSignal("DecoyLockerDescendantRemoving", Rooms.DescendantRemoving:Connect(function(Descendant)
                 self.DecoyLockers[Descendant] = nil
             end))
         else
-            shared.Connection:DisconnectSignal("DecoyLockerDescendantAdded")
-            shared.Connection:DisconnectSignal("DecoyLockerDescendantRemoving")
+            shared.Connect:DisconnectSignal("DecoyLockerDescendantAdded")
+            shared.Connect:DisconnectSignal("DecoyLockerDescendantRemoving")
         end
 
         self:Handle()
@@ -443,7 +443,7 @@ Utils.SkipSeek = {
         end
 
         if Enabled then
-            shared.Connection:GiveSignal("SkipSeekChildAdded", Rooms.ChildAdded:Connect(function(Child)
+            shared.Connect:GiveSignal("SkipSeekChildAdded", Rooms.ChildAdded:Connect(function(Child)
                 task.wait()
 
                 self:SeekRoomCondition(Child)
@@ -455,7 +455,7 @@ Utils.SkipSeek = {
                 end
             end))
         else
-            shared.Connection:DisconnectSignal("SkipSeekChildAdded")
+            shared.Connect:DisconnectSignal("SkipSeekChildAdded")
         end
     end
 }
@@ -477,14 +477,14 @@ Utils.AutoCageMinigame = {
             local Region = Ui.CageMinigameUI.Minigame.ZBar.Region
 
             if self.AutoPlayMode == "Size" then
-                shared.Connection:GiveSignal(`AutoCageMinigameChanged{Ui}`, Bar:GetPropertyChangedSignal("Size"):Connect(function()
+                shared.Connect:GiveSignal(`AutoCageMinigameChanged{Ui}`, Bar:GetPropertyChangedSignal("Size"):Connect(function()
                     Bar.Size = UDim2.fromScale(1, 4.378)
                 end))
 
                 self.ConnectionIds[Ui] = Ui
                 Bar.Size = UDim2.fromScale(1, 4.378)
             elseif self.AutoPlayMode == "Position" then
-                shared.Connection:GiveSignal(`AutoCageMinigameChanged{Ui}`, Bar:GetPropertyChangedSignal("Position"):Connect(function()
+                shared.Connect:GiveSignal(`AutoCageMinigameChanged{Ui}`, Bar:GetPropertyChangedSignal("Position"):Connect(function()
                     Region.Position = Bar.Position
                 end))
 
@@ -499,7 +499,7 @@ Utils.AutoCageMinigame = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("AutoCageMinigamePreRender", shared.RunService.PreRender:Connect(function()
+            shared.Connect:GiveSignal("AutoCageMinigamePreRender", shared.RunService.PreRender:Connect(function()
                 if self.AutoPlayMode == "Skip" then
                     self.Event:FireServer()
                     return
@@ -508,10 +508,10 @@ Utils.AutoCageMinigame = {
                 pcall(self.Function, self)
             end))
         else
-            shared.Connection:DisconnectSignal("AutoCageMinigamePreRender")
+            shared.Connect:DisconnectSignal("AutoCageMinigamePreRender")
 
             for Id in self.ConnectionIds do
-                shared.Connection:DisconnectSignal(`AutoCageMinigameChanged{Id}`)
+                shared.Connect:DisconnectSignal(`AutoCageMinigameChanged{Id}`)
             end
         end
     end
@@ -541,13 +541,13 @@ Utils.FixCamera = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("FixCameraChanged", shared.Workspace.CurrentCamera:GetPropertyChangedSignal("CameraType"):Connect(function()
+            shared.Connect:GiveSignal("FixCameraChanged", shared.Workspace.CurrentCamera:GetPropertyChangedSignal("CameraType"):Connect(function()
                 shared.Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
             end))
 
             shared.Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
         else
-            shared.Connection:DisconnectSignal("FixCameraChanged")
+            shared.Connect:DisconnectSignal("FixCameraChanged")
         end
     end
 }
@@ -572,14 +572,14 @@ Utils.AntiDeathPit = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connection:GiveSignal("DeathPitDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
+            shared.Connect:GiveSignal("DeathPitDescendantAdded", Rooms.DescendantAdded:Connect(function(Descendant)
                 if not (Descendant:IsA("Part") and Descendant.Name == "DeathPit") then return end
 
                 Descendant.CanTouch = not self.Enabled
                 self.DeathPits[Descendant] = Descendant
             end))
         else
-            shared.Connection:DisconnectSignal("DeathPitDescendantAdded")
+            shared.Connect:DisconnectSignal("DeathPitDescendantAdded")
         end
 
         self:Handle()

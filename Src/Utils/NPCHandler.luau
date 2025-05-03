@@ -8,13 +8,13 @@ function NPCHandler:Init(Npc: Model)
 
     local function Disconnect()
         table.remove(self.Npcs, table.find(self.Npcs, Npc))
-        shared.Connection:DisconnectSignal(Id)
-        shared.Connection:DisconnectSignal(Npc)
+        shared.Connect:DisconnectSignal(Id)
+        shared.Connect:DisconnectSignal(Npc)
     end
 
-    shared.Connection:GiveSignal(Npc, Npc.Destroying:Once(Disconnect))
+    shared.Connect:GiveSignal(Npc, Npc.Destroying:Once(Disconnect))
 
-    shared.Connection:GiveSignal(Id, Npc.AncestryChanged:Connect(function(_, Parent: Instance?)
+    shared.Connect:GiveSignal(Id, Npc.AncestryChanged:Connect(function(_, Parent: Instance?)
         if typeof(Parent) ~= "Instance" or not Parent:IsDescendantOf(shared.Workspace) then
             Disconnect()
         end
@@ -35,6 +35,6 @@ for _, Object in shared.Workspace:GetDescendants() do
     Handle(Object)
 end
 
-shared.Connection:GiveSignal("NpcDescendantsAdded", shared.Workspace.DescendantAdded:Connect(Handle))
+shared.Connect:GiveSignal("NpcDescendantsAdded", shared.Workspace.DescendantAdded:Connect(Handle))
 
 return NPCHandler

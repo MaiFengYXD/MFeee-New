@@ -42,8 +42,18 @@ local Translations = {
 }
 
 local Language = wax.shared.Language
---/ Rojo cannot recognize .json files within the Src folder, so I have to use .luau :(
-Translations[Language] = require(Language) :: {[string]: string}
+do
+    local Thread = coroutine.create(function()
+        Translations[Language] = game:HttpGet(`https://github.com/MaiFengYXD/Translations/Translations/{Language}.json`)
+    end)
+
+    coroutine.resume(Thread)
+    coroutine.close(task.wait(10) and Thread)
+
+    if not Translations[Language] then
+        shared.MiniNotify("Translations", `Failed to fetch translations for {Language}`)
+    end
+end
 
 function Translations:GetTranslation(Key: string): string
     return self[Language] and self[Language][Key] or Key

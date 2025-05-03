@@ -30,9 +30,11 @@ local function Notify(Title: string, Text: string)
         Title    = Title,
         Text     = Text,
         Button1  = "Close",
-        Duration = 5
+        Duration = 10
     })
 end
+
+wax.shared.MiniNotify = Notify
 
 if getgenv().MFeeeLoaded  then Notify("Loading Stopped!", "Error: Already loaded.");return end
 if getgenv().MFeeeLoading then Notify("Loading Stopped!", "Error: Loading.")       ;return end
@@ -49,6 +51,8 @@ task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 --// Start to Load //
+wax.shared.TempStorage = {}
+
 task.spawn(pcall, function()
     shared.GameName = nil
     shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
@@ -60,12 +64,10 @@ wax.shared.Emoji           = require("Utils/ArtEmoji")
 wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
 wax.shared.FileHelper      = require("Utils/FileHelper")
 
-shared.Connection  = require("Utils/Connection")
+shared.Connect     = require("Utils/Connect")
 shared.ToClipboard = type(shared.ToClipboard) == "function" and shared.ToClipboard or function(...) end
 
-local FileHelper = wax.shared.FileHelper
-
-wax.shared.Language = FileHelper:CheckFile("MFeee~New/Language.txt", "en", {
+wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", "en", {
     "am", "ar", "az", "de", "en",
     "es", "fa", "fr", "hi", "hr",
     "hu", "id", "ja", "kz", "ms",
@@ -90,21 +92,13 @@ end
 
 wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
+wax.shared.NpcHandler    = require("Utils/NPCHandler")
 
-wax.shared.PlayerUniversal = require("Utils/PlayerUniversal")
-wax.shared.MISCUniversal   = require("Utils/MISCUniversal")
-wax.shared.VisualUniversal = require("Utils/VisualUniversal")
-wax.shared.NpcHandler      = require("Utils/NPCHandler")
-
-shared.ControlModule = require("Utils/ControlModule")
-
-wax.shared.TempStorage = {}
-
-shared.Connection:GiveSignal("CameraChangedSignal", shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-    shared.Camera = shared.Workspace.CurrentCamera
+shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    shared.Camera  = shared.Workspace.CurrentCamera
 end))
 
-shared.Connection:GiveSignal("PlayerNameChangedSignal", shared.Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
+shared.Connect:GiveSignal("SpeakerChangedSignal", shared.Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
     shared.Speaker = shared.Players.LocalPlayer
 end))
 
@@ -113,10 +107,7 @@ wax.shared.ScriptVersion = "Build 1"
 
 wax.shared.Icons     = require("Utils/Gui/Lucide")
 wax.shared.UiManager = require("Utils/Gui/UiManager")
-
-local UiManager = wax.shared.UiManager
-
-wax.shared.Window = UiManager:CreateWindow()
+wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
 require(`Places/{shared.ScriptLoader}/Loader`)
 

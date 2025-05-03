@@ -7,8 +7,8 @@ local ExecutorSupport = wax.shared.ExecutorSupport
 local FileHelper      = wax.shared.FileHelper
 local Translations    = wax.shared.Translations
 local EasingLibrary   = wax.shared.EasingLibrary
-local PlayerUniversal = wax.shared.PlayerUniversal
-local MISCUniversal   = wax.shared.MISCUniversal
+local UniversalPlayer = require("../Universal/Player")
+local UniversalMISC   = require("../Universal/Misc")
 
 local WindowStyle   = FileHelper:CheckFile("MFeee~New/WindowStyle.txt", "Obsidian", {"Obsidian", "Linoria"})
 local NotifySound   = FileHelper:CheckFile("MFeee~New/NotifySound.txt", WindowStyle, {"Obsidian", "Linoria"})
@@ -87,9 +87,9 @@ function UiManager:CreateMainTab()
     })
 
     --// General Groupbox OnChanged
-    self.Toggles.AntiAFK:OnChanged(MISCUniversal.AntiAFK.Start)
+    self.Toggles.AntiAFK:OnChanged(UniversalMISC.AntiAFK.Start)
 
-    self.Toggles.AntiKick:OnChanged(MISCUniversal.AntiKick.Start)
+    self.Toggles.AntiKick:OnChanged(UniversalMISC.AntiKick.Start)
 
     --// Other Groupbox (Right)
     self.MainTabOtherGroup = self.MainTab:AddRightGroupbox(Translations:GetTranslation("Other"))
@@ -254,10 +254,10 @@ function UiManager:CreatePlayerTab()
 
     self.PlayerLeftTabBoxOverridesTab:AddSlider("BoostSpeed", {
         Text = Translations:GetTranslation("Boost Speed"),
-        Default = PlayerUniversal.SpeedBoost.Speed,
+        Default = UniversalPlayer.SpeedBoost.Speed,
         Min = 0,
         Max = 100,
-        Suffix = PlayerUniversal.SpeedBoost.Speed > 1 and "studs/s" or "stud/s",
+        Suffix = UniversalPlayer.SpeedBoost.Speed > 1 and "studs/s" or "stud/s",
         Compact = true,
         HideMax = true
     })
@@ -289,36 +289,31 @@ function UiManager:CreatePlayerTab()
     })
 
     --// Player Groupbox OnChanged
-    self.Toggles.WalkSpeedOverride :OnChanged(PlayerUniversal.WalkSpeed.Override)
-    self.Toggles.JumpHeightOverride:OnChanged(PlayerUniversal.JumpHeight.Override)
-    self.Toggles.GravityOverride   :OnChanged(PlayerUniversal.Gravity.Override)
+    self.Toggles.WalkSpeedOverride :OnChanged(UniversalPlayer.WalkSpeed.Override)
+    self.Toggles.JumpHeightOverride:OnChanged(UniversalPlayer.JumpHeight.Override)
+    self.Toggles.GravityOverride   :OnChanged(UniversalPlayer.Gravity.Override)
 
-    self.Toggles.NoAcceleration :OnChanged(PlayerUniversal.NoAcceleration.Start)
-    self.Toggles.AntiRobloxVoid :OnChanged(PlayerUniversal.AntiVoid.Start)
-    self.Toggles.SpeedBoost     :OnChanged(PlayerUniversal.SpeedBoost.Start)
-    self.Toggles.CharacterScaled:OnChanged(PlayerUniversal.Scale.Start)
+    self.Toggles.NoAcceleration :OnChanged(UniversalPlayer.NoAcceleration.Start)
+    self.Toggles.AntiRobloxVoid :OnChanged(UniversalPlayer.AntiVoid.Start)
+    self.Toggles.SpeedBoost     :OnChanged(UniversalPlayer.SpeedBoost.Start)
 
-    self.Toggles.Noclip       :OnChanged(PlayerUniversal.Noclip.CharacterNoclip)
-    self.Toggles.VehicleNoclip:OnChanged(PlayerUniversal.Noclip.VehicleNoclip)
+    self.Toggles.Noclip       :OnChanged(UniversalPlayer.Noclip.CharacterNoclip)
+    self.Toggles.VehicleNoclip:OnChanged(UniversalPlayer.Noclip.VehicleNoclip)
 
     self.Options.WalkSpeed:OnChanged(function(WalkSpeed)
-        PlayerUniversal.WalkSpeed.SetSpeed(WalkSpeed)
+        UniversalPlayer.WalkSpeed.SetSpeed(WalkSpeed)
     end)
 
     self.Options.JumpHeight:OnChanged(function(JumpHeight)
-        PlayerUniversal.JumpHeight.SetHeight(JumpHeight)
+        UniversalPlayer.JumpHeight.SetHeight(JumpHeight)
     end)
 
     self.Options.Gravity:OnChanged(function(Gravity)
-        PlayerUniversal.Gravity.SetGravity(Gravity)
+        UniversalPlayer.Gravity.SetGravity(Gravity)
     end)
 
     self.Options.BoostSpeed:OnChanged(function(BoostSpeed)
-        PlayerUniversal.SpeedBoost.Speed = BoostSpeed
-    end)
-
-    self.Options.CharacterScale:OnChanged(function(CharacterScale)
-        PlayerUniversal.Scale.SetScale(CharacterScale)
+        UniversalPlayer.SpeedBoost.Speed = BoostSpeed
     end)
 
     --// Fly Groupbox (Right)
@@ -395,7 +390,7 @@ function UiManager:CreateUniversalTabs()
     end
 
     --// Roblox Groupbox OnChanged/Connection
-    shared.Connection:GiveSignal("RobloxGuiLoop", shared.RunService.PreRender:Connect(function()
+    shared.Connect:GiveSignal("RobloxGuiLoop", shared.RunService.PreRender:Connect(function()
         SetCore(StarterGui, "ResetButtonCallback",      self.Toggles.EnableReset.Value)
         SetCore(StarterGui, "AvatarContextMenuEnabled", self.Toggles.AvatarContextMenu.Value)
         SetCoreGui("PlayerList")
@@ -495,9 +490,9 @@ function UiManager:CreateUniversalTabs()
             end
         end
 
-        shared.Connection:GiveSignal("DecompilationInfo", self.InfoInstance:GetPropertyChangedSignal("Value"):Connect(function()
+        shared.Connect:GiveSignal("DecompilationInfo", self.InfoInstance:GetPropertyChangedSignal("Value"):Connect(function()
             if not self.Running then
-                shared.Connection:DisconnectSignal("DecompilationInfo")
+                shared.Connect:DisconnectSignal("DecompilationInfo")
                 return
             end
 
@@ -869,12 +864,12 @@ function UiManager:CreateUniversalTabs()
         return `{Hour}:{Minute}:{Second}`
     end
 
-    shared.Connection:GiveSignal("YouPlayedLabel", shared.RunService.PreRender:Connect(function()
+    shared.Connect:GiveSignal("YouPlayedLabel", shared.RunService.PreRender:Connect(function()
         local Time = ConvertTime(shared.Workspace.DistributedGameTime)
         self.InfoTabAboutGameGroupPlayedLabel:SetText(Translations:GetTranslation("You Played: %s"):format(Time))
     end))
 
-    shared.Connection:GiveSignal("TimeRunningLabel", shared.RunService.PreRender:Connect(function()
+    shared.Connect:GiveSignal("TimeRunningLabel", shared.RunService.PreRender:Connect(function()
         local Time = ConvertTime(elapsedTime())
         self.InfoTabAboutGameGroupTimeRunningLabel:SetText(Translations:GetTranslation("Time Running: %s"):format(Time))
     end))
