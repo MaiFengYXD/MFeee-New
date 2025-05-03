@@ -28,6 +28,8 @@ local EnvName = "${EnvName}"
 local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION =
       string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION
 
+if not require then require = function(...) return nil end;end
+
 local table_insert = table.insert
 local table_remove = table.remove
 local table_freeze = table.freeze or function(t) return t end -- lol
