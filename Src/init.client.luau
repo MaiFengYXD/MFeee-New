@@ -77,7 +77,7 @@ wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", 
 
 do
     wax.shared.ScriptName    = "Universal"
-    wax.shared.ScriptLoader  = "Universal"
+    wax.shared.ScriptFolder  = "Universal"
     wax.shared.ScriptDisplay = "Universal"
 
     local Mappings = require("Mappings")
@@ -85,7 +85,7 @@ do
 
     if Mapping then
         wax.shared.ScriptName    = Mapping.Name
-        wax.shared.ScriptLoader  = Mapping.Folder
+        wax.shared.ScriptFolder  = Mapping.Folder
         wax.shared.ScriptDisplay = Mapping.Display
     end
 end
@@ -109,7 +109,7 @@ wax.shared.Icons     = require("Utils/Gui/Lucide")
 wax.shared.UiManager = require("Utils/Gui/UiManager")
 wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
-require(`Places/{shared.ScriptLoader}/Loader`)
+require(`Places/{wax.shared.ScriptFolder}/Loader`)
 
 getgenv().MFeeeLoading = false
 getgenv().MFeeeLoaded  = true
