@@ -122,136 +122,162 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                 -- The added line here is the "\nend" below every arbitrary closure
                 ClosureSourceLineCounts[RefId] = StringUtils.LineCount(ScriptSource) + 1
 
-                -- Helper function to perform heuristic checks for comments and strings on the line of the found word
-                local function IsLikelyInCommentOrString(FullText, WordStartIndex)
-                    -- Find the start and end positions of the line containing the word
-                    local LineStartPos = 1
-                    -- Efficiently search backwards for the previous newline character
-                    for I = WordStartIndex - 1, 1, -1 do
-                        if string.sub(FullText, I, I) == "\n" then
-                            LineStartPos = I + 1
-                            break
-                        end
-                    end
+                -- Helper function to parse the script and mark code, string, and comment regions
+                local function BuildCodeRegions(Text)
+                    local Regions = {} -- { {Type = "code"/"string"/"comment", Start = n, End = n}, ... }
+                    local I = 1
+                    local Len = #Text
+                    local State = "code"
+                    local RegionStart = 1
+                    local StringQuote = nil
+                    local LongStringEquals = nil
 
-                    local LineEndPos = string.find(FullText, "\n", WordStartIndex, true)
-                    if not LineEndPos then
-                        LineEndPos = #FullText + 1 -- Use end of the full text if no newline is found after the word
-                    end
-
-                    -- Extract the content of the current line
-                    local CurrentLine = string.sub(FullText, LineStartPos, LineEndPos - 1)
-                    -- Calculate the word's starting position relative to the beginning of the current line
-                    local WordIndexInLine = WordStartIndex - LineStartPos + 1
-
-                    -- 1. Check for single-line comment marker '--' appearing before the word on the current line
-                    local CommentMarkerPos = string.find(CurrentLine, "--", 1, true)
-                    if CommentMarkerPos and CommentMarkerPos < WordIndexInLine then
-                        -- If '--' is found, check if it's the start of a multi-line comment '--[['
-                        -- If it's not a multi-line comment start, the word is likely in a single-line comment
-                        if not string.match(CurrentLine, "^%-%-%[", CommentMarkerPos) then
-                            return true -- Likely inside a single-line comment
-                        end
-                        -- Note: This heuristic doesn't reliably handle cases where the word is within
-                        -- a multi-line comment block that started on a previous line.
-                    end
-
-                    -- 2. Check if the word is inside a string literal by tracking quote status
-                    --    Iterate through the line up to the character before the word starts
-                    local SubLineBeforeWord = string.sub(CurrentLine, 1, WordIndexInLine - 1)
-                    local InString = false
-                    local CurrentQuote = nil -- Stores the type of quote ('"', "'", "`") that opened the current string
-                    local Escaped = false
-                    for I = 1, #SubLineBeforeWord do
-                        local Char = string.sub(SubLineBeforeWord, I, I)
-                        -- Handle backslash escape character
-                        if Char == '\\' and not Escaped then
-                            Escaped = true
-                        else
-                            if CurrentQuote then -- Currently inside a string literal
-                                -- Check if the current character closes the string (and is not escaped)
-                                if Char == CurrentQuote and not Escaped then
-                                    InString = false
-                                    CurrentQuote = nil
+                    while I <= Len do
+                        if State == "code" then
+                            -- Single-line comment
+                            if string.sub(Text, I, I+1) == "--" then
+                                if string.sub(Text, I+2, I+3) == "[[" or string.match(string.sub(Text, I+2), "^%[(=*)%[") then
+                                    -- Multi-line comment
+                                    local _, eqs = string.match(string.sub(Text, I+2), "^(%[(=*)%[)")
+                                    eqs = eqs or ""
+                                    if RegionStart < I then
+                                        table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                    end
+                                    State = "longcomment"
+                                    LongStringEquals = eqs
+                                    RegionStart = I
+                                    I = I + 2 + #eqs + 1
+                                else
+                                    -- Single-line comment
+                                    if RegionStart < I then
+                                        table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                    end
+                                    State = "comment"
+                                    RegionStart = I
+                                    I = I + 2
                                 end
-                            else -- Not currently inside a string literal
-                                -- Check if the current character starts a string literal (and is not escaped)
-                                if (Char == '"' or Char == '\'' or Char == '`') and not Escaped then
-                                    InString = true
-                                    CurrentQuote = Char
+                            -- Long string
+                            elseif string.sub(Text, I, I) == "[" and string.match(string.sub(Text, I), "^%[(=*)%[") then
+                                local _, eqs = string.match(string.sub(Text, I), "^(%[(=*)%[)")
+                                eqs = eqs or ""
+                                if RegionStart < I then
+                                    table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
                                 end
+                                State = "longstring"
+                                LongStringEquals = eqs
+                                RegionStart = I
+                                I = I + 1 + #eqs + 1
+                            -- String literal
+                            elseif string.sub(Text, I, I) == '"' or string.sub(Text, I, I) == "'" or string.sub(Text, I, I) == "`" then
+                                StringQuote = string.sub(Text, I, I)
+                                if RegionStart < I then
+                                    table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                end
+                                State = "string"
+                                RegionStart = I
+                                I = I + 1
+                            else
+                                I = I + 1
                             end
-                            -- Reset escape status after processing the character
-                            Escaped = false
+                        elseif State == "string" then
+                            if string.sub(Text, I, I) == "\\" then
+                                I = I + 2 -- skip escaped char
+                            elseif string.sub(Text, I, I) == StringQuote then
+                                I = I + 1
+                                table.insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
+                                RegionStart = I
+                                State = "code"
+                            else
+                                I = I + 1
+                            end
+                        elseif State == "longstring" then
+                            local closePat = "]" .. string.rep("=", #LongStringEquals) .. "]"
+                            local closePos, _ = string.find(Text, closePat, I, true)
+                            if closePos then
+                                I = closePos + #closePat
+                                table.insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
+                                RegionStart = I
+                                State = "code"
+                            else
+                                break -- unterminated
+                            end
+                        elseif State == "comment" then
+                            local nl = string.find(Text, "\n", I, true)
+                            if nl then
+                                I = nl + 1
+                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = nl-1})
+                                RegionStart = I
+                                State = "code"
+                            else
+                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = Len})
+                                break
+                            end
+                        elseif State == "longcomment" then
+                            local closePat = "]" .. string.rep("=", #LongStringEquals) .. "]"
+                            local closePos, _ = string.find(Text, closePat, I, true)
+                            if closePos then
+                                I = closePos + #closePat
+                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = I-1})
+                                RegionStart = I
+                                State = "code"
+                            else
+                                break -- unterminated
+                            end
                         end
                     end
-
-                    -- If the loop finishes while still inside a string, the word starts within that string
-                    if InString then
-                        return true -- Likely inside a string literal
+                    if RegionStart <= Len then
+                        table.insert(Regions, {Type = State, Start = RegionStart, End = Len})
                     end
-
-                    -- Note: This heuristic doesn't handle Luau's multi-line strings like [=[...]=]
-
-                    -- If neither comment nor string heuristics matched, assume it's likely code
-                    return false
+                    return Regions
                 end
 
-                -- Main function to find a 'whole word' match that is likely not inside a comment or string literal
+                -- Main function to find a 'whole word' match that is not inside a comment or string
                 local function ContainsWholeWord(Text, Word)
+                    local Regions = BuildCodeRegions(Text)
                     local WordLen = #Word
                     local TextLen = #Text
-                    local StartIndex = 1 -- Start searching from the beginning of the text
+                    local StartIndex = 1
 
-                    -- Basic input validation
                     if type(Text) ~= "string" or type(Word) ~= "string" or WordLen == 0 then
                         return false
                     end
 
-                    -- Loop to find all occurrences of the word
                     while true do
-                        -- Find the next occurrence of the word (case-sensitive, plain search)
                         local FoundIndex = string.find(Text, Word, StartIndex, true)
-
-                        -- If no more occurrences are found, return false
                         if not FoundIndex then
                             return false
                         end
-
                         local EndIndex = FoundIndex + WordLen - 1
-
-                        -- Check for word boundaries:
-                        -- The character before the word (if it exists) must not be a 'word' character (%w: alphanumeric or underscore)
                         local IsStartBoundary = (FoundIndex == 1) or (not string.match(string.sub(Text, FoundIndex - 1, FoundIndex - 1), "%w"))
-                        -- The character after the word (if it exists) must not be a 'word' character (%w)
                         local IsEndBoundary = (EndIndex == TextLen) or (not string.match(string.sub(Text, EndIndex + 1, EndIndex + 1), "%w"))
-
-                        -- If both start and end boundaries are valid
                         if IsStartBoundary and IsEndBoundary then
-                            -- Perform heuristic checks to see if the found word is likely inside a comment or string
-                            if not IsLikelyInCommentOrString(Text, FoundIndex) then
-                                -- If the heuristics suggest it's not in a comment or string, we found a valid match
-                                return true
+                            -- Check if this position is in a code region
+                            for _, Region in ipairs(Regions) do
+                                if Region.Type == "code" and FoundIndex >= Region.Start and EndIndex <= Region.End then
+                                    return true
+                                end
                             end
                         end
-
-                        -- If boundaries were invalid, or if heuristics indicated comment/string,
-                        -- continue the search starting from the character *after* the current found index.
-                        -- This prevents getting stuck on the same invalid match.
                         StartIndex = FoundIndex + 1
                     end
                 end
 
                 -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
-                -- to the rew value, which is the script closure
+                -- to the raw value, which is the script closure
                 ClosureBindings[RefId] = function()
-                    -- Here's a little change because luau-lsp makes me do this:sob:
-                    -- Let's silence unused variables
+                    -- Silence unused variables
                     local UsesWax     = ContainsWholeWord(ScriptSource, "wax")
                     local UsesScript  = ContainsWholeWord(ScriptSource, "script")
                     local UsesRequire = ContainsWholeWord(ScriptSource, "require")
-                    return ("function()\nlocal %s = ImportGlobals(%d)\n\nlocal ImportGlobals = nil\nlocal _ = ImportGlobals\n\nreturn (function()\n\n%s\nend)() end")
-                           :format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}`, RefId, ScriptSource)
+
+                    return ([[
+function()
+local %s = __WaxImportGlobals(%d)
+
+return (function()
+
+%s
+end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
                 end
             else
                 local FirstLineOfError = string.match(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")
