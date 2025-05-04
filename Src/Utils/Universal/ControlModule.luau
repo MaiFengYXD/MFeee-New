@@ -1,10 +1,14 @@
-local Vector3new,  mathmin,  require: (Instance) -> (...any)
-    = Vector3.new, math.min, getgenv().require
+--// Source by mspaint //
+
+require("../LiteralBlank")
+
+local Vector3new,  mathmin
+    = Vector3.new, math.min
 
 local OriginControlModule = shared.Speaker:WaitForChild("PlayerScripts", 3):WaitForChild("PlayerModule", 3):WaitForChild("ControlModule", 3)
 
 if OriginControlModule and wax.shared.ExecutorSupport.require then
-    return require(OriginControlModule)
+    return getgenv().require(OriginControlModule)
 end
 
 local ControlModule = {
