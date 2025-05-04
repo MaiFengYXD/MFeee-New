@@ -50,6 +50,7 @@ local Language = wax.shared.Language;do
 
     local Thread = coroutine.create(function()
         Success, Result = pcall(function()
+            assert(type(game.HttpGet) == "function", "HttpGet doesn't exist!")
             return shared.HttpService:JSONDecode(game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
         end)
     end)
@@ -69,10 +70,6 @@ local Language = wax.shared.Language;do
         Translations[Language] = Result
     else
         Translations[Language] = nil
-        if Result:find("HttpGet is not a valid member of") or Result:find("attempt to call a nil value") then
-            Result = "HttpGet doesn't exist"
-        end
-
         warn(`Failed to fetch translations for {Language} due to "{Result}"`)
         shared.MiniNotify("Translations:", `Failed to fetch translations for {Language}.`)
     end
