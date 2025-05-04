@@ -49,10 +49,9 @@ local Language = wax.shared.Language;do
     local Elasped = 0
 
     local Thread = coroutine.create(function()
-        Success, FailedOrResult = pcall(
-            shared.HttpService.JSONDecode, shared.HttpService,
-            game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`)
-        )
+        Success, FailedOrResult = pcall(function()
+            return shared.HttpService:JSONDecode(game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
+        end)
     end)
     coroutine.resume(Thread)
 
