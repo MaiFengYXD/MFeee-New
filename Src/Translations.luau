@@ -41,17 +41,29 @@ local Translations = {
     } :: {[IETFLanguageTag]: NativeNames}
 }
 
-local Language = wax.shared.Language
-do
+local Language = wax.shared.Language;do
+    local taskwait
+        = task.wait
+
+    local Success, FailedOrResult
+
     local Thread = coroutine.create(function()
-        Translations[Language] = game:HttpGet(`https://github.com/MaiFengYXD/Translations/Translations/{Language}.json`)
+        Success, FailedOrResult = pcall(
+            shared.HttpService.JSONDecode, shared.HttpService,
+            game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`)
+        )
     end)
 
     coroutine.resume(Thread)
-    coroutine.close(task.wait(10) and Thread)
 
-    if not Translations[Language] then
-        shared.MiniNotify("Translations", `Failed to fetch translations for {Language}`)
+    repeat taskwait() until Success ~= nil
+
+    if not Success then
+        Translations[Language] = nil
+        warn(`Failed to fetch translations for {Language} due to {FailedOrResult}`)
+        shared.MiniNotify("Translations:", `Failed to fetch translations for {Language}.`)
+    else
+        Translations[Language] = FailedOrResult
     end
 end
 
