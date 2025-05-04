@@ -1,5 +1,8 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
 
+local stringsub,  stringmatch,  stringfind,  stringformat,  stringrep,  tableinsert,  tablefind
+    = string.sub, string.match, string.find, string.format, string.rep, table.insert, table.find
+
 local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
 
@@ -65,7 +68,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
     -- Recursive function to actually walk through the real instance tree, and assign refs
     local function ScrapeInstanceChildren(instance)
         -- Add a reference id for this instance
-        table.insert(RefIds, instance)
+        tableinsert(RefIds, instance)
 
         local ScrapedChildren = {}
         for _, Child in instance:GetChildren() do
@@ -85,7 +88,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
     local function CreateObjectTree(instance, children, currentPathString: string?)
         currentPathString = currentPathString or instance.Name
 
-        local RefId = table.find(RefIds, instance)
+        local RefId = tablefind(RefIds, instance)
         local ClassName = instance.ClassName
 
         local ClassNameId = ClassNameIdKeys[ClassName]
@@ -135,13 +138,13 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                     while I <= Len do
                         if State == "code" then
                             -- Single-line comment
-                            if string.sub(Text, I, I+1) == "--" then
-                                if string.sub(Text, I+2, I+3) == "[[" or string.match(string.sub(Text, I+2), "^%[(=*)%[") then
+                            if stringsub(Text, I, I+1) == "--" then
+                                if stringsub(Text, I+2, I+3) == "[[" or stringmatch(stringsub(Text, I+2), "^%[(=*)%[") then
                                     -- Multi-line comment
-                                    local _, eqs = string.match(string.sub(Text, I+2), "^(%[(=*)%[)")
+                                    local _, eqs = stringmatch(stringsub(Text, I+2), "^(%[(=*)%[)")
                                     eqs = eqs or ""
                                     if RegionStart < I then
-                                        table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                        tableinsert(Regions, {Type = "code", Start = RegionStart, End = I-1})
                                     end
                                     State = "longcomment"
                                     LongStringEquals = eqs
@@ -150,28 +153,28 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                                 else
                                     -- Single-line comment
                                     if RegionStart < I then
-                                        table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                        tableinsert(Regions, {Type = "code", Start = RegionStart, End = I-1})
                                     end
                                     State = "comment"
                                     RegionStart = I
                                     I = I + 2
                                 end
                             -- Long string
-                            elseif string.sub(Text, I, I) == "[" and string.match(string.sub(Text, I), "^%[(=*)%[") then
-                                local _, eqs = string.match(string.sub(Text, I), "^(%[(=*)%[)")
+                            elseif stringsub(Text, I, I) == "[" and stringmatch(stringsub(Text, I), "^%[(=*)%[") then
+                                local _, eqs = stringmatch(stringsub(Text, I), "^(%[(=*)%[)")
                                 eqs = eqs or ""
                                 if RegionStart < I then
-                                    table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                    tableinsert(Regions, {Type = "code", Start = RegionStart, End = I-1})
                                 end
                                 State = "longstring"
                                 LongStringEquals = eqs
                                 RegionStart = I
                                 I = I + 1 + #eqs + 1
                             -- String literal
-                            elseif string.sub(Text, I, I) == '"' or string.sub(Text, I, I) == "'" or string.sub(Text, I, I) == "`" then
-                                StringQuote = string.sub(Text, I, I)
+                            elseif stringsub(Text, I, I) == '"' or stringsub(Text, I, I) == "'" or stringsub(Text, I, I) == "`" then
+                                StringQuote = stringsub(Text, I, I)
                                 if RegionStart < I then
-                                    table.insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
+                                    tableinsert(Regions, {Type = "code", Start = RegionStart, End = I-1})
                                 end
                                 State = "string"
                                 RegionStart = I
@@ -180,44 +183,44 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                                 I = I + 1
                             end
                         elseif State == "string" then
-                            if string.sub(Text, I, I) == "\\" then
+                            if stringsub(Text, I, I) == "\\" then
                                 I = I + 2 -- skip escaped char
-                            elseif string.sub(Text, I, I) == StringQuote then
+                            elseif stringsub(Text, I, I) == StringQuote then
                                 I = I + 1
-                                table.insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
+                                tableinsert(Regions, {Type = "string", Start = RegionStart, End = I-1})
                                 RegionStart = I
                                 State = "code"
                             else
                                 I = I + 1
                             end
                         elseif State == "longstring" then
-                            local closePat = "]" .. string.rep("=", #LongStringEquals) .. "]"
-                            local closePos, _ = string.find(Text, closePat, I, true)
+                            local closePat = "]" .. stringrep("=", #LongStringEquals) .. "]"
+                            local closePos, _ = stringfind(Text, closePat, I, true)
                             if closePos then
                                 I = closePos + #closePat
-                                table.insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
+                                tableinsert(Regions, {Type = "string", Start = RegionStart, End = I-1})
                                 RegionStart = I
                                 State = "code"
                             else
                                 break -- unterminated
                             end
                         elseif State == "comment" then
-                            local nl = string.find(Text, "\n", I, true)
+                            local nl = stringfind(Text, "\n", I, true)
                             if nl then
                                 I = nl + 1
-                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = nl-1})
+                                tableinsert(Regions, {Type = "comment", Start = RegionStart, End = nl-1})
                                 RegionStart = I
                                 State = "code"
                             else
-                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = Len})
+                                tableinsert(Regions, {Type = "comment", Start = RegionStart, End = Len})
                                 break
                             end
                         elseif State == "longcomment" then
-                            local closePat = "]" .. string.rep("=", #LongStringEquals) .. "]"
-                            local closePos, _ = string.find(Text, closePat, I, true)
+                            local closePat = "]" .. stringrep("=", #LongStringEquals) .. "]"
+                            local closePos, _ = stringfind(Text, closePat, I, true)
                             if closePos then
                                 I = closePos + #closePat
-                                table.insert(Regions, {Type = "comment", Start = RegionStart, End = I-1})
+                                tableinsert(Regions, {Type = "comment", Start = RegionStart, End = I-1})
                                 RegionStart = I
                                 State = "code"
                             else
@@ -226,7 +229,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                         end
                     end
                     if RegionStart <= Len then
-                        table.insert(Regions, {Type = State, Start = RegionStart, End = Len})
+                        tableinsert(Regions, {Type = State, Start = RegionStart, End = Len})
                     end
                     return Regions
                 end
@@ -243,16 +246,16 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                     end
 
                     while true do
-                        local FoundIndex = string.find(Text, Word, StartIndex, true)
+                        local FoundIndex = stringfind(Text, Word, StartIndex, true)
                         if not FoundIndex then
                             return false
                         end
                         local EndIndex = FoundIndex + WordLen - 1
-                        local IsStartBoundary = (FoundIndex == 1) or (not string.match(string.sub(Text, FoundIndex - 1, FoundIndex - 1), "%w"))
-                        local IsEndBoundary = (EndIndex == TextLen) or (not string.match(string.sub(Text, EndIndex + 1, EndIndex + 1), "%w"))
+                        local IsStartBoundary = (FoundIndex == 1) or (not stringmatch(stringsub(Text, FoundIndex - 1, FoundIndex - 1), "%w"))
+                        local IsEndBoundary = (EndIndex == TextLen) or (not stringmatch(stringsub(Text, EndIndex + 1, EndIndex + 1), "%w"))
                         if IsStartBoundary and IsEndBoundary then
                             -- Check if this position is in a code region
-                            for _, Region in ipairs(Regions) do
+                            for _, Region in Regions do
                                 if Region.Type == "code" and FoundIndex >= Region.Start and EndIndex <= Region.End then
                                     return true
                                 end
@@ -270,17 +273,17 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                     local UsesScript  = ContainsWholeWord(ScriptSource, "script")
                     local UsesRequire = ContainsWholeWord(ScriptSource, "require")
 
-                    return ([[
+                    return stringformat([[
 function()
 local %s = __WaxImportGlobals(%d)
 
 return (function()
 
 %s
-end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
+end)() end]],        `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
                 end
             else
-                local FirstLineOfError = string.match(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")
+                local FirstLineOfError = stringmatch(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")
                 Log.Warn(`WARNING: {instance.ClassName} "{currentPathString}" failed to compile: {FirstLineOfError or "[Failed to parse compiler error]"}`)
                 FailedCompilations += 1
 
@@ -311,7 +314,7 @@ end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_
             for Child, ChildrenOfChild in children do
                 local ChildObjectTree = CreateObjectTree(Child, ChildrenOfChild, `{currentPathString}.{Child.Name}`)
                 if ChildObjectTree then
-                    table.insert(ObjectChildren, ChildObjectTree)
+                    tableinsert(ObjectChildren, ChildObjectTree)
                 end
             end
 
@@ -325,7 +328,7 @@ end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_
         local ChildObjectTree = CreateObjectTree(RealInstance, Children)
 
         if ChildObjectTree then
-            table.insert(ObjectTree, ChildObjectTree)
+            tableinsert(ObjectTree, ChildObjectTree)
         end
     end
 
@@ -342,13 +345,13 @@ end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_
 
     -- Now we're done reading everything!
     local ReadEndTime = os.clock()
-    RunIfVerbose(Log.Info, `Finished bundling model data in {string.format("%.4f", ReadEndTime - ReadStartTime)} (seconds)`)
+    RunIfVerbose(Log.Info, `Finished bundling model data in {stringformat("%.4f", ReadEndTime - ReadStartTime)} (seconds)`)
 
     local Prettify = if MinifyCodegen == false then true else false
 
     local SerializedObjectTree = LuaEncode(ObjectTree, {
         Prettify = Prettify,
-        StackLimit = math.huge,
+        StackLimit = (1 / 0),
     })
 
     local SerializedClosureBindings = LuaEncode(ClosureBindings, {
@@ -376,7 +379,7 @@ end)() end]]):format(`{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_
     if #ModelRootChildren == 1 and ModelRootChildren[1].ClassName == "ModuleScript" then
         CodegenOutput ..= "\n-- AoT adjustment: Load init module (MainModule behavior)\nreturn LoadScript(RealObjectRoot:GetChildren()[1])"
     else
-        for _, Ref in next, ModelRootChildren do
+        for _, Ref in ModelRootChildren do
             if Ref.ClassName == "ModuleScript" and Ref.Name == "MainModule" then
                 CodegenOutput ..= "\n-- AoT adjustment: Load init module (MainModule behavior)\nreturn LoadScript(RealObjectRoot.MainModule)"
                 break

@@ -6,7 +6,7 @@
 --!optimize 2
 
 -- Localizing certain libraries/variables used throughout for runtime efficiency (not specific to Luau)
-local table, ipairs, string, next, pcall, game, workspace, tostring, tonumber, getmetatable = table, ipairs, string, next, pcall, game, workspace, tostring, tonumber, getmetatable
+local table, string, pcall, game, workspace, tostring, tonumber, getmetatable = table, string, pcall, game, workspace, tostring, tonumber, getmetatable
 
 local string_format = string.format
 local string_char = string.char
@@ -39,14 +39,14 @@ local LuaKeywords do
     -- We're now setting each keyword str to a weak key, so it's faster at runtime for `SerializeString()`
     LuaKeywords = setmetatable({}, {__mode = "k"})
 
-    for _, Keyword in next, LuaKeywordsArray do
+    for _, Keyword in LuaKeywordsArray do
         LuaKeywords[Keyword] = true
     end
 end
 
 -- Lua 5.1 doesn't have table.find
 table_find = table_find or function(inputTable, valueToFind) -- Ignoring the `init` arg, unneeded for us
-    for Key, Value in ipairs(inputTable) do
+    for Key, Value in inputTable do
         if Value == valueToFind then
             return Key -- Return the key idx
         end
@@ -289,7 +289,7 @@ local function LuaEncode(inputTable, options)
         local function Args(...)
             local EncodedValues = {}
 
-            for _, Arg in next, {...} do
+            for _, Arg in {...} do
                 table_insert(EncodedValues, TypeCase(
                     Type(Arg),
                     Arg
@@ -301,7 +301,7 @@ local function LuaEncode(inputTable, options)
 
         -- For certain Roblox DataTypes, we use a custom serialization method for filling out params etc
         local function Params(newData, params)
-            return "(function(v, p) for pn, pv in next, p do v[pn] = pv end return v end)(" ..
+            return "(function(v, p) for pn, pv in p do v[pn] = pv end return v end)(" ..
                 table_concat({newData, TypeCase("table", params)}, ValueSeperator) ..
                 ")"
         end
@@ -397,7 +397,7 @@ local function LuaEncode(inputTable, options)
                 ["Enum.Axis.Z"] = value.Z,
             }
 
-            for EnumValue, IsEnabled in next, EnumValues do
+            for EnumValue, IsEnabled in EnumValues do
                 if IsEnabled then
                     table_insert(EncodedArgs, EnumValue)
                 end
@@ -498,7 +498,7 @@ local function LuaEncode(inputTable, options)
                 ["Enum.NormalId.Front"] = value.Front,
             }
 
-            for EnumValue, IsEnabled in next, EnumValues do
+            for EnumValue, IsEnabled in EnumValues do
                 if IsEnabled then
                     table_insert(EncodedArgs, EnumValue)
                 end
@@ -673,7 +673,7 @@ local function LuaEncode(inputTable, options)
     -- Setup output tbl
     local Output = ""
 
-    for Key, Value in next, inputTable do
+    for Key, Value in inputTable do
         local KeyType = Type(Key)
         local ValueType = Type(Value)
 
