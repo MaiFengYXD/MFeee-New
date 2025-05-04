@@ -79,7 +79,7 @@ function Translations:GetTranslation(Key: string): string
 end
 
 function Translations:FromTranslation(Value: string): string?
-    for Key, Translation in self[Language] do
+    for Key, Translation in self[Language] or {} do
         if Value == Translation then return Key end
     end
     return
