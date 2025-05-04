@@ -57,10 +57,11 @@ local Language = wax.shared.Language;do
 
     repeat
         Elasped += taskwait()
+
         if Elasped >= 10 then
             coroutine.close(Thread)
             Success = false
-            Result = "Timeout! time exceeded 10 seconds."
+            Result  = "Timeout! time exceeded 10 seconds."
         end
     until Success ~= nil
 
