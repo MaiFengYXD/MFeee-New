@@ -2,7 +2,7 @@ export type IETFLanguageTag =
     | "am" | "ar" | "az" | "de" | "en"
     | "es" | "fa" | "fr" | "hi" | "hr"
     | "hu" | "id" | "ja" | "kz" | "ms"
-    | "pt" | "ru" | "sv" | "tr" | "ua"
+    | "pt" | "ru" | "sv" | "tr" | "uk"
     | "ur" | "vi" | "zh-cn" | "zh-hant"
 
 export type NativeNames = 
@@ -33,7 +33,7 @@ local Translations = {
         ["ru"] = "Русский язык",
         ["sv"] = "Svenska",
         ["tr"] = "Türkçe",
-        ["ua"] = "Українська мова",
+        ["uk"] = "Українська мова",
         ["ur"] = "اردو",
         ["vi"] = "Tiếng Việt",
         ["zh-cn"]   = "简体中文",

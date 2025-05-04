@@ -71,7 +71,7 @@ wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", 
     "am", "ar", "az", "de", "en",
     "es", "fa", "fr", "hi", "hr",
     "hu", "id", "ja", "kz", "ms",
-    "pt", "ru", "sv", "tr", "ua",
+    "pt", "ru", "sv", "tr", "uk",
     "ur", "vi", "zh-cn", "zh-hant"
 })
 
