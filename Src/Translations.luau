@@ -68,6 +68,10 @@ local Language = wax.shared.Language;do
         Translations[Language] = FailedOrResult
     else
         Translations[Language] = nil
+        if FailedOrResult:find("HttpGet is not a valid member of") or FailedOrResult:find("attempt to call a nil value") then
+            FailedOrResult = "HttpGet doesn't exist"
+        end
+
         warn(`Failed to fetch translations for {Language} due to "{FailedOrResult}"`)
         shared.MiniNotify("Translations:", `Failed to fetch translations for {Language}.`)
     end
