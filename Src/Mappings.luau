@@ -1,7 +1,7 @@
 return {
     [77614252294790] = {
         Name = "The Foundation",
-        Folder = "The Foundation",
+        Folder = "The Foundation/Game",
         Display = "THE FOUNDATION (Game)",
     },
 

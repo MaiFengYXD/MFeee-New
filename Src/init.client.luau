@@ -109,7 +109,7 @@ wax.shared.Icons     = require("Utils/Gui/Lucide")
 wax.shared.UiManager = require("Utils/Gui/UiManager")
 wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
-require(`Places/{wax.shared.ScriptFolder}/Loader`)
+require(`Places/Loader/{wax.shared.ScriptFolder}`)
 
 getgenv().MFeeeLoading = false
 getgenv().MFeeeLoaded  = true
