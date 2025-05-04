@@ -45,11 +45,11 @@ local Language = wax.shared.Language;do
     local taskwait
         = task.wait
 
-    local Success, FailedOrResult
+    local Success, Result
     local Elasped = 0
 
     local Thread = coroutine.create(function()
-        Success, FailedOrResult = pcall(function()
+        Success, Result = pcall(function()
             return shared.HttpService:JSONDecode(game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
         end)
     end)
@@ -60,19 +60,19 @@ local Language = wax.shared.Language;do
         if Elasped >= 10 then
             coroutine.close(Thread)
             Success = false
-            FailedOrResult = "Timeout! time exceeded 10 seconds."
+            Result = "Timeout! time exceeded 10 seconds."
         end
     until Success ~= nil
 
     if Success then
-        Translations[Language] = FailedOrResult
+        Translations[Language] = Result
     else
         Translations[Language] = nil
-        if FailedOrResult:find("HttpGet is not a valid member of") or FailedOrResult:find("attempt to call a nil value") then
-            FailedOrResult = "HttpGet doesn't exist"
+        if Result:find("HttpGet is not a valid member of") or Result:find("attempt to call a nil value") then
+            Result = "HttpGet doesn't exist"
         end
 
-        warn(`Failed to fetch translations for {Language} due to "{FailedOrResult}"`)
+        warn(`Failed to fetch translations for {Language} due to "{Result}"`)
         shared.MiniNotify("Translations:", `Failed to fetch translations for {Language}.`)
     end
 end
