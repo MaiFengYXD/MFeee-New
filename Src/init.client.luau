@@ -54,8 +54,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 wax.shared.TempStorage = {}
 
 task.spawn(pcall, function()
-    shared.GameName = nil
-    shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
+    wax.shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
 end)
 
 shared.Camera = shared.Workspace.CurrentCamera

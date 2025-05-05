@@ -875,8 +875,8 @@ function UiManager:CreateUniversalTabs()
     end))
 
     task.spawn(function()
-        repeat task.wait() until shared.GameName
-        self.InfoTabAboutGameGroupGameNameLabel:SetText(Translations:GetTranslation("Game Name: %s"):format(shared.GameName))
+        repeat task.wait() until wax.shared.GameName
+        self.InfoTabAboutGameGroupGameNameLabel:SetText(Translations:GetTranslation("Game Name: %s"):format(wax.shared.GameName))
     end)
 
     --// Links Groupbox (Right)
