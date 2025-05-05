@@ -39,8 +39,8 @@ wax.shared.MiniNotify = Notify
 if getgenv().MFeeeLoaded  then Notify("Loading Stopped!", "Error: Already loaded.");return end
 if getgenv().MFeeeLoading then Notify("Loading Stopped!", "Error: Loading.")       ;return end
 
-getgenv().MFeeeLoaded  = false
 getgenv().MFeeeLoading = true
+getgenv().MFeeeLoaded  = false
 
 task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
     "rbxassetid://77335290652571",
@@ -111,5 +111,5 @@ wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
 require(`Places/Loader/{wax.shared.ScriptFolder}`)
 
-getgenv().MFeeeLoading = false
 getgenv().MFeeeLoaded  = true
+getgenv().MFeeeLoading = false
