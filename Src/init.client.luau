@@ -30,7 +30,7 @@ local function Notify(Title: string, Text: string)
         Title    = Title,
         Text     = Text,
         Button1  = "Close",
-        Duration = 10
+        Duration = 30
     })
 end
 
