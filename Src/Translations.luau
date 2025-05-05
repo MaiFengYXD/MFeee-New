@@ -52,7 +52,10 @@ if Language ~= "en" then
 
     local Thread = coroutine.create(function()
         Success, Result = pcall(function()
-            return shared.HttpService:JSONDecode(game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
+            local UrlContent = game:HttpGet(`https://raw.githubusercontent.com/MaiFengYXD/Translations/refs/heads/main/Translations/{Language}.json`)
+            assert(UrlContent:find("{"), "Translations raw page error or HttpGet problem, please report it!")
+
+            return shared.HttpService:JSONDecode(UrlContent)
         end)
     end)
     coroutine.resume(Thread)
@@ -72,11 +75,15 @@ if Language ~= "en" then
     else
         if Result:find("HttpGet is not a valid member of") then
             Result = "HttpGet doesn't exist!"
-        elseif Result:find("Expected identifier when parsing expression, got '<'") then
-            Result = "Translations raw page not found or GitHub problem, please report it!"
         end
 
         wax.shared.MiniNotify("Translations:", `Failed to fetch translations for {Language} due to {Result}`)
+    end
+end
+
+Translations.Reverse = {};do
+    for Key, Value in Translations[Language] or {} do
+        Translations.Reverse[Value] = Key
     end
 end
 
@@ -85,10 +92,7 @@ function Translations:GetTranslation(Key: string): string
 end
 
 function Translations:FromTranslation(Value: string): string?
-    for Key, Translation in self[Language] or {} do
-        if Value == Translation then return Key end
-    end
-    return
+    return self.Reverse[Value]
 end
 
 return Translations
