@@ -41,7 +41,9 @@ local Translations = {
     } :: {[IETFLanguageTag]: NativeNames}
 }
 
-local Language = wax.shared.Language;do
+local Language = wax.shared.Language
+
+if Language ~= "en" then
     local taskwait
         = task.wait
 
