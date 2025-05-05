@@ -52,8 +52,8 @@ if Language ~= "en" then
 
     local Thread = coroutine.create(function()
         Success, Result = pcall(function()
-            assert(type(game.HttpGet) == "function", "HttpGet doesn't exist!")
-            return shared.HttpService:JSONDecode(game:HttpGet(`https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
+            local HttpGet = game.HttpGet
+            return shared.HttpService:JSONDecode(HttpGet(game, `https://github.com/MaiFengYXD/Translations/raw/refs/heads/main/{Language}.json`))
         end)
     end)
     coroutine.resume(Thread)
@@ -72,6 +72,10 @@ if Language ~= "en" then
         Translations[Language] = Result
     else
         Translations[Language] = nil
+        if Result:find("HttpGet is not a valid member of") then
+            Result = "HttpGet doesn't exist!"
+        end
+
         warn(`Failed to fetch translations for {Language} due to "{Result}"`)
         shared.MiniNotify("Translations:", `Failed to fetch translations for {Language}.`)
     end
