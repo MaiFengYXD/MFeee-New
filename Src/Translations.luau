@@ -76,7 +76,7 @@ if Language ~= "en" then
             Result = "Translations raw page not found or GitHub problem, please report it!"
         end
 
-        shared.MiniNotify("Translations:", `Failed to fetch translations for {Language} due to {Result}`)
+        wax.shared.MiniNotify("Translations:", `Failed to fetch translations for {Language} due to {Result}`)
     end
 end
 
