@@ -288,7 +288,7 @@ function Library:Notify(...)
         Data.Time = select(2, ...) or 5
         Data.SoundId = select(3, ...)
     end
-    
+
     local Side = string.lower(Library.NotifySide);
     local XSize, YSize = Library:GetTextBounds(Data.Description, Library.Font, 14);
     YSize = YSize + 7

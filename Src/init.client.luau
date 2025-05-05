@@ -43,6 +43,7 @@ getgenv().MFeeeLoading = true
 getgenv().MFeeeLoaded  = false
 
 task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
+    "rbxassetid://103134660123798",
     "rbxassetid://77335290652571",
     "rbxassetid://4590662766",
     "rbxassetid://4590657391"
@@ -89,7 +90,7 @@ wax.shared.AllowedLanguages = {
     ["uk"] = "Українська мова",
     ["ur"] = "اردو",
     ["vi"] = "Tiếng Việt",
-    ["zh-cn"]   = "简体中文",
+    ["zh-cn"  ] = "简体中文",
     ["zh-hant"] = "繁體中文"
 }
 
@@ -112,7 +113,7 @@ end
 
 wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
-wax.shared.NpcHandler    = require("Utils/NPCHandler")
+wax.shared.NpcHandler    = require("Utils/Universal/NPCHandler")
 
 shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     shared.Camera  = shared.Workspace.CurrentCamera
@@ -133,3 +134,13 @@ require(`Places/Loader/{wax.shared.ScriptFolder}`)
 
 getgenv().MFeeeLoaded  = true
 getgenv().MFeeeLoading = false
+
+task.spawn(pcall, function()
+    local Version = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/.LatestVersion")
+    assert(Version == wax.shared.ScriptVersion)
+
+    wax.shared.UiManager:Notify({
+        Title       = wax.shared.Translations:GetTranslation("Version Mismatch"),
+        Description = wax.shared.Translations:GetTranslation("The script version is outdated, please update it!"),
+    })
+end)
