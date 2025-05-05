@@ -613,7 +613,7 @@ function UiManager:CreateUniversalTabs()
         Name = {}
     }
 
-    for Tag, Name in Translations.NativeNames do
+    for Tag, Name in wax.shared.AllowedLanguages do
         table.insert(NativeLanguage.Tag , Tag)
         table.insert(NativeLanguage.Name, Name)
     end
@@ -621,7 +621,7 @@ function UiManager:CreateUniversalTabs()
     self.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
         Text    = Translations:GetTranslation("Change Language"),
         Values  = NativeLanguage.Name,
-        Default = Translations.NativeNames[wax.shared.Language]
+        Default = wax.shared.AllowedLanguages[wax.shared.Language]
     })
 
     self.SettingsTabUiGroup:AddDropdown("WindowStyle", {

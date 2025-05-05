@@ -66,13 +66,34 @@ wax.shared.FileHelper      = require("Utils/FileHelper")
 shared.Connect     = require("Utils/Connect")
 shared.ToClipboard = type(shared.ToClipboard) == "function" and shared.ToClipboard or function(...) end
 
-wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", "en", {
-    "am", "ar", "az", "de", "en",
-    "es", "fa", "fr", "hi", "hr",
-    "hu", "id", "ja", "kz", "ms",
-    "pt", "ru", "sv", "tr", "uk",
-    "ur", "vi", "zh-cn", "zh-hant"
-})
+wax.shared.AllowedLanguages = {
+    ["am"] = "አማርኛ",
+    ["ar"] = "العربية",
+    ["az"] = "Azərbaycan dili",
+    ["de"] = "Deutsch",
+    ["en"] = "English",
+    ["es"] = "Español",
+    ["fa"] = "فارسی",
+    ["fr"] = "Français",
+    ["hi"] = "हिन्दी",
+    ["hr"] = "Hrvatski",
+    ["hu"] = "Magyar",
+    ["id"] = "Bahasa Indonesia",
+    ["ja"] = "日本語",
+    ["kz"] = "Қазақ тілі",
+    ["ms"] = "Bahasa Melayu",
+    ["pt"] = "Português",
+    ["ru"] = "Русский язык",
+    ["sv"] = "Svenska",
+    ["tr"] = "Türkçe",
+    ["uk"] = "Українська мова",
+    ["ur"] = "اردو",
+    ["vi"] = "Tiếng Việt",
+    ["zh-cn"]   = "简体中文",
+    ["zh-hant"] = "繁體中文"
+}
+
+wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", "en", wax.shared.AllowedLanguages)
 
 do
     wax.shared.ScriptName    = "Universal"
