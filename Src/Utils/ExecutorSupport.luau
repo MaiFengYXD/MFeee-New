@@ -7,6 +7,9 @@ local taskwait,  stringfind,  Instancenew,  tablefind
 local pcall, print
     = pcall, print
 
+local IsA
+    = game.IsA
+
 --// Prepare Environment //
 local ExecutorSupport = {}
 local Fixable         = {
@@ -186,8 +189,8 @@ Test("getconnections", function()
 end)
 
 Test("require", function()
-    local IsA,      require: (Instance) -> any
-        = game.IsA, getgenv().require
+    local require: (Instance) -> any
+        = getgenv().require
 
     assert(type(require) == "function", "attempt to call a nil value")
 
@@ -206,11 +209,7 @@ Test("require", function()
 end)
 
 Test("gethui", function()
-    local IsA
-        = game.IsA
-
-    local HiddenUi = gethui()
-    assert(IsA(HiddenUi, "PlayerGui") or IsA(HiddenUi, "CoreGui"), "Failed to get a GUI place")
+    assert(IsA(gethui(), "CoreGui"), "Failed to get CoreGui")
 end)
 
 Test("protectgui", function()
@@ -413,8 +412,10 @@ So let's use a hook to make GetService("CoreGui") and game.CoreGui return nil or
 
 type Object = Instance | DataModel
 
-if not ExecutorSupport.gethui and ExecutorSupport.checkcaller then
-    --// ↑ gethui can bypass this detection
+if ExecutorSupport.gethui then
+    --// gethui can bypass this detection
+    shared.CoreGui = gethui()
+elseif ExecutorSupport.checkcaller then
     local game, checkcaller
         = game, checkcaller
 
@@ -454,9 +455,9 @@ if not ExecutorSupport.gethui and ExecutorSupport.checkcaller then
             return OldFunction(self, ServiceName)
         end)
     end
-end
 
-require("Services"):GetServices({"CoreGui"})
+    require("Services"):GetServices({"CoreGui"})
+end
 
 --// Summary //
 local FileSystem = {
