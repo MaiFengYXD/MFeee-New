@@ -8,7 +8,7 @@ local FileHelper      = wax.shared.FileHelper
 local Translations    = wax.shared.Translations
 local EasingLibrary   = wax.shared.EasingLibrary
 local UniversalPlayer = require("../Universal/Player")
-local UniversalMISC   = require("../Universal/Misc")
+local UniversalMISC   = require("../Universal/MISC")
 
 local WindowStyle   = FileHelper:CheckFile("MFeee~New/WindowStyle.txt", "Obsidian", {"Obsidian", "Linoria"})
 local NotifySound   = FileHelper:CheckFile("MFeee~New/NotifySound.txt", WindowStyle, {"Obsidian", "Linoria"})
