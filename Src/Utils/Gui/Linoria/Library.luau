@@ -7,12 +7,14 @@ local PreRender = shared.RunService.PreRender;
 local LocalPlayer = shared.Speaker;
 local Mouse = LocalPlayer:GetMouse();
 
-local DrawingLib = typeof(Drawing) == "table" and Drawing or { drawing_replaced = true };
+local Translations = wax.shared.Translations;
+
+local DrawingLib = wax.shared.ExecutorSupport.Drawing and Drawing or { drawing_replaced = true };
 local ProtectGui = wax.shared.ExecutorSupport.protectgui and shared.ProtectGui or function(Gui: GuiObject)
     Gui.Archivable = false;
 end;
 local GetHUI = wax.shared.ExecutorSupport.gethui and gethui or function()
-    return shared.CoreGui ;
+    return shared.CoreGui;
 end;
 
 local IsBadDrawingLib = false;
@@ -21,22 +23,22 @@ local ScreenGui = Instance.new('ScreenGui');
 pcall(ProtectGui, ScreenGui);
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-ScreenGui.DisplayOrder = 999;
+ScreenGui.DisplayOrder = 1e7;
 ScreenGui.ResetOnSpawn = false;
 
 local Parented = pcall(function() ScreenGui.Parent = GetHUI(); end);
-if not Parented then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui", 9e9) end;
+if not Parented then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end;
 
 --[[
     You can access Toggles & Options through (I'm planning to remove **a** option):
         a) getgenv().Toggles, getgenv().Options (IY will break this getgenv)
-        b) getgenv().Linoria.Toggles, getgenv().Linoria.Options
+        ~~b) getgenv().Linoria.Toggles, getgenv().Linoria.Options~~
         c) Library.Toggles, Library.Options
 --]]
 
 local Toggles = {};
 local Options = {};
-local Labels = {};
+local Labels  = {};
 local Buttons = {};
 
 getgenv().Linoria = {
@@ -97,7 +99,7 @@ local Library = {
     CanDrag = true;
     CantDragForced = false;
 
-    NotifySide = "Left";
+    NotifySide = "TopRight";
     ShowCustomCursor = true;
     ShowToggleFrameInKeybinds = true;
     NotifyOnError = false; -- true = Library:Notify for SafeCallback (still warns in the developer console)
@@ -113,7 +115,7 @@ local Library = {
     -- for better usage --
     Toggles = Toggles;
     Options = Options;
-    Labels = Labels;
+    Labels  = Labels;
     Buttons = Buttons;
 };
 
@@ -205,7 +207,7 @@ local function GetTeams(ReturnInstances)
 end;
 
 function Library:SetDPIScale(value: number) 
-    assert(type(value) == "number", "Expected type number for DPI scale but got " .. typeof(value))
+    assert(type(value) == "number", Translations:GetTranslation("Expected type number for DPI scale but got ") .. typeof(value))
     
     DPIScale = value / 100;
     Library.MinSize = (if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300)) * DPIScale;
@@ -225,22 +227,20 @@ function Library:Create(Class, Properties)
             Value = ApplyDPIScale(Value);
         elseif Property == "TextSize" then
             Value = ApplyTextScale(Value);
-        end;
+        elseif Property == "Name" then
+            continue
+        end
 
-        local success, err = pcall(function()
+        xpcall(function()
             _Instance[Property] = Value;
-        end);
-
-        if (not success) then
-            warn(err);
-        end;
+        end, warn);
     end;
 
     return _Instance;
 end;
 
 do
-    Library.LeftNotificationArea = Library:Create('Frame', {
+    Library.TopLeftNotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 0, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
@@ -252,10 +252,10 @@ do
         Padding = UDim.new(0, 4);
         FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
-        Parent = Library.LeftNotificationArea;
+        Parent = Library.TopLeftNotificationArea;
     });
 
-    Library.RightNotificationArea = Library:Create('Frame', {
+    Library.TopRightNotificationArea = Library:Create('Frame', {
         AnchorPoint = Vector2.new(1, 0);
         BackgroundTransparency = 1;
         Position = UDim2.new(1, 0, 0, 40);
@@ -269,8 +269,54 @@ do
         FillDirection = Enum.FillDirection.Vertical;
         HorizontalAlignment = Enum.HorizontalAlignment.Right;
         SortOrder = Enum.SortOrder.LayoutOrder;
-        Parent = Library.RightNotificationArea;
+        Parent = Library.TopRightNotificationArea;
     });
+
+    Library.BottomLeftNotificationArea = Library:Create('Frame', {
+        AnchorPoint = Vector2.new(0, 1);
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0, 0, 1, 0);
+        Size = UDim2.new(0, 300, 0, 200);
+        ZIndex = 100;
+        Parent = ScreenGui;
+    });
+
+    Library:Create('UIListLayout', {
+        Padding = UDim.new(0, 4);
+        FillDirection = Enum.FillDirection.Vertical;
+        VerticalAlignment = Enum.VerticalAlignment.Bottom;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Parent = Library.BottomLeftNotificationArea;
+    });
+
+    Library.BottomRightNotificationArea = Library:Create('Frame', {
+        AnchorPoint = Vector2.new(1, 1);
+        BackgroundTransparency = 1;
+        Position = UDim2.new(1, 0, 1, 0);
+        Size = UDim2.new(0, 300, 0, 200);
+        ZIndex = 100;
+        Parent = ScreenGui;
+    });
+
+    Library:Create('UIListLayout', {
+        Padding = UDim.new(0, 4);
+        FillDirection = Enum.FillDirection.Vertical;
+        HorizontalAlignment = Enum.HorizontalAlignment.Right;
+        VerticalAlignment = Enum.VerticalAlignment.Bottom;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Parent = Library.BottomRightNotificationArea;
+    });
+
+    Library = setmetatable(Library, {
+        __index = function(self, Key)
+            if Key:find("NotificationArea") then
+                Key = Key:lower()
+                return self[`{Key:find("left") and "Top" or "Bottom"}{Key:find("top") and "Left" or "Right"}NotificationArea`]
+            end
+
+            return nil
+        end
+    })
 end;
 
 function Library:Notify(...)
@@ -298,7 +344,7 @@ function Library:Notify(...)
         Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
         ZIndex = 100;
-        Parent = if Side == "left" then Library.LeftNotificationArea else Library.RightNotificationArea;
+        Parent = Library[`{Side}NotificationArea`];
     });
 
     local NotifyInner = Library:Create('Frame', {
@@ -342,12 +388,16 @@ function Library:Notify(...)
         end
     });
 
+    local IsLeft = Side:find("left")
+    local IsTop  = Side:find("top")
+
     local NotifyLabel = Library:CreateLabel({
-        AnchorPoint = if Side == "left" then Vector2.new(0, 0) else Vector2.new(1, 0);
-        Position = if Side == "left" then UDim2.new(0, 4, 0, 0) else UDim2.new(1, -4, 0, 0);
+        AnchorPoint = Vector2.new(IsLeft and 0 or 1, 0);
+        Position = if IsLeft then UDim2.new(0, 4, 0, 0) else UDim2.new(1, -4, 0, 0);
         Size = UDim2.new(1, -4, 1, 0);
         Text = (if Data.Title == "" then "" else "[" .. Data.Title .. "] ") .. tostring(Data.Description);
-        TextXAlignment = if Side == "left" then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right;
+        TextXAlignment = if IsLeft then Enum.TextXAlignment.Left else Enum.TextXAlignment.Right;
+        TextYAlignment = if IsTop then Enum.TextYAlignment.Top else Enum.TextYAlignment.Bottom;
         TextSize = 14;
         ZIndex = 103;
         RichText = true;
@@ -355,8 +405,8 @@ function Library:Notify(...)
     });
 
     local SideColor = Library:Create('Frame', {
-        AnchorPoint = if Side == "left" then Vector2.new(0, 0) else Vector2.new(1, 0);
-        Position = if Side == "left" then UDim2.new(0, -1, 0, -1) else UDim2.new(1, -1, 0, -1);
+        AnchorPoint = Vector2.new(IsLeft and 0 or 1, 0);
+        Position = if IsLeft then UDim2.new(0, -1, 0, -1) else UDim2.new(1, -1, 0, -1);
         BackgroundColor3 = Library.AccentColor;
         BorderSizePixel = 0;
         Size = UDim2.new(0, 3, 1, 2);
@@ -606,7 +656,7 @@ function Library:MakeResizable(Instance, MinSize)
     end;
 
     Instance.Active = true;
-    
+
     local ResizerImage_Size = 25 * DPIScale;
     local ResizerImage_HoverTransparency = 0.5;
 
@@ -785,7 +835,7 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
         IsHovering = false
         Tooltip.Visible = false
     end))
-    
+
     if LibraryMainOuterFrame then
         table.insert(TooltipTable.Signals, LibraryMainOuterFrame:GetPropertyChangedSignal("Visible"):Connect(function()
             if LibraryMainOuterFrame.Visible == false then
@@ -1001,13 +1051,13 @@ do
         local ToggleLabel = self.TextLabel;
         --local Container = self.Container;
 
-        assert(Info.Default, 'AddColorPicker: Missing default value.');
+        assert(Info.Default, Translations:GetTranslation("AddColorPicker: Missing default value."));
 
         local ColorPicker = {
             Value = Info.Default;
             Transparency = Info.Transparency or 0;
             Type = 'ColorPicker';
-            Title = typeof(Info.Title) == "string" and Info.Title or 'Color picker',
+            Title = typeof(Info.Title) == "string" and Info.Title or Translations:GetTranslation('Color picker'),
             Callback = Info.Callback or function(Color) end;
             Changed = Info.Changed or function(Color) end;
         };
@@ -1179,7 +1229,7 @@ do
             Size = UDim2.new(1, -5, 1, 0);
             Font = Library.Font;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
-            PlaceholderText = 'Hex color',
+            PlaceholderText = Translations:GetTranslation('Hex color'),
             Text = '#FFFFFF',
             TextColor3 = Library.FontColor;
             TextSize = 14;
@@ -1199,7 +1249,7 @@ do
 
         local RgbBox = Library:Create(RgbBoxBase.Frame:FindFirstChild('TextBox'), {
             Text = '255, 255, 255',
-            PlaceholderText = 'RGB color',
+            PlaceholderText = Translations:GetTranslation('RGB color'),
             TextColor3 = Library.FontColor
         });
 
@@ -1397,24 +1447,24 @@ do
 
             ContextMenu:AddOption('Copy color', function()
                 Library.ColorClipboard = ColorPicker.Value
-                Library:Notify('Copied color!', 2)
+                Library:Notify(Translations:GetTranslation('Copied color!'), 2)
             end)
 
             ContextMenu:AddOption('Paste color', function()
                 if not Library.ColorClipboard then
-                    return Library:Notify('You have not copied a color!', 2)
+                    return Library:Notify(Translations:GetTranslation('You have not copied a color!'), 2)
                 end
                 return ColorPicker:SetValueRGB(Library.ColorClipboard)
             end)
 
             ContextMenu:AddOption('Copy HEX', function()
                 pcall(setclipboard, ColorPicker.Value:ToHex())
-                Library:Notify('Copied hex code to clipboard!', 2)
+                Library:Notify(Translations:GetTranslation('Copied hex code to clipboard!'), 2)
             end)
 
             ContextMenu:AddOption('Copy RGB', function()
                 pcall(setclipboard, table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', '))
-                Library:Notify('Copied RGB values to clipboard!', 2)
+                Library:Notify(Translations:GetTranslation('Copied RGB values to clipboard!'), 2)
             end)
 
         end
@@ -1612,7 +1662,7 @@ do
         local ToggleLabel = self.TextLabel;
         --local Container = self.Container;
 
-        assert(Info.Default, 'AddKeyPicker: Missing default value.');
+        assert(Info.Default, Translations:GetTranslation("AddKeyPicker: Missing default value."));
 
         local KeyPicker = {
             Value = Info.Default;
@@ -1879,7 +1929,7 @@ do
                 KeybindsToggle:SetNormal(not ShowToggle)
 
                 KeybindsToggle:SetVisibility(true);
-                KeybindsToggle:SetText(string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, KeyPicker.Mode));
+                KeybindsToggle:SetText(string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, Translations:GetTranslation(KeyPicker.Mode)));
                 KeybindsToggle:Display(State);
             end
 
@@ -1912,15 +1962,15 @@ do
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Value == 'None' then
+                if KeyPicker.Value == Translations:GetTranslation("None") then
                     return false;
                 end
 
                 local Key = KeyPicker.Value;
 
-                if Key == 'MB1' then
+                if Key == Translations:GetTranslation("MB1") then
                     return shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                elseif Key == 'MB2' then
+                elseif Key == Translations:GetTranslation("MB2") then
                     return shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2);
                 else
                     return shared.UserInputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value]) and not shared.UserInputService:GetFocusedTextBox();
@@ -1992,9 +2042,9 @@ do
                     if Input.UserInputType == Enum.UserInputType.Keyboard then
                         Key = Input.KeyCode.Name;
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        Key = 'MB1';
+                        Key = Translations:GetTranslation("MB1");
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
-                        Key = 'MB2';
+                        Key = Translations:GetTranslation("MB2");
                     end;
 
                     Break = true;
@@ -2016,15 +2066,15 @@ do
         end)
 
         Library:GiveSignal(shared.UserInputService.InputBegan:Connect(function(Input)
-            if KeyPicker.Value == "Unknown" then return end
+            if KeyPicker.Value == Translations:GetTranslation("Unknown") then return end
         
             if (not Picking) and (not shared.UserInputService:GetFocusedTextBox()) then
                 if KeyPicker.Mode == 'Toggle' then
                     local Key = KeyPicker.Value;
 
-                    if Key == 'MB1' or Key == 'MB2' then
-                        if Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1
-                        or Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    if Key == Translations:GetTranslation("MB1") or Key == Translations:GetTranslation("MB2") then
+                        if Key == Translations:GetTranslation("MB1") and Input.UserInputType == Enum.UserInputType.MouseButton1
+                        or Key == Translations:GetTranslation("MB2") and Input.UserInputType == Enum.UserInputType.MouseButton2 then
                             KeyPicker.Toggled = not KeyPicker.Toggled
                             KeyPicker:DoClick()
                         end;
@@ -2077,8 +2127,8 @@ do
             Info.AllowNull = true;
         end;
 
-        assert(Info.Values, 'AddDropdown: Missing dropdown value list.');
-        assert(Info.AllowNull or Info.Default, 'AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional.')
+        assert(Info.Values, Translations:GetTranslation("AddDropdown: Missing dropdown value list."));
+        assert(Info.AllowNull or Info.Default, Translations:GetTranslation("AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
 
         Info.Searchable = if typeof(Info.Searchable) == "boolean" then Info.Searchable else false;
         Info.FormatDisplayValue = if typeof(Info.FormatDisplayValue) == "function" then Info.FormatDisplayValue else nil;
@@ -2725,9 +2775,9 @@ do
 
         if select(2, ...) ~= nil and typeof(select(2, ...)) == "table" then
             if select(1, ...) ~= nil then
-                assert(typeof(select(1, ...)) == "string", "Expected string for Idx, got " .. typeof(select(1, ...)))
+                assert(typeof(select(1, ...)) == "string", Translations:GetTranslation("Expected string for Idx, got ") .. typeof(select(1, ...)))
             end
-            
+
             local Params = select(2, ...)
 
             Data.Text = Params.Text or ""
@@ -2810,7 +2860,7 @@ do
         }
         Button.OriginalText = Button.Text;
         
-        assert(typeof(Button.Func) == 'function', 'AddButton: `Func` callback is missing.');
+        assert(typeof(Button.Func) == 'function', Translations:GetTranslation("AddButton: `Func` callback is missing."));
 
         local Blank = nil;
         local Groupbox = self;
@@ -2915,7 +2965,7 @@ do
                     Library:AddToRegistry(Button.Label, { TextColor3 = 'AccentColor' })
 
                     Button.Label.TextColor3 = Library.AccentColor
-                    Button.Label.Text = 'Are you sure?'
+                    Button.Label.Text = Translations:GetTranslation('Are you sure?')
                     Button.Locked = true
 
                     local clicked = WaitForEvent(Button.Outer.InputBegan, 0.5, ValidateClick)
@@ -2949,7 +2999,7 @@ do
                 Func = select(2, ...)
             }
 
-            assert(typeof(SubButton.Func) == 'function', 'AddButton: `Func` callback is missing.');
+            assert(typeof(SubButton.Func) == 'function', Translations:GetTranslation("AddButton: `Func` callback is missing."));
 
             self.Outer.Size = UDim2.new(0.5, -2, 0, 20 * DPIScale)
 
@@ -3097,7 +3147,7 @@ do
     end
 
     function BaseGroupboxFuncs:AddInput(Idx, Info)
-        assert(Info.Text, 'AddInput: Missing `Text` string.')
+        assert(Info.Text, Translations:GetTranslation("AddInput: Missing `Text` string."))
 
         Info.ClearTextOnFocus = if typeof(Info.ClearTextOnFocus) == "boolean" then Info.ClearTextOnFocus else true;
 
@@ -3107,7 +3157,7 @@ do
             Finished = Info.Finished or false;
             Visible = if typeof(Info.Visible) == "boolean" then Info.Visible else true;
             Disabled = if typeof(Info.Disabled) == "boolean" then Info.Disabled else false;
-        AllowEmpty = if typeof(Info.AllowEmpty) == "boolean" then Info.AllowEmpty else true;
+            AllowEmpty = if typeof(Info.AllowEmpty) == "boolean" then Info.AllowEmpty else true;
             EmptyReset = if typeof(Info.EmptyReset) == "string" then Info.EmptyReset else "---";
             Type = 'Input';
 
@@ -3341,7 +3391,7 @@ do
     end;
 
     function BaseGroupboxFuncs:AddToggle(Idx, Info)
-        assert(Info.Text, 'AddInput: Missing `Text` string.')
+        assert(Info.Text, Translations:GetTranslation("AddInput: Missing `Text` string."))
 
         local Toggle = {
             Value = Info.Default or false;
@@ -3561,11 +3611,11 @@ do
     end;
 
     function BaseGroupboxFuncs:AddSlider(Idx, Info)
-        assert(Info.Default, 'AddSlider: Missing default value.');
-        assert(Info.Text, 'AddSlider: Missing slider text.');
-        assert(Info.Min, 'AddSlider: Missing minimum value.');
-        assert(Info.Max, 'AddSlider: Missing maximum value.');
-        assert(Info.Rounding, 'AddSlider: Missing rounding value.');
+        assert(Info.Default, Translations:GetTranslation("AddSlider: Missing default value."));
+        assert(Info.Text, Translations:GetTranslation("AddSlider: Missing slider text."));
+        assert(Info.Min, Translations:GetTranslation("AddSlider: Missing minimum value."));
+        assert(Info.Max, Translations:GetTranslation("AddSlider: Missing maximum value."));
+        assert(Info.Rounding, Translations:GetTranslation("AddSlider: Missing rounding value."));
 
         local Slider = {
             Value = Info.Default;
@@ -3666,7 +3716,7 @@ do
         local DisplayLabel = Library:CreateLabel({
             Size = UDim2.new(1, 0, 1, 0);
             TextSize = 14;
-            Text = 'Infinite';
+            Text = Translations:GetTranslation('Infinite');
             ZIndex = 9;
             Parent = SliderInner;
             RichText = true;
@@ -3741,15 +3791,15 @@ do
         end;
         
         function Slider:SetMax(Value)
-            assert(Value > Slider.Min, 'Max value cannot be less than the current min value.');
-            
+            assert(Value > Slider.Min, Translations:GetTranslation("Max value cannot be less than the current min value."));
+
             Slider.Value = math.clamp(Slider.Value, Slider.Min, Value);
             Slider.Max = Value;
             Slider:Display();
         end;
-        
+
         function Slider:SetMin(Value)
-            assert(Value < Slider.Max, 'Min value cannot be greater than the current max value.');
+            assert(Value < Slider.Max, Translations:GetTranslation("Min value cannot be greater than the current max value."));
 
             Slider.Value = math.clamp(Slider.Value, Value, Slider.Max);
             Slider.Min = Value;
@@ -3909,8 +3959,8 @@ do
             Info.AllowNull = true;
         end;
 
-        assert(Info.Values, 'AddDropdown: Missing dropdown value list.');
-        assert(Info.AllowNull or Info.Default, 'AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional.')
+        assert(Info.Values, Translations:GetTranslation("AddDropdown: Missing dropdown value list."));
+        assert(Info.AllowNull or Info.Default, Translations:GetTranslation("AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
 
         Info.Searchable = if typeof(Info.Searchable) == "boolean" then Info.Searchable else false;
         Info.FormatDisplayValue = if typeof(Info.FormatDisplayValue) == "function" then Info.FormatDisplayValue else nil;
@@ -4012,7 +4062,7 @@ do
 
                 Font = Library.Font;
                 PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
-                PlaceholderText = 'Search...';
+                PlaceholderText = Translations:GetTranslation('Search...');
 
                 Text = '';
                 TextColor3 = Library.FontColor;
@@ -4610,9 +4660,9 @@ do
 
         function Depbox:SetupDependencies(Dependencies)
             for _, Dependency in Dependencies do
-                assert(typeof(Dependency) == 'table', 'SetupDependencies: Dependency is not of type `table`.');
-                assert(Dependency[1], 'SetupDependencies: Dependency is missing element argument.');
-                assert(Dependency[2] ~= nil, 'SetupDependencies: Dependency is missing value argument.');
+                assert(typeof(Dependency) == 'table', Translations:GetTranslation("SetupDependencies: Dependency is not of type `table`."));
+                assert(Dependency[1], Translations:GetTranslation("SetupDependencies: Dependency is missing element argument."));
+                assert(Dependency[2] ~= nil, Translations:GetTranslation("SetupDependencies: Dependency is missing value argument."));
             end;
 
             Depbox.Dependencies = Dependencies;
@@ -4739,7 +4789,7 @@ do
         Position = UDim2.fromOffset(5, 2),
         TextXAlignment = Enum.TextXAlignment.Left,
 
-        Text = 'Keybinds';
+        Text = Translations:GetTranslation('Keybinds');
         ZIndex = 104;
         Parent = KeybindInner;
     });
@@ -4785,15 +4835,13 @@ function Library:SetNotifySide(Side: string)
     Library.NotifySide = Side;
 end;
 
-
-
 function Library:CreateWindow(...)
     local Arguments = { ... }
     local Config = {
         AnchorPoint = Vector2.zero;
         TabPadding = 1;
         MenuFadeTime = 0.2;
-        NotifySide = 'Right';
+        NotifySide = 'TopRight';
         ShowCustomCursor = false;
         Position = UDim2.fromOffset(175, 50);
         Size = UDim2.fromOffset(550, 600);
@@ -4809,10 +4857,10 @@ function Library:CreateWindow(...)
         Config.AutoShow = Arguments[2] or false;
     end
 
-    if typeof(Config.Title) ~= "string" then Config.Title = 'No title' end
+    if typeof(Config.Title) ~= "string" then Config.Title = Translations:GetTranslation('No title') end
     if typeof(Config.TabPadding) ~= 'number' then Config.TabPadding = 1 end
     if typeof(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
-    if typeof(Config.NotifySide) ~= "string" then Library.NotifySide = 'Left' else Library.NotifySide = Config.NotifySide end
+    if typeof(Config.NotifySide) ~= "string" then Library.NotifySide = 'TopRight' else Library.NotifySide = Config.NotifySide end
     if typeof(Config.ShowCustomCursor) ~= 'boolean' then Library.ShowCustomCursor = true else Library.ShowCustomCursor = Config.ShowCustomCursor end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
@@ -5082,7 +5130,7 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, 0, 0, 18);
                 Position = UDim2.new(0, 4, 0, 2);
                 TextSize = 14;
-                Text = "Text";
+                Text = Translations:GetTranslation("Text");
                 TextXAlignment = Enum.TextXAlignment.Left;
                 TextColor3 = Color3.fromRGB(255, 55, 55);
                 ZIndex = 5;
@@ -5096,7 +5144,7 @@ function Library:CreateWindow(...)
                 Position =  UDim2.new(0, 4, 0, 20);
                 Size = UDim2.new(1, -4, 0, 14);
                 TextSize = 14;
-                Text = "Text";
+                Text = Translations:GetTranslation("Text");
                 TextWrapped = true,
                 TextXAlignment = Enum.TextXAlignment.Left;
                 TextYAlignment = Enum.TextYAlignment.Top;
@@ -5807,7 +5855,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
             Font = Library.Font;
-            Text = "Toggle UI";
+            Text = Translations:GetTranslation("Toggle UI");
             TextColor3 = Library.FontColor;
             TextSize = 14;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -5877,7 +5925,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
             Font = Library.Font;
-            Text = "Lock UI";
+            Text = Translations:GetTranslation("Lock UI");
             TextColor3 = Library.FontColor;
             TextSize = 14;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -5890,7 +5938,7 @@ function Library:CreateWindow(...)
         
         LockUIButton.MouseButton1Down:Connect(function()
             Library.CantDragForced = not Library.CantDragForced;
-            LockUIButton.Text = Library.CantDragForced and "Unlock UI" or "Lock UI";
+            LockUIButton.Text = Library.CantDragForced and Translations:GetTranslation("Unlock UI") or Translations:GetTranslation("Lock UI");
         end)
     end;
 
