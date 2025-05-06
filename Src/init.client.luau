@@ -119,8 +119,8 @@ shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyCh
     shared.Camera  = shared.Workspace.CurrentCamera
 end))
 
-shared.Connect:GiveSignal("SpeakerChangedSignal", shared.Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
-    shared.Speaker = shared.Players.LocalPlayer
+shared.Connect:GiveSignal("SpeakerChangedSignal", shared.Players  :GetPropertyChangedSignal("LocalPlayer"  ):Connect(function()
+    shared.Speaker = shared.Players  .LocalPlayer
 end))
 
 --// Loader //
