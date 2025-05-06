@@ -729,9 +729,7 @@ function UiManager:CreateUniversalTabs()
         local Dpi = tonumber(string.sub(Scale, 1, -2))
         if not Dpi then return end
 
-        Dpi = Dpi / 100
         FileHelper:WriteFile("MFeee~New/DPIScale.txt", tostring(Dpi))
-
         self.Library:SetDPIScale(Dpi)
     end)
 

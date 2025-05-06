@@ -63,6 +63,7 @@ type ESPSettings = {
 
 --// Executor Variables //
 local gethui = wax.shared.ExecutorSupport.gethui and gethui or (function() return shared.CoreGui end);
+local HiddenUi = gethui();
 
 --// Variables //
 local tablefreeze = function<T>(provided_table: T & {}): any
@@ -103,6 +104,8 @@ local InstancesLib = {
         assert(typeof(properties) == "table", "Argument #2 must be a table.")
 
         local instance = Instance.new(instanceType)
+        instance.Name = randomstring()
+
         for name, val in properties do
             if name == "Parent" then
                 continue --/ Parenting is expensive, do last.
@@ -153,32 +156,26 @@ local InstancesLib = {
 }
 
 --// GUI //
-local ActiveFolder = InstancesLib.Create("Folder", {
-    Parent = gethui(),
-    Name = randomstring()
-})
+local ActiveFolder = InstancesLib.Create("Folder", {})
 
-local StorageFolder = InstancesLib.Create("Folder", {
-    Parent = if typeof(game) == "userdata" then shared.Players.Parent else game,
-    Name = randomstring()
-})
+local StorageFolder = InstancesLib.Create("Folder", {})
 
 local MainGUI = InstancesLib.Create("ScreenGui", {
-    Parent = gethui(),
-    Name = randomstring(),
+    Parent = HiddenUi,
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
-    DisplayOrder = 999_999
+    OnTopOfCoreBlur = true,
+    DisplayOrder = 1e6
 })
 
 local BillboardGUI = InstancesLib.Create("ScreenGui", {
-    Parent = gethui(),
-    Name = randomstring(),
+    Parent = HiddenUi,
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
-    DisplayOrder = 999_999
+    OnTopOfCoreBlur = true,
+    DisplayOrder = 1e6
 })
 
 --// Library //

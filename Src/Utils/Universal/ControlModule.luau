@@ -5,13 +5,17 @@ require("../LiteralBlank")
 local Vector3new,  mathmin
     = Vector3.new, math.min
 
-local OriginControlModule = shared.Speaker:WaitForChild("PlayerScripts", 3):WaitForChild("PlayerModule", 3):WaitForChild("ControlModule", 3)
+if wax.shared.ExecutorSupport.require then
+    local OriginControlModule = shared.Speaker:WaitForChild("PlayerScripts", 3):WaitForChild("PlayerModule", 3):WaitForChild("ControlModule", 3)
 
-if OriginControlModule and wax.shared.ExecutorSupport.require then
-    return getgenv().require(OriginControlModule)
+    if OriginControlModule then
+        return getgenv().require(OriginControlModule)
+    end
 end
 
 local ControlModule = {
+    Replaced = true,
+
     GamepadMoveVector    = Vector3new(),
     ThumbstickMoveVector = Vector3new(),
     ThumbstickRadius   = 15,

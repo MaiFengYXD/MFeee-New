@@ -539,7 +539,7 @@ local function ParentUI(UI: Instance)
 end
 
 local ScreenGui = New("ScreenGui", {
-    DisplayOrder = 999,
+    DisplayOrder = 1e7,
     ResetOnSpawn = false,
 })
 ParentUI(ScreenGui)
@@ -825,7 +825,7 @@ function Library:Notify(...)
         Size = UDim2.fromScale(1, 1),
         Parent = TimerBar,
     })
-    
+
     if typeof(Data.Time) == "Instance" then
         TimerFill.Size = UDim2.fromScale(0, 1)
     end
@@ -839,10 +839,12 @@ function Library:Notify(...)
     end
 
     Library.Notifications[FakeBackground] = Data
-    
+
     FakeBackground.Visible = true
+
+    local ShowPosition = IsLeft and UDim2.new(0, -2, IsBottom and 1 or 0, -2) or UDim2.new(1, -2, IsBottom and 1 or 0, -2)
     shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
-        Position = UDim2.fromOffset(-2, -2),
+        Position = ShowPosition,
     }):Play()
 
     task.delay(Library.NotifyTweenInfo.Time, function()
