@@ -1,13 +1,10 @@
 local assert:<T>(T, string?) -> T
     = assert
 
-local taskwait,  stringfind,  Instancenew,  tablefind
-    = task.wait, string.find, Instance.new, table.find
+local task_wait, string_find, Instance_new, table_find, pcall, print
+    = task.wait, string.find, Instance.new, table.find, pcall, print
 
-local pcall, print
-    = pcall, print
-
-local IsA
+local      IsA
     = game.IsA
 
 --// Prepare Environment //
@@ -19,12 +16,12 @@ local Fixable         = {
 }
 
 local function Test(Name: string, Function: (...any) -> (...any))
-    local CanBeFixed = tablefind(Fixable, Name)
+    local CanBeFixed = table_find(Fixable, Name)
 
     local Support, Message = pcall(Function)
     ExecutorSupport[Name]  = if CanBeFixed then true else Support
 
-    if stringfind(Message, "attempt to call a nil value") then
+    if string_find(Message, "attempt to call a nil value") then
         Message = `{Name} doesn't exist`
     end
 
@@ -137,28 +134,28 @@ end)
 --// Instances //
 Test("fireproximityprompt", function()
     assert(type(fireproximityprompt) == "function", "attempt to call a nil value")
-    local Prompt = Instancenew("ProximityPrompt")
+    local Prompt = Instance_new("ProximityPrompt")
 
     Prompt.Triggered:Once(function()
         Prompt = Prompt:Destroy()
     end)
 
-    assert(pcall(fireproximityprompt, Prompt) and taskwait(0.1) and Prompt == nil, "Failed to fire a ProximityPrompt")
+    assert(pcall(fireproximityprompt, Prompt) and task_wait(0.1) and Prompt == nil, "Failed to fire a ProximityPrompt")
 end)
 
 Test("firetouchinterest", function()
     shared.FireTouch = firetouchinterest or firetouchtransmitter
     assert(type(shared.FireTouch) == "function", "attempt to call a nil value")
 
-    local Part1 = Instancenew("Part")
-    local Part2 = Instancenew("Part")
+    local Part1 = Instance_new("Part")
+    local Part2 = Instance_new("Part")
 
     Part2.Touched:Once(function()
         Part1 = Part1:Destroy()
         Part2 = Part2:Destroy()
     end)
 
-    assert(pcall(shared.FireTouch, Part1, Part2, 0) and taskwait(0.1) and not (Part1 and Part2), "Failed to fire the 'TouchInterest'")
+    assert(pcall(shared.FireTouch, Part1, Part2, 0) and task_wait(0.1) and not (Part1 and Part2), "Failed to fire the 'TouchInterest'")
 end)
 
 Test("getconnections", function()
@@ -178,7 +175,7 @@ Test("getconnections", function()
         Enable = "function"
     }
 
-    local Signal = Instancenew("BindableEvent")
+    local Signal = Instance_new("BindableEvent")
     Signal.Event:Once(function() end)
 
     local Connection = shared.GetConnections(Signal.Event)[1]
@@ -216,7 +213,7 @@ Test("protectgui", function()
     shared.ProtectGui = protectgui or syn and syn.protect_gui
     assert(type(shared.ProtectGui) == "function", "attempt to call a nil value")
 
-    local Gui = Instancenew("ScreenGui")
+    local Gui = Instance_new("ScreenGui")
     shared.ProtectGui(Gui)
 
     Gui.Parent = shared.Workspace
@@ -416,8 +413,8 @@ if ExecutorSupport.gethui then
     --// gethui can bypass this detection
     shared.CoreGui = gethui()
 elseif ExecutorSupport.checkcaller then
-    local game, checkcaller
-        = game, checkcaller
+    local game, checkcaller, error
+        = game, checkcaller, error
 
     local OldIndex, OldNameCall, OldFunction
 
@@ -474,9 +471,7 @@ local FileSystem = {
 local FileSystemSupport = 0
 
 for _, Function in FileSystem do
-    if ExecutorSupport[Function] then
-        FileSystemSupport += 1
-    end
+    FileSystemSupport += ExecutorSupport[Function] and 1 or 0
 end
 
 ExecutorSupport.SupportFileSystem = FileSystemSupport == 8

@@ -1,4 +1,4 @@
-local tableclear
+local table_clear
     = table.clear
 
 local ConnectionManager = {}
@@ -53,7 +53,7 @@ function ConnectionManager:BindAction(
     end
 
     ActionConnections[Index] = Function
-    return tableclear(Enums) or ActionConnections[Index]
+    return table_clear(Enums) or ActionConnections[Index]
 end
 
 function ConnectionManager:DisconnectSignal(Index: string?)

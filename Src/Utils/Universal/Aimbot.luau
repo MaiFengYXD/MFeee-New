@@ -1,14 +1,14 @@
-local tick, tableinsert,  tablesort,  tableclear,  osclock
-    = tick, table.insert, table.sort, table.clear, os.clock
-
-local Color3fromHSV,  Vector2new,  CFramenew,  CFramelookAt,  RaycastParamsnew,  Raynew,  Vector3zero
+local Color3_fromHSV, Vector2_new, CFrame_new, CFrame_lookAt, RaycastParams_new, Ray_new, Vector3_zero
     = Color3.fromHSV, Vector2.new, CFrame.new, CFrame.lookAt, RaycastParams.new, Ray.new, Vector3.zero
 
-local FindFirstChild,      FindFirstChildOfClass,      GetDescendants
-    = game.FindFirstChild, game.FindFirstChildOfClass, game.GetDescendants
+local      FindFirstChild,      FindFirstChildOfClass,      GetDescendants,      IsA
+    = game.FindFirstChild, game.FindFirstChildOfClass, game.GetDescendants, game.IsA
 
-local getcallingscript, checkcaller
-    = getcallingscript, checkcaller
+local getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall
+    = getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall
+
+local tick, table_insert, table_sort, table_clear, table_find, os_clock
+    = tick, table.insert, table.sort, table.clear, table.find, os.clock
 
 local Aimbot = {
     Enabled = false,
@@ -76,8 +76,14 @@ local Aimbot = {
 }
 
 local Random: Random = Random.new()
+local NextNumber     = Random.NextNumber
+
+local WorldToViewportPoint = shared.Camera.WorldToViewportPoint
+local GetPlayers    = shared.Players.GetPlayers
+local Raycast = shared.Workspace.Raycast
 
 local EasingLibrary = wax.shared.EasingLibrary
+local NpcHandler    = wax.shared.NpcHandler
 local UiManager     = wax.shared.UiManager
 
 local Options = UiManager.Library.Options
@@ -101,7 +107,7 @@ if wax.shared.ExecutorSupport.Drawing then
 
     shared.Connect:GiveSignal("AimbotCircleUpdate", shared.RunService.PreRender:Connect(function()
         local CirclePotistion = GetMousePosition()
-        local RainbowColor    = self.Rainbow and Color3fromHSV((tick() * self.RainbowSpeed) % 1, 1, 1)
+        local RainbowColor    = self.Rainbow and Color3_fromHSV((tick() * self.RainbowSpeed) % 1, 1, 1)
         local CircleVisible   = Aimbot.Enabled and self.Enabled and self.Visible
 
         --// Update Circle
@@ -128,11 +134,11 @@ end
 
 --// Shared Functions //
 Aimbot.Shared.WallChecker = function(Origin: Vector3, Position: Vector3, IgonreObjects: Array): RaycastResult?
-    local RaycastParams = RaycastParamsnew()
+    local RaycastParams = RaycastParams_new()
     RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
     RaycastParams.FilterDescendantsInstances = IgonreObjects
 
-    return shared.Workspace:Raycast(Origin, (Position - Origin), RaycastParams)
+    return Raycast(shared.Workspace, Origin, (Position - Origin), RaycastParams)
 end
 
 Aimbot.Shared.FindRoot = function(Character: Model): BasePart | any
@@ -203,18 +209,16 @@ Aimbot.Modules.Aimbot = {
             if Shared.CheckCondition(Character) then return end
             local RootPart = Shared.FindRoot(Character)
 
-            --// Calculate hit part
-            local HitChance = Random:NextNumber(0, 100)
+            local HitChance = NextNumber(Random, 0, 100)
             if HitChance > Shared.HitChance then return end
 
             local Head           = FindFirstChild(Character, "Head")
-            local TargetPart     = Random:NextNumber(0, 100) <= Shared.HeadshotChance and Head or RootPart
+            local TargetPart     = NextNumber(Random, 0, 100) <= Shared.HeadshotChance and Head or RootPart
             local TargetPosition = TargetPart.Position
 
             self.LockPart = TargetPart
 
             if Shared.WallCheck then
-                --// Raycast to check obfuscation
                 local Ignored       = {}
                 local SelfCharacter = shared.Speaker.Character
                 if not SelfCharacter then return end
@@ -223,22 +227,21 @@ Aimbot.Modules.Aimbot = {
                 local SelfPosition = SelfRoot and SelfRoot.Position or SelfCharacter:GetPivot()
 
                 for _, Part in GetDescendants(Character) do
-                    if Part == TargetPart or not Part:IsA("BasePart") then continue end
-                    tableinsert(Ignored, Part)
+                    if Part == TargetPart or not IsA(Part, "BasePart") then continue end
+                    table_insert(Ignored, Part)
                 end
 
                 for _, Part in GetDescendants(SelfCharacter) do
-                    if not Part:IsA("BasePart") then continue end
-                    tableinsert(Ignored, Part)
+                    if not IsA(Part, "BasePart") then continue end
+                    table_insert(Ignored, Part)
                 end
 
                 if Shared.WallChecker(SelfPosition, TargetPosition, Ignored) then return end
             end
 
-            --// Get plane coordinates
-            local Vector, OnScreen, Distance = shared.Camera:WorldToViewportPoint(TargetPosition)
+            local Vector, OnScreen, Distance = WorldToViewportPoint(shared.Camera, TargetPosition)
 
-            Vector   = Vector2new(Vector.X, Vector.Y)
+            Vector   = Vector2_new(Vector.X, Vector.Y)
             Distance = (GetMousePosition() - Vector).Magnitude
 
             if Distance > RequiredDistance or not OnScreen then return end
@@ -247,12 +250,11 @@ Aimbot.Modules.Aimbot = {
 
         if not Shared.Locked then
             if Shared.TargetPlayers then
-                for _, Player in shared.Players:GetPlayers() do
+                for _, Player in GetPlayers(shared.Players) do
                     if Shared.Locked then break end
                     if Player == shared.Speaker then continue end
 
-                    --// Credit to gemini (minify logic)
-                    if (Shared.BlacklistMode == "Blacklist") == (table.find(Shared.Blacklist, Player.Name) ~= nil) then continue end
+                    if (Shared.BlacklistMode == "Blacklist") == (table_find(Shared.Blacklist, Player.Name) ~= nil) then continue end
                     if Shared.TeamCheck and Player[Shared.TeamCheckBasedOn] == shared.Speaker[Shared.TeamCheckBasedOn] then continue end
 
                     local Character = Player.Character
@@ -261,12 +263,12 @@ Aimbot.Modules.Aimbot = {
             end
 
             if not Shared.Locked and Shared.TargetNpcs then
-                for _, Npc in wax.shared.NpcHandler.Npcs do
+                for _, Npc in NpcHandler.Npcs do
                     OnIteration(Npc, Npc)
                 end
             end
         else
-            local Character = Shared.Locked:IsA("Model") and Shared.Locked or Shared.Locked.Character
+            local Character = IsA(Shared.Locked, "Model") and Shared.Locked or Shared.Locked.Character
             local Humanoid  = Character and FindFirstChildOfClass(Character, "Humanoid")
             if not Humanoid or Humanoid.Health <= 0 then
                 self:CancelLock()
@@ -274,8 +276,8 @@ Aimbot.Modules.Aimbot = {
             end
 
             local PartPosition = self.LockPart.Position
-            local Vector       = shared.Camera:WorldToViewportPoint(PartPosition)
-            local Distance     = (GetMousePosition() - Vector2new(Vector.X, Vector.Y)).Magnitude
+            local Vector       = WorldToViewportPoint(shared.Camera, PartPosition)
+            local Distance     = (GetMousePosition() - Vector2_new(Vector.X, Vector.Y)).Magnitude
 
             if Distance > RequiredDistance then
                 self:CancelLock()
@@ -299,10 +301,10 @@ Aimbot.Modules.Aimbot = {
         shared.UserInputService.MouseDeltaSensitivity = 0
 
         local AimPosition = self.LockPart.Position
-        local LookCFrame  = CFramenew(shared.Camera.CFrame.Position, AimPosition)
+        local LookCFrame  = CFrame_new(shared.Camera.CFrame.Position, AimPosition)
 
         if self.LockMethod == "mousemoverel" then
-            local TargetVector = shared.Camera:WorldToViewportPoint(AimPosition)
+            local TargetVector = WorldToViewportPoint(shared.Camera, AimPosition)
             mousemoverel(
                 (TargetVector.X - GetMousePosition().X) / self.Sensitivity,
                 (TargetVector.Y - GetMousePosition().Y) / self.Sensitivity
@@ -339,10 +341,10 @@ Aimbot.Modules.SilentAim = {
         Ray     = true
     },
 
-    ProjectileParams = RaycastParamsnew(),
-    WallbangParams   = RaycastParamsnew(),
+    ProjectileParams = RaycastParams_new(),
+    WallbangParams   = RaycastParams_new(),
 
-    LastGet = osclock(),
+    LastGet = os_clock(),
 
     GetEntity = function(self, Settings: {Origin: Vector3, Part: string}): Instance?
         local Fov    = Aimbot.Fov
@@ -360,15 +362,15 @@ Aimbot.Modules.SilentAim = {
         local SortingTable = {}
         local BestEntity: Instance? = nil
 
-        local function ProcessTarget(Target: Player | Model)
-            local Character = Target:IsA("Player") and Target.Character or Target
+        local function ProcessTarget(Target: any)
+            local Character = IsA(Target, "Player") and Target.Character or Target
             if Shared.CheckCondition(Character) then return end
 
             local TargetRoot = Shared.FindRoot(Character)
             if not TargetRoot then return end
 
-            if Target:IsA("Player") then
-                if (Shared.BlacklistMode == "Blacklist") == (table.find(Shared.Blacklist, Target.Name) ~= nil) then return end
+            if IsA(Target, "Player") then
+                if (Shared.BlacklistMode == "Blacklist") == (table_find(Shared.Blacklist, Target.Name) ~= nil) then return end
                 if Shared.TeamCheck and Target[Shared.TeamCheckBasedOn] == shared.Speaker[Shared.TeamCheckBasedOn] then return end
             end
 
@@ -379,15 +381,15 @@ Aimbot.Modules.SilentAim = {
             local IsOnScreen: boolean = true
 
             if Fov.Enabled then
-                local ScreenPosition, OnScreen = shared.Camera:WorldToViewportPoint(PartPosition)
-                if not OnScreen then IsOnScreen = false; return end
-                Magnitude = (LocationCheckOrigin - Vector2new(ScreenPosition.X, ScreenPosition.Y)).Magnitude
+                local ScreenPosition, OnScreen = WorldToViewportPoint(shared.Camera, PartPosition)
+                if not OnScreen then IsOnScreen = false;return end
+                Magnitude = (LocationCheckOrigin - Vector2_new(ScreenPosition.X, ScreenPosition.Y)).Magnitude
             else
                 Magnitude = (SelfPosition - PartPosition).Magnitude
             end
 
             if Magnitude <= RequiredDistance and IsOnScreen then
-                tableinsert(SortingTable, {
+                table_insert(SortingTable, {
                     Entity    = Target,
                     Magnitude = Magnitude,
                     Part      = FoundPart
@@ -396,31 +398,31 @@ Aimbot.Modules.SilentAim = {
         end
 
         if Shared.TargetPlayers then
-            for _, Player in shared.Players:GetPlayers() do
+            for _, Player in GetPlayers(shared.Players) do
                 if Player == shared.Speaker then continue end
                 ProcessTarget(Player)
             end
         end
 
         if Shared.TargetNpcs then
-            for _, Npc in wax.shared.NpcHandler.Npcs do
+            for _, Npc in NpcHandler.Npcs do
                 ProcessTarget(Npc)
             end
         end
 
-        tablesort(SortingTable, function(A, B)
+        table_sort(SortingTable, function(A, B)
             return A.Magnitude < B.Magnitude
         end)
 
         for _, Data in SortingTable do
-            local TargetCharacter = Data.Entity:IsA("Player") and Data.Entity.Character or Data.Entity
+            local TargetCharacter = IsA(Data.Entity, "Player") and Data.Entity.Character or Data.Entity
             local TargetPart = Data.Part
 
             if Shared.WallCheck and not self.Wallbang then
                 local Ignored = {SelfCharacter}
                 for _, Part in GetDescendants(TargetCharacter) do
-                    if Part:IsA("BasePart") then
-                       tableinsert(Ignored, Part)
+                    if IsA(Part, "BasePart") then
+                       table_insert(Ignored, Part)
                     end
                 end
                 if Shared.WallChecker(SelfPosition, TargetPart.Position, Ignored) then continue end
@@ -430,15 +432,15 @@ Aimbot.Modules.SilentAim = {
             break
         end
 
-        tableclear(SortingTable)
+        table_clear(SortingTable)
         return BestEntity
     end,
 
     GetTarget = function(self, Origin: Vector3): (Instance?, BasePart?, Vector3?)
         local Shared = Aimbot.Shared
-        if Random:NextNumber(1, 100) > Shared.HitChance then return end
+        if NextNumber(Random, 1, 100) > Shared.HitChance then return end
 
-        local TargetPartName = Random:NextNumber(1, 100) <= Shared.HeadshotChance and "Head" or "HumanoidRootPart"
+        local TargetPartName = NextNumber(Random, 1, 100) <= Shared.HeadshotChance and "Head" or "HumanoidRootPart"
         local Entity = self:GetEntity({
             Origin = Origin,
             Part   = TargetPartName
@@ -446,7 +448,7 @@ Aimbot.Modules.SilentAim = {
 
         if not Entity then Shared.Locked = nil; end
 
-        local Character = Entity:IsA("Player") and Entity.Character or Entity
+        local Character = IsA(Entity, "Player") and Entity.Character or Entity
         local TargetPartInstance = Character and FindFirstChild(Character, TargetPartName) or Shared.FindRoot(Character)
 
         if not TargetPartInstance then return end
@@ -459,7 +461,7 @@ Aimbot.Modules.SilentAim = {
         end
 
         Shared.Locked = Entity
-        self.LastGet = osclock()
+        self.LastGet = os_clock()
 
         return Entity, TargetPartInstance, Origin
     end
@@ -482,10 +484,10 @@ Aimbot.Modules.SilentAim = {
             AimPosition = PredictedAimVector or TargetPart.Position
         end
 
-        local LookDirection = CFramelookAt(Origin, AimPosition)
+        local LookDirection = CFrame_lookAt(Origin, AimPosition)
 
-        local RayOriginOffset = Arguments[3] and LookDirection.LookVector * Arguments[3] or Vector3zero
-        return {Raynew(Origin + RayOriginOffset, LookDirection.LookVector)}
+        local RayOriginOffset = Arguments[3] and LookDirection.LookVector * Arguments[3] or Vector3_zero
+        return {Ray_new(Origin + RayOriginOffset, LookDirection.LookVector)}
     end
 
     self.Hooks.FindPartOnRay = function(Arguments)
@@ -511,8 +513,8 @@ Aimbot.Modules.SilentAim = {
             end
         end
 
-        local LookDirection = CFramelookAt(Origin, AimPosition)
-        Arguments[1]        = Raynew(Origin, LookDirection.LookVector * OriginalRay.Direction.Magnitude)
+        local LookDirection = CFrame_lookAt(Origin, AimPosition)
+        Arguments[1]        = Ray_new(Origin, LookDirection.LookVector * OriginalRay.Direction.Magnitude)
         return nil
     end
 
@@ -532,7 +534,7 @@ Aimbot.Modules.SilentAim = {
             AimPosition = PredictedAimVector or TargetPart.Position
         end
 
-        local LookDirection = CFramelookAt(TargetOrigin, AimPosition)
+        local LookDirection = CFrame_lookAt(TargetOrigin, AimPosition)
         Arguments[2]        = LookDirection.LookVector * DirectionVector.Magnitude
 
         if self.Wallbang then
@@ -541,13 +543,13 @@ Aimbot.Modules.SilentAim = {
 
             Arguments[3] = self.WallbangParams
         else
-            if not Params then Params = RaycastParamsnew() end
+            if not Params then Params = RaycastParams_new() end
 
             local IgnoreList = Params.FilterDescendantsInstances or {}
-            local Character  = Entity:IsA("Player") and Entity.Character or Entity
+            local Character  = IsA(Entity, "Player") and Entity.Character or Entity
 
-            tableinsert(IgnoreList, shared.Speaker.Character)
-            tableinsert(IgnoreList, Character)
+            table_insert(IgnoreList, shared.Speaker.Character)
+            table_insert(IgnoreList, Character)
 
             Params.FilterType = Enum.RaycastFilterType.Exclude
             Params.FilterDescendantsInstances = IgnoreList
@@ -574,7 +576,7 @@ Aimbot.Modules.SilentAim = {
             end
         end
 
-        local LookDirection = CFramelookAt(TargetOrigin, AimPosition)
+        local LookDirection = CFrame_lookAt(TargetOrigin, AimPosition)
         Arguments[2]        = LookDirection.LookVector * Direction.Magnitude
         return nil
     end
@@ -606,7 +608,7 @@ Aimbot.Modules.SilentAim = {
 
                     if wax.shared.ExecutorSupport.getcallingscript then
                         local CallingScript = getcallingscript()
-                        if table.find({"ControlScript", "ControlModule"}, tostring(CallingScript)) then
+                        if table_find({"ControlScript", "ControlModule"}, tostring(CallingScript)) then
                             return self.OldNameCall(Object, ...)
                         end
                     end
@@ -633,7 +635,7 @@ Aimbot.Modules.SilentAim = {
             end
 
             if (wax.shared.ExecutorSupport.hookfunction and not self.OldRay) then
-                self.OldRay = hookfunction(Raynew, function(Origin, Direction)
+                self.OldRay = hookfunction(Ray_new, function(Origin, Direction)
                     if not (
                         not checkcaller() and
                         Aimbot.Enabled and
@@ -646,17 +648,13 @@ Aimbot.Modules.SilentAim = {
 
                     if wax.shared.ExecutorSupport.getcallingscript then
                         local CallingScript = getcallingscript()
-                        if table.find({"ControlScript", "ControlModule"}, tostring(CallingScript)) then
+                        if table_find({"ControlScript", "ControlModule"}, tostring(CallingScript)) then
                             return self.OldRay(Origin, Direction)
                         end
                     end
 
                     local Args = {Origin, Direction}
-                    local HookFunc = self.Hooks.Ray
-
-                    local Success, Error = pcall(function()
-                        HookFunc(Args)
-                    end)
+                    local Success, Error = pcall(self.Hooks.Ray, Args)
 
                     if not Success then
                         warn(`[SilentAim Hook Error] Ray.new: "{Error}"`)
@@ -672,7 +670,7 @@ Aimbot.Modules.SilentAim = {
             end
 
             if self.OldRay and wax.shared.ExecutorSupport.hookfunction then
-                pcall(hookfunction, Raynew, self.OldRay)
+                pcall(hookfunction, Ray_new, self.OldRay)
             end
 
             self.OldNameCall = nil
@@ -683,7 +681,7 @@ Aimbot.Modules.SilentAim = {
     end
 
     shared.Connect:GiveSignal("LastGetDetection", shared.RunService.Heartbeat:Connect(function()
-        if osclock() - self.LastGet > 0.2 and Aimbot.Method == "SilentAim" and self.Running then
+        if os_clock() - self.LastGet > 0.2 and Aimbot.Method == "SilentAim" and self.Running then
             Shared.Locked = nil
         end
     end))

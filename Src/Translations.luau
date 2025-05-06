@@ -3,7 +3,7 @@ local Translations = {}
 local Language = wax.shared.Language
 
 if Language ~= "en" then
-    local taskwait
+    local task_wait
         = task.wait
 
     local Success, Result
@@ -20,7 +20,7 @@ if Language ~= "en" then
     coroutine.resume(Thread)
 
     repeat
-        Elasped += taskwait()
+        Elasped += task_wait()
 
         if Elasped >= 10 then
             coroutine.close(Thread)

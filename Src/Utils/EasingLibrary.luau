@@ -1,11 +1,20 @@
-local TweenInfonew,  tableclear,  type
+local TweenInfo_new, table_clear, type
     = TweenInfo.new, table.clear, type
 
-local TweenService
+local        TweenService
     = shared.TweenService
 
-local Create
+local              Create
     = TweenService.Create
+
+local Play, Cancel;do
+    local Tween = Instance.new("Tween")
+
+    Play   = Tween.Play
+    Cancel = Tween.Cancel
+
+    Tween:Destroy()
+end
 
 local EasingLibrary = {
     RunningTween = {},
@@ -37,7 +46,7 @@ local EasingLibrary = {
         ["InOut"] = Enum.EasingDirection.InOut
     },
 
-    EasingMode      = "Quartic",
+    EasingMode      = "Quartic" :: "None" | string?,
     EasingDirection = "Out",
     EasingDuration  = 1,
 }
@@ -49,7 +58,7 @@ type StoredTween = {
 
 function EasingLibrary:CancelTween(Index: string)
     if not self.RunningTween[Index] then return end
-    self.RunningTween[Index].Tween:Cancel() --/ OnCompleted will automatically clean the RunningTween
+    Cancel(self.RunningTween[Index].Tween) --/ OnCompleted will automatically clean the RunningTween
 end
 
 function EasingLibrary:PlayTween(Tween: Tween | TweenBase, Index: string): StoredTween
@@ -57,11 +66,11 @@ function EasingLibrary:PlayTween(Tween: Tween | TweenBase, Index: string): Store
         Tween = Tween,
 
         OnCompleted = Tween.Completed:Once(function()
-            self.RunningTween[Index] = tableclear(self.RunningTween[Index])
+            self.RunningTween[Index] = table_clear(self.RunningTween[Index])
         end)
     } :: StoredTween
 
-    Tween:Play()
+    Play(Tween)
 
     return self.RunningTween[Index]
 end
@@ -80,7 +89,7 @@ function EasingLibrary:Ease(
         return
     end
 
-    local TweenInfo = TweenInfonew(
+    local TweenInfo = TweenInfo_new(
         Duration  or self.EasingDuration or 1,
         Mode      or self.EasingModes[self.EasingMode] or Enum.EasingStyle.Quart,
         Direction or self.EasingDirections[self.EasingDirection] or Enum.EasingDirection.Out

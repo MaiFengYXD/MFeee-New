@@ -1,4 +1,4 @@
-local stringfind,  stringmatch,  stringsub
+local string_find, string_match, string_sub
     = string.find, string.match, string.sub
 
 local makefolder, writefile, isfile, readfile
@@ -13,8 +13,8 @@ end
 function FileHelper:CreateParentFolder(FilePath: string): string?
     if self:CheckAPI() then return nil end
 
-    local Slash      = stringfind(FilePath, "[^/]+$", 1, true)
-    local FolderPath = if Slash then stringsub(FilePath, 1, Slash - 2) else FilePath
+    local Slash      = string_find(FilePath, "[^/]+$", 1, true)
+    local FolderPath = if Slash then string_sub(FilePath, 1, Slash - 2) else FilePath
 
     makefolder(FolderPath)
     return FolderPath
@@ -59,8 +59,8 @@ function FileHelper:WriteFile(Path: string, Content: string, DontOverwrite: bool
     self:CreateParentFolder(Path)
 
     local LoopedTimes = 1
-    local BasePath    = stringmatch(Path, "(.+)%.[^%.]+$")
-    local Extension   = stringmatch(Path, "%.([^%.]+)$")
+    local BasePath    = string_match(Path, "(.+)%.[^%.]+$")
+    local Extension   = string_match(Path, "%.([^%.]+)$")
 
     while isfile(Path) and DontOverwrite do
         LoopedTimes += 1
