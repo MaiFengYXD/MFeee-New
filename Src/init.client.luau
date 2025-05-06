@@ -137,7 +137,7 @@ getgenv().MFeeeLoading = false
 
 task.spawn(pcall, function()
     local Version = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/.LatestVersion")
-    assert(Version == wax.shared.ScriptVersion)
+    assert(Version ~= wax.shared.ScriptVersion)
 
     wax.shared.UiManager:Notify({
         Title       = wax.shared.Translations:GetTranslation("Version Mismatch"),
