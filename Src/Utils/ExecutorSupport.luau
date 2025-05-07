@@ -246,8 +246,8 @@ Test("Drawing", function()
 end)
 
 Test("randomstring", function()
-    local String = randomstring(128)
-    assert(type(String) == "string" and #String == 128, "Failed to generate a random string")
+    local String = randomstring(99)
+    assert(type(String) == "string" and #String == 99, "Failed to generate a random string")
 end)
 
 --// Fixes //
@@ -370,6 +370,15 @@ if not ExecutorSupport.randomstring then
     end
 end
 
+do
+    local Color3_fromHSV, tick
+        = Color3.fromHSV, tick
+
+    function Global.getrainbowcolor(RainbowSpeed: number | nil): Color3
+        return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
+    end
+end
+
 --[[ CoreGui Detection Bypass:
 
 ```luau
@@ -474,6 +483,6 @@ for _, Function in FileSystem do
     FileSystemSupport += ExecutorSupport[Function] and 1 or 0
 end
 
-ExecutorSupport.SupportFileSystem = FileSystemSupport == 8
+ExecutorSupport.SupportFileSystem = FileSystemSupport == #FileSystem
 
 return ExecutorSupport
