@@ -71,6 +71,7 @@ function UiManager:CreateWindow()
 
     return self.Window, (function()
         self.CreateWindow = function() end
+        return nil
     end)()
 end
 
