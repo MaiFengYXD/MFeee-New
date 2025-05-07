@@ -5,6 +5,8 @@ local httprequest = (syn and syn.request) or request or http_request or (http an
 local getassetfunc = getcustomasset or getsynasset
 local isfolder, isfile, listfiles = isfolder, isfile, listfiles;
 
+local copyfunction = copyfunction or clonefunction
+
 if typeof(copyfunction) == "function" then
     -- Fix is_____ functions for shitsploits, those functions should never error, only return a boolean.
 
