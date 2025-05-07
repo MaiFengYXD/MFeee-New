@@ -3,6 +3,15 @@ Source: https://devforum.roblox.com/t/predict-projectile-ballistics-including-gr
 Thank you NOVEIGMA, I successfully used it on Aimbot! ^^
 --]]
 
+local math_pow, math_abs, math_sqrt, math_acos, math_cos, math_pi
+    = math.pow, math.abs, math.sqrt, math.acos, math.cos, math.pi
+
+local unpack, Vector3_new, table_insert
+    = unpack, Vector3.new, table.insert
+
+local Workspace = shared.Workspace
+local Raycast   = Workspace.Raycast
+
 local Prediction = {}
 
 local function IsZero(Value)
@@ -10,7 +19,7 @@ local function IsZero(Value)
 end
 
 local function CubeRoot(Value)
-    return (Value > 0) and math.pow(Value, 1/3) or -math.pow(math.abs(Value), 1/3)
+    return (Value > 0) and math_pow(Value, 1/3) or -math_pow(math_abs(Value), 1/3)
 end
 
 local function SolveQuadratic(Coeff0, Coeff1, Coeff2)
@@ -24,8 +33,8 @@ local function SolveQuadratic(Coeff0, Coeff1, Coeff2)
     elseif Discriminant < 0 then
         return
     else --/ if (Discriminant > 0) then
-        local SqrtDiscriminant = math.sqrt(Discriminant)
-        Root1 = SqrtDiscriminant - NormalizedP
+        local SqrtDiscriminant = math_sqrt(Discriminant)
+        Root1 =  SqrtDiscriminant - NormalizedP
         Root2 = -SqrtDiscriminant - NormalizedP
 
         return Root1, Root2
@@ -59,17 +68,17 @@ local function SolveCubic(Coeff0, Coeff1, Coeff2, Coeff3)
             RootCount = 2
         end
     elseif Discriminant < 0 then --/ Casus irreducibilis: three real solutions
-        local AnglePhi = (1/3) * math.acos(-IntermediateQ / math.sqrt(-CubedP))
-        local TrigScale = 2 * math.sqrt(-IntermediateP)
+        local AnglePhi = (1/3) * math_acos(-IntermediateQ / math_sqrt(-CubedP))
+        local TrigScale = 2 * math_sqrt(-IntermediateP)
 
-        Root1 = TrigScale * math.cos(AnglePhi)
-        Root2 = -TrigScale * math.cos(AnglePhi + math.pi/3)
-        Root3 = -TrigScale * math.cos(AnglePhi - math.pi/3)
+        Root1 =  TrigScale * math_cos(AnglePhi)
+        Root2 = -TrigScale * math_cos(AnglePhi + math_pi/3)
+        Root3 = -TrigScale * math_cos(AnglePhi - math_pi/3)
 
         RootCount = 3
     else --/ One real solution
-        local SqrtDiscriminant = math.sqrt(Discriminant)
-        local CubeRootU = CubeRoot(SqrtDiscriminant - IntermediateQ)
+        local SqrtDiscriminant = math_sqrt(Discriminant)
+        local CubeRootU =  CubeRoot(SqrtDiscriminant - IntermediateQ)
         local CubeRootV = -CubeRoot(SqrtDiscriminant + IntermediateQ)
 
         Root1 = CubeRootU + CubeRootV
@@ -97,7 +106,7 @@ function Prediction.SolveQuartic(Coeff0, Coeff1, Coeff2, Coeff3, Coeff4)
     local SquaredA = NormalizedA * NormalizedA
 
     local QuarticP = -0.375 * SquaredA + NormalizedB
-    local QuarticQ = 0.125 * SquaredA * NormalizedA - 0.5 * NormalizedA * NormalizedB + NormalizedC
+    local QuarticQ =  0.125 * SquaredA * NormalizedA - 0.5 * NormalizedA * NormalizedB + NormalizedC
     local QuarticR = (
         -(3/256) * SquaredA * SquaredA +
         0.0625 * SquaredA * NormalizedB -
@@ -126,8 +135,8 @@ function Prediction.SolveQuartic(Coeff0, Coeff1, Coeff2, Coeff3, Coeff4)
         local UTerm = IntermediateZ * IntermediateZ - QuarticR
         local VTerm = 2 * IntermediateZ - QuarticP
 
-        SqrtU = (UTerm > 0) and math.sqrt(UTerm) or (IsZero(UTerm) and 0 or nil)
-        SqrtV = (VTerm > 0) and math.sqrt(VTerm) or (IsZero(VTerm) and 0 or nil)
+        SqrtU = if (UTerm > 0) then math_sqrt(UTerm) else (if IsZero(UTerm) then 0 else nil)
+        SqrtV = if (VTerm > 0) then math_sqrt(VTerm) else (if IsZero(VTerm) then 0 else nil)
 
         if SqrtU and SqrtV then
             Coefficients[2] = IntermediateZ - SqrtU
@@ -142,17 +151,16 @@ function Prediction.SolveQuartic(Coeff0, Coeff1, Coeff2, Coeff3, Coeff4)
             Coefficients[2] = IntermediateZ + SqrtU
             Coefficients[1] = (QuarticQ < 0) and SqrtV or -SqrtV
 
-            if RootCount == 0 then
+            if RootCount == 0 or RootCount == 1 or RootCount == 2 then
                 QuadResults = {SolveQuadratic(Coefficients[0], Coefficients[1], Coefficients[2])}
-                RootCount = RootCount + #QuadResults
+                RootCount += #QuadResults
+            end
+
+            if RootCount == 0 then
                 Roots[1], Roots[2] = QuadResults[1], QuadResults[2]
             elseif RootCount == 1 then
-                QuadResults = {SolveQuadratic(Coefficients[0], Coefficients[1], Coefficients[2])}
-                RootCount = RootCount + #QuadResults
                 Roots[2], Roots[3] = QuadResults[1], QuadResults[2]
             elseif RootCount == 2 then
-                QuadResults = {SolveQuadratic(Coefficients[0], Coefficients[1], Coefficients[2])}
-                RootCount = RootCount + #QuadResults
                 Roots[3], Roots[4] = QuadResults[1], QuadResults[2]
             end
         end
@@ -160,7 +168,7 @@ function Prediction.SolveQuartic(Coeff0, Coeff1, Coeff2, Coeff3, Coeff4)
     Adjustment = 0.25 * NormalizedA
 
     for Index = 1, RootCount do
-        Roots[Index] = Roots[Index] - Adjustment
+        Roots[Index] -= Adjustment
     end
     return Roots
 end
@@ -176,21 +184,21 @@ function Prediction.SolveTrajectory(
     local GravityFactor = -0.5 * Gravity
 
     --/ Attempt gravity calculation, may return to it in the future.
-    if math.abs(TargetVelY) > 0.01 and PlayerGravity and PlayerGravity > 0 then
+    if math_abs(TargetVelY) > 0.01 and PlayerGravity and PlayerGravity > 0 then
         local EstimatedTime = Displacement.Magnitude / ProjectileSpeed
         TargetVelY -= 0.5 * PlayerGravity * EstimatedTime
 
         local VelocityStep = TargetVelocity * 0.016
-        local RayResult = shared.Workspace:Raycast(TargetPosition, Vector3.new(
+        local RayResult = Raycast(Workspace, TargetPosition, Vector3_new(
             VelocityStep.X,
             (TargetVelY * EstimatedTime) - PlayerHeight, VelocityStep.Z),
             RaycastParams
         )
 
         if RayResult then
-            local NewTarget = RayResult.Position + Vector3.new(0, PlayerHeight, 0)
+            local NewTarget = RayResult.Position + Vector3_new(0, PlayerHeight, 0)
 
-            EstimatedTime -= math.sqrt(((TargetPosition - NewTarget).Magnitude * 2) / PlayerGravity)
+            EstimatedTime -= math_sqrt(((TargetPosition - NewTarget).Magnitude * 2) / PlayerGravity)
             TargetPosition = NewTarget
             DispY = (TargetPosition - Origin).Y
             TargetVelY = 0
@@ -205,13 +213,13 @@ function Prediction.SolveTrajectory(
         DispY^2 + DispX^2 + DispZ^2
     }
 
-    local SolutionRoots = Prediction.SolveQuartic(table.unpack(QuarticCoeffs))
+    local SolutionRoots = Prediction.SolveQuartic(unpack(QuarticCoeffs))
 
     if SolutionRoots then
         local PositiveRoots = {}
 
         for _, Root in SolutionRoots do --/ Filter out the negative roots
-            if Root > 0 then table.insert(PositiveRoots, Root) end
+            if Root > 0 then table_insert(PositiveRoots, Root) end
         end
 
         if #PositiveRoots > 0 then
@@ -221,7 +229,7 @@ function Prediction.SolveTrajectory(
             local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
             local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-            return Origin + Vector3.new(DeltaX, DeltaY, DeltaZ)
+            return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
         end
     elseif Gravity == 0 then
         local Time = Displacement.Magnitude / ProjectileSpeed
@@ -230,7 +238,7 @@ function Prediction.SolveTrajectory(
         local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
         local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-        return Origin + Vector3.new(DeltaX, DeltaY, DeltaZ)
+        return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
     end
     return nil
 end
