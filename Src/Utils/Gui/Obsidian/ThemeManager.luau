@@ -114,6 +114,7 @@ local ThemeManager = {} do
                 continue
             elseif idx == "FontFace" then
                 self.Library:SetFont(Enum.Font[val])
+                wax.shared.FirstFont = Enum.Font[val]
 
                 if self.Library.Options[idx] then
                     self.Library.Options[idx]:SetValue(val)
