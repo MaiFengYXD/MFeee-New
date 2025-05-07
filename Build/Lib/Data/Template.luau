@@ -7,7 +7,7 @@ local shared = shared :: {[any]: any}
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
 -- Will be used later for getting flattened globals
-local __importglobals
+local __waximport
 
 -- Holds direct closure data (defining this before the DOM tree for line debugging etc)
 local ClosureBindings = ${ClosureBindings} -- [RefId] = Closure
@@ -400,7 +400,7 @@ end
 
 -- We'll assign the actual func from the top of this output for flattening user globals at runtime
 -- Returns (in a tuple order): wax, script, require
-function __importglobals(refId)
+function __waximport(refId)
     local ScriptRef = RefBindings[refId]
 
     local function RealCall(f, ...)
