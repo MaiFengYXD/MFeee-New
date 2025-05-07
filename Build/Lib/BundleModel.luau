@@ -275,7 +275,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
 
                     return string_format([[
 function()
-local %s = __WaxImportGlobals(%d)
+local %s = __importglobals(%d)
 
 return (function()
 
