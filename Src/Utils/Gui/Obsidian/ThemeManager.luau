@@ -370,6 +370,4 @@ local ThemeManager = {} do
     ThemeManager:BuildFolderTree()
 end
 
-getgenv().ObsidianThemeManager = ThemeManager
 return ThemeManager
-
