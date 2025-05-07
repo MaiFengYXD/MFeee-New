@@ -8,6 +8,7 @@ local FileHelper      = wax.shared.FileHelper
 local Translations    = wax.shared.Translations
 local EasingLibrary   = wax.shared.EasingLibrary
 
+local WriteFile       = FileHelper.WriteFile
 local GetTranslation  = Translations.GetTranslation
 local FromTranslation = Translations.FromTranslation
 
@@ -116,7 +117,7 @@ function UiManager:CreateMainTab()
         self.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
             Clicked += ClickMultiplier
             SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
-            FileHelper:WriteFile("MFeee~New/Clicked.txt", tostring(Clicked))
+            WriteFile(FileHelper, "MFeee~New/Clicked.txt", tostring(Clicked))
         end)
 
         self.MainTabOtherGroup:AddInput("ClickMultiplier", {
@@ -133,7 +134,7 @@ function UiManager:CreateMainTab()
                 self:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), Clicked))
                 Clicked = 0
                 SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
-                FileHelper:WriteFile("MFeee~New/Clicked.txt", tostring(Clicked))
+                WriteFile(FileHelper, "MFeee~New/Clicked.txt", tostring(Clicked))
             end
         })
 
@@ -634,21 +635,21 @@ function UiManager:CreateUniversalTabs()
         KeybindFrame = Enabled
         self.Library.KeybindFrame.Visible = Enabled
 
-        FileHelper:WriteFile("MFeee~New/KeybindFrame.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee~New/KeybindFrame.txt", tostring(Enabled))
     end)
 
     self.Toggles.ShowCustomCursor:OnChanged(function(Enabled)
         CustomCursor = Enabled
         self.Library.ShowCustomCursor = Enabled
 
-        FileHelper:WriteFile("MFeee~New/CustomCursor.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee~New/CustomCursor.txt", tostring(Enabled))
     end)
 
     self.Toggles.ForceCheckbox:OnChanged(function(Enabled)
         ForceCheckbox = Enabled
         self.Library.ForceCheckbox = Enabled
 
-        FileHelper:WriteFile("MFeee~New/ForceCheckbox.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee~New/ForceCheckbox.txt", tostring(Enabled))
     end)
 
     self.Library.ToggleKeybind = self.Options.OpenMenu
@@ -682,7 +683,7 @@ function UiManager:CreateUniversalTabs()
             local Index = table_find(NativeLanguage.Tag, Language)
             if not Index then return end
 
-            FileHelper:WriteFile("MFeee~New/Language.txt", NativeLanguage[Index])
+            WriteFile(FileHelper, "MFeee~New/Language.txt", NativeLanguage[Index])
             self:Notify(GetTranslation(Translations, "Restart to Apply"))
         end)
     end
@@ -770,11 +771,11 @@ function UiManager:CreateUniversalTabs()
         AlwaysOnTop = Enabled
         self.Library.ScreenGui.OnTopOfCoreBlur = Enabled
 
-        FileHelper:WriteFile("MFeee~New/AlwaysOnTop.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee~New/AlwaysOnTop.txt", tostring(Enabled))
     end)
 
     self.Options.WindowStyle:OnChanged(function(Style)
-        FileHelper:WriteFile("MFeee~New/WindowStyle.txt", Style == "Obsidian" and "Obsidian" or "Linoria")
+        WriteFile(FileHelper, "MFeee~New/WindowStyle.txt", Style == "Obsidian" and "Obsidian" or "Linoria")
         self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
@@ -796,12 +797,12 @@ function UiManager:CreateUniversalTabs()
 
         self.Options.DPIScale:OnChanged(function(Scale)
             LatestDpi = Scale
-            FileHelper:WriteFile("MFeee~New/DPIScale.txt", Scale)
+            WriteFile(FileHelper, "MFeee~New/DPIScale.txt", Scale)
         end)
     end
 
     self.Options.UICorner:OnChanged(function(Corner)
-        FileHelper:WriteFile("MFeee~New/UICorner.txt", tostring(Corner))
+        WriteFile(FileHelper, "MFeee~New/UICorner.txt", tostring(Corner))
         self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
@@ -809,7 +810,7 @@ function UiManager:CreateUniversalTabs()
         Side = FromTranslation(Translations, Side)
         if not Side then return end
 
-        FileHelper:WriteFile("MFeee~New/NotifySide.txt", Side)
+        WriteFile(FileHelper, "MFeee~New/NotifySide.txt", Side)
         self.Library:SetNotifySide(Side)
     end)
 
@@ -817,7 +818,7 @@ function UiManager:CreateUniversalTabs()
         local SoundID = Sound == "Obsidian" and 4590662766 or 4590657391
         self.NotifySoundID = `rbxassetid://{SoundID}`
 
-        FileHelper:WriteFile("MFeee~New/NotifySound.txt", Sound)
+        WriteFile(FileHelper, "MFeee~New/NotifySound.txt", Sound)
     end)
 
     self.Options.NotifySoundID:OnChanged(function(SoundID)
