@@ -80,7 +80,7 @@ function UiManager:CreateWindow()
 end
 
 function UiManager:CreateMainTab()
-    local UniversalMISC   = require("../Universal/MISC")
+    local UniversalMISC = require("../Universal/MISC")
 
     --// Main Tab //
     self.MainTab = self.Window:AddTab(GetTranslation(Translations, "Main"), "home")
