@@ -25,14 +25,14 @@ local EnvName = "${EnvName}"
 -- ++++++++ RUNTIME IMPL BELOW ++++++++ --
 
 -- Localizing certain libraries and built-ins for runtime efficiency
-local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION =
-      string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, tostring, tonumber, _VERSION
+local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, debug_traceback
+    = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, debug.traceback
 
 if not require then require = function(...) return nil end;end
 
 local table_insert = table.insert
 local table_remove = table.remove
-local table_freeze = table.freeze or function(t) return t end -- lol
+local table_freeze = table.freeze
 
 local coroutine_wrap = coroutine.wrap
 
@@ -376,7 +376,7 @@ local function LoadScript(scriptRef)
     -- If it's a BaseScript, we'll just run it directly!
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
-            return debug.traceback(msg, 2)
+            return debug_traceback(msg, 2)
         end)
         if not RunSuccess then
             return error(FormatError(ErrorMessage), 0)
@@ -384,7 +384,7 @@ local function LoadScript(scriptRef)
         return
     else
         local PCallReturn = {xpcall(Closure, function(msg)
-            return debug.traceback(msg, 2)
+            return debug_traceback(msg, 2)
         end)}
 
         local RunSuccess = table_remove(PCallReturn, 1)
@@ -405,7 +405,7 @@ function __importglobals(refId)
 
     local function RealCall(f, ...)
         local PCallReturn = {xpcall(f, function(msg)
-            return debug.traceback(msg, 2)
+            return debug_traceback(msg, 2)
         end, ...)}
 
         local CallSuccess = table_remove(PCallReturn, 1)
