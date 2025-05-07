@@ -41,8 +41,11 @@ do
     local      Destroy, Instance_new
         = game.Destroy, Instance.new
 
+    local Library = UiManager.Library
+    local Notify  = Library.Notify
+
     function UiManager:Notify(...)
-        self.Library:Notify(...)
+        Notify(Library, ...)
 
         local Sound = Instance_new("Sound", shared.SoundService);do
             Sound.SoundId = self.NotifySoundID
@@ -621,6 +624,11 @@ function UiManager:CreateUniversalTabs()
         Func = wax.shared.OnUnload
     })
 
+    --// Theme Groupbox
+    self.SettingsTabThemeGroup = self.SettingsTab:AddRightGroupbox(GetTranslation(Translations, "Theme"))
+
+    self.ThemeManager:CreateThemeManager(self.SettingsTabUiGroup)
+
     --// Menu Groupbox OnChanged
     self.Toggles.OpenKeybindMenu:OnChanged(function(Enabled)
         KeybindFrame = Enabled
@@ -754,6 +762,8 @@ function UiManager:CreateUniversalTabs()
             })
         end)
     end
+
+    self.SaveManager:BuildConfigSetction(self.SettingsTab)
 
     --// UI Groupbox OnChanged
     self.Toggles.AlwaysOnTop:OnChanged(function(Enabled)
@@ -963,5 +973,12 @@ function UiManager:CreateUniversalTabs()
 
     return self.MiscTab, self.InfoTab
 end
+
+UiManager.SaveManager:SetLibrary  (UiManager.Library)
+UiManager.SaveManager:SetFolder   ("MFeee~New")
+UiManager.SaveManager:SetSubFolder(wax.shared.ScriptFolder)
+
+UiManager.ThemeManager:SetLibrary (UiManager.Library)
+UiManager.ThemeManager:SetFolder  ("MFeee~New")
 
 return UiManager
