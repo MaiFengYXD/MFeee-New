@@ -127,7 +127,7 @@ end))
 wax.shared.ScriptVersion = "Build 1"
 
 wax.shared.Icons     = require("Utils/Gui/Lucide")
-wax.shared.UiManager = require("Utils/Gui/UiManager")
+wax.shared.UiManager = require("Utils/Gui/UIManager")
 wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
 require(`Places/Loader/{wax.shared.ScriptFolder}`)
