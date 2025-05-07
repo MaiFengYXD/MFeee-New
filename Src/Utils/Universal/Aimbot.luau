@@ -1,14 +1,14 @@
-local Color3_fromHSV, Vector2_new, CFrame_new, CFrame_lookAt, RaycastParams_new, Ray_new, Vector3_zero
-    = Color3.fromHSV, Vector2.new, CFrame.new, CFrame.lookAt, RaycastParams.new, Ray.new, Vector3.zero
+local getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall, getrainbowcolor
+    = getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall, getrainbowcolor
+
+local Vector2_new, CFrame_new, CFrame_lookAt, RaycastParams_new, Ray_new, Vector3_zero
+    = Vector2.new, CFrame.new, CFrame.lookAt, RaycastParams.new, Ray.new, Vector3.zero
 
 local      FindFirstChild,      FindFirstChildOfClass,      GetDescendants,      IsA
     = game.FindFirstChild, game.FindFirstChildOfClass, game.GetDescendants, game.IsA
 
-local getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall
-    = getcallingscript, checkcaller, mousemoverel, unpack, warn, tostring, pcall
-
-local tick, table_insert, table_sort, table_clear, table_find, os_clock
-    = tick, table.insert, table.sort, table.clear, table.find, os.clock
+local table_insert, table_sort, table_clear, table_find, os_clock
+    = table.insert, table.sort, table.clear, table.find, os.clock
 
 local Aimbot = {
     Enabled = false,
@@ -107,7 +107,7 @@ if wax.shared.ExecutorSupport.Drawing then
 
     shared.Connect:GiveSignal("AimbotCircleUpdate", shared.RunService.PreRender:Connect(function()
         local CirclePotistion = GetMousePosition()
-        local RainbowColor    = self.Rainbow and Color3_fromHSV((tick() * self.RainbowSpeed) % 1, 1, 1)
+        local RainbowColor    = self.Rainbow and getrainbowcolor(self.RainbowSpeed)
         local CircleVisible   = Aimbot.Enabled and self.Enabled and self.Visible
 
         --// Update Circle
