@@ -36,8 +36,8 @@ end
 
 --// Folders
 local function FolderTest(Assert: string?)
-    makefolder("MFeee~New.test")
-    assert(isfolder("MFeee~New.test"), Assert or "Failed to create a folder")
+    makefolder("MFeee-New.test")
+    assert(isfolder("MFeee-New.test"), Assert or "Failed to create a folder")
 end
 
 Test("makefolder", FolderTest)
@@ -48,15 +48,15 @@ end)
 
 Test("delfolder", function()
     FolderTest()
-    delfolder ("MFeee~New.test")
-    assert(isfolder("MFeee~New.test") == false, "Failed to delete a folder")
+    delfolder ("MFeee-New.test")
+    assert(isfolder("MFeee-New.test") == false, "Failed to delete a folder")
 end)
 
 --// Files
 local function FileTest(Assert: string?)
-    makefolder("MFeee~New.test")
-    writefile ("MFeee~New.test/Hello.txt", "Hello, World!")
-    assert(isfile("MFeee~New.test/Hello.txt"), Assert or "Failed to create a file")
+    makefolder("MFeee-New.test")
+    writefile ("MFeee-New.test/Hello.txt", "Hello, World!")
+    assert(isfile("MFeee-New.test/Hello.txt"), Assert or "Failed to create a file")
 end
 
 Test("writefile", FileTest)
@@ -67,19 +67,19 @@ end)
 
 Test("readfile", function()
     FileTest()
-    assert(readfile("MFeee~New.test/Hello.txt") == "Hello, World!", "Failed to read a file")
+    assert(readfile("MFeee-New.test/Hello.txt") == "Hello, World!", "Failed to read a file")
 end)
 
 Test("appendfile", function()
     FileTest()
-    appendfile("MFeee~New.test/Hello.txt", "\nHello, World!")
-    assert(readfile("MFeee~New.test/Hello.txt") == "Hello, World!\nHello, World!", "Failed to append to a file")
+    appendfile("MFeee-New.test/Hello.txt", "\nHello, World!")
+    assert(readfile("MFeee-New.test/Hello.txt") == "Hello, World!\nHello, World!", "Failed to append to a file")
 end)
 
 Test("delfile", function()
     FileTest()
-    delfile("MFeee~New.test/Hello.txt")
-    assert(isfile("MFeee~New.test/Hello.txt") == false, "Failed to delete a file")
+    delfile("MFeee-New.test/Hello.txt")
+    assert(isfile("MFeee-New.test/Hello.txt") == false, "Failed to delete a file")
 end)
 
 --// Metatables and Hooks //

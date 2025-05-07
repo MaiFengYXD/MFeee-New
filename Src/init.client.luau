@@ -94,7 +94,7 @@ wax.shared.AllowedLanguages = {
     ["zh-hant"] = "繁體中文"
 }
 
-wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee~New/Language.txt", "en", wax.shared.AllowedLanguages)
+wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee-New/Language.txt", "en", wax.shared.AllowedLanguages)
 
 do
     wax.shared.ScriptName    = "Universal"

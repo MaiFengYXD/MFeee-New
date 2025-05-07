@@ -12,16 +12,16 @@ local WriteFile       = FileHelper.WriteFile
 local GetTranslation  = Translations.GetTranslation
 local FromTranslation = Translations.FromTranslation
 
-local WindowStyle   = FileHelper:CheckFile("MFeee~New/WindowStyle.txt"  , "Obsidian" , {"Obsidian", "Linoria"})
-local NotifySound   = FileHelper:CheckFile("MFeee~New/NotifySound.txt"  , WindowStyle, {"Obsidian", "Linoria"})
-local NotifySide    = FileHelper:CheckFile("MFeee~New/NotifySide.txt"   , "TopRight" , {"TopLeft" , "TopRight", "BottomLeft", "BottomRight"})
-local ForceCheckbox = FileHelper:CheckFile("MFeee~New/ForceCheckbox.txt", "false", {"false", "true"}) == "true"
-local CustomCursor  = FileHelper:CheckFile("MFeee~New/CustomCursor.txt" , "false", {"false", "true"}) == "true"
-local KeybindFrame  = FileHelper:CheckFile("MFeee~New/KeybindFrame.txt" , "false", {"false", "true"}) == "true"
-local AlwaysOnTop   = FileHelper:CheckFile("MFeee~New/AlwaysOnTop.txt"  , "false", {"false", "true"}) == "true"
-local UiCorner      = FileHelper:CheckFile("MFeee~New/UICorner.txt", 5, 5)
-local DPIScale      = FileHelper:CheckFile("MFeee~New/DPIScale.txt", 1, 1)
-local Clicked       = FileHelper:CheckFile("MFeee~New/Clicked.txt" , 0, 0)
+local WindowStyle   = FileHelper:CheckFile("MFeee-New/WindowStyle.txt"  , "Obsidian" , {"Obsidian", "Linoria"})
+local NotifySound   = FileHelper:CheckFile("MFeee-New/NotifySound.txt"  , WindowStyle, {"Obsidian", "Linoria"})
+local NotifySide    = FileHelper:CheckFile("MFeee-New/NotifySide.txt"   , "TopRight" , {"TopLeft" , "TopRight", "BottomLeft", "BottomRight"})
+local ForceCheckbox = FileHelper:CheckFile("MFeee-New/ForceCheckbox.txt", "false", {"false", "true"}) == "true"
+local CustomCursor  = FileHelper:CheckFile("MFeee-New/CustomCursor.txt" , "false", {"false", "true"}) == "true"
+local KeybindFrame  = FileHelper:CheckFile("MFeee-New/KeybindFrame.txt" , "false", {"false", "true"}) == "true"
+local AlwaysOnTop   = FileHelper:CheckFile("MFeee-New/AlwaysOnTop.txt"  , "false", {"false", "true"}) == "true"
+local UiCorner      = FileHelper:CheckFile("MFeee-New/UICorner.txt", 5, 5)
+local DPIScale      = FileHelper:CheckFile("MFeee-New/DPIScale.txt", 1, 1)
+local Clicked       = FileHelper:CheckFile("MFeee-New/Clicked.txt" , 0, 0)
 
 UiManager.Library      = require(`{WindowStyle}/Library`)
 UiManager.SaveManager  = require(`{WindowStyle}/SaveManager`)
@@ -117,7 +117,7 @@ function UiManager:CreateMainTab()
         self.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
             Clicked += ClickMultiplier
             SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
-            WriteFile(FileHelper, "MFeee~New/Clicked.txt", tostring(Clicked))
+            WriteFile(FileHelper, "MFeee-New/Clicked.txt", tostring(Clicked))
         end)
 
         self.MainTabOtherGroup:AddInput("ClickMultiplier", {
@@ -134,7 +134,7 @@ function UiManager:CreateMainTab()
                 self:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), Clicked))
                 Clicked = 0
                 SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
-                WriteFile(FileHelper, "MFeee~New/Clicked.txt", tostring(Clicked))
+                WriteFile(FileHelper, "MFeee-New/Clicked.txt", tostring(Clicked))
             end
         })
 
@@ -511,8 +511,8 @@ function UiManager:CreateUniversalTabs()
     self.DecompilerGroup:AddInput("DecompilerSaveFolder", {
         Text = GetTranslation(Translations, "Save Folder"),
         Default = Decompiler.SaveFolder,
-        EmptyReset = "MFeee~New/Decompiled Scripts",
-        Placeholder = "MFeee~New/Decompiled Scripts",
+        EmptyReset = "MFeee-New/Decompiled Scripts",
+        Placeholder = "MFeee-New/Decompiled Scripts",
         ClearTextOnFocus = false
     })
 
@@ -635,21 +635,21 @@ function UiManager:CreateUniversalTabs()
         KeybindFrame = Enabled
         self.Library.KeybindFrame.Visible = Enabled
 
-        WriteFile(FileHelper, "MFeee~New/KeybindFrame.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee-New/KeybindFrame.txt", tostring(Enabled))
     end)
 
     self.Toggles.ShowCustomCursor:OnChanged(function(Enabled)
         CustomCursor = Enabled
         self.Library.ShowCustomCursor = Enabled
 
-        WriteFile(FileHelper, "MFeee~New/CustomCursor.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee-New/CustomCursor.txt", tostring(Enabled))
     end)
 
     self.Toggles.ForceCheckbox:OnChanged(function(Enabled)
         ForceCheckbox = Enabled
         self.Library.ForceCheckbox = Enabled
 
-        WriteFile(FileHelper, "MFeee~New/ForceCheckbox.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee-New/ForceCheckbox.txt", tostring(Enabled))
     end)
 
     self.Library.ToggleKeybind = self.Options.OpenMenu
@@ -683,7 +683,7 @@ function UiManager:CreateUniversalTabs()
             local Index = table_find(NativeLanguage.Tag, Language)
             if not Index then return end
 
-            WriteFile(FileHelper, "MFeee~New/Language.txt", NativeLanguage[Index])
+            WriteFile(FileHelper, "MFeee-New/Language.txt", NativeLanguage[Index])
             self:Notify(GetTranslation(Translations, "Restart to Apply"))
         end)
     end
@@ -771,11 +771,11 @@ function UiManager:CreateUniversalTabs()
         AlwaysOnTop = Enabled
         self.Library.ScreenGui.OnTopOfCoreBlur = Enabled
 
-        WriteFile(FileHelper, "MFeee~New/AlwaysOnTop.txt", tostring(Enabled))
+        WriteFile(FileHelper, "MFeee-New/AlwaysOnTop.txt", tostring(Enabled))
     end)
 
     self.Options.WindowStyle:OnChanged(function(Style)
-        WriteFile(FileHelper, "MFeee~New/WindowStyle.txt", Style == "Obsidian" and "Obsidian" or "Linoria")
+        WriteFile(FileHelper, "MFeee-New/WindowStyle.txt", Style == "Obsidian" and "Obsidian" or "Linoria")
         self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
@@ -797,12 +797,12 @@ function UiManager:CreateUniversalTabs()
 
         self.Options.DPIScale:OnChanged(function(Scale)
             LatestDpi = Scale
-            WriteFile(FileHelper, "MFeee~New/DPIScale.txt", Scale)
+            WriteFile(FileHelper, "MFeee-New/DPIScale.txt", Scale)
         end)
     end
 
     self.Options.UICorner:OnChanged(function(Corner)
-        WriteFile(FileHelper, "MFeee~New/UICorner.txt", tostring(Corner))
+        WriteFile(FileHelper, "MFeee-New/UICorner.txt", tostring(Corner))
         self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
@@ -810,7 +810,7 @@ function UiManager:CreateUniversalTabs()
         Side = FromTranslation(Translations, Side)
         if not Side then return end
 
-        WriteFile(FileHelper, "MFeee~New/NotifySide.txt", Side)
+        WriteFile(FileHelper, "MFeee-New/NotifySide.txt", Side)
         self.Library:SetNotifySide(Side)
     end)
 
@@ -818,7 +818,7 @@ function UiManager:CreateUniversalTabs()
         local SoundID = Sound == "Obsidian" and 4590662766 or 4590657391
         self.NotifySoundID = `rbxassetid://{SoundID}`
 
-        WriteFile(FileHelper, "MFeee~New/NotifySound.txt", Sound)
+        WriteFile(FileHelper, "MFeee-New/NotifySound.txt", Sound)
     end)
 
     self.Options.NotifySoundID:OnChanged(function(SoundID)
@@ -976,10 +976,10 @@ function UiManager:CreateUniversalTabs()
 end
 
 UiManager.SaveManager:SetLibrary  (UiManager.Library)
-UiManager.SaveManager:SetFolder   ("MFeee~New")
+UiManager.SaveManager:SetFolder   ("MFeee-New")
 UiManager.SaveManager:SetSubFolder(wax.shared.ScriptFolder)
 
 UiManager.ThemeManager:SetLibrary (UiManager.Library)
-UiManager.ThemeManager:SetFolder  ("MFeee~New")
+UiManager.ThemeManager:SetFolder  ("MFeee-New")
 
 return UiManager
