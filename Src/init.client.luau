@@ -136,7 +136,7 @@ getgenv().MFeeeLoaded  = true
 getgenv().MFeeeLoading = false
 
 task.spawn(pcall, function()
-    local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/.LatestVersion")
+    local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/.version")
     assert(Version ~= wax.shared.ScriptVersion)
 
     wax.shared.UiManager:Notify({
