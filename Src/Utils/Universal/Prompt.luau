@@ -1,5 +1,5 @@
 local PromptController = {
-    Instance         = {},
+    Instances        = {},
     HoldDuration     = {},
 
     MaxActivationDistance = {},
@@ -16,8 +16,21 @@ local PromptController = {
 local type, randomstring
     = type, randomstring
 
-local IsA = Instance.new("Part").IsA
-local PropertyChanged = Instance.new("Part").GetPropertyChangedSignal
+local shared_Connect
+    = shared.Connect
+
+local GiveSignal       = shared_Connect.GiveSignal
+local DisconnectSignal = shared_Connect.DisconnectSignal
+
+local      IsA,         PropertyChanged
+    = game.IsA, game.GetPropertyChangedSignal
+
+local Once, Connect;do
+    local Signal = game.Close
+
+    Once    = Signal.Once
+    Connect = Signal.Connect
+end
 
 --// Init //
 local function InsertPrompt(Instance: ProximityPrompt)
@@ -25,14 +38,14 @@ local function InsertPrompt(Instance: ProximityPrompt)
 
     local self = PromptController
 
-    self.Instance    [Instance] = randomstring()
+    self.Instances   [Instance] = randomstring()
     self.HoldDuration[Instance] = Instance.HoldDuration
 
     self.MaxActivationDistance[Instance] = Instance.MaxActivationDistance
     self.RequiresLineOfSight  [Instance] = Instance.RequiresLineOfSight
 
-    shared.Connect:GiveSignal(Instance, Instance.Destroying:Once(function()
-        self.Instance    [Instance] = nil
+    GiveSignal(shared_Connect, Instance, Once(Instance.Destroying, function()
+        self.Instances   [Instance] = nil
         self.HoldDuration[Instance] = nil
 
         self.MaxActivationDistance[Instance] = nil
@@ -44,22 +57,22 @@ for _, Descendant in shared.Workspace:GetDescendants() do
     InsertPrompt(Descendant)
 end
 
-shared.Connect:GiveSignal("OnPromptAdded", shared.Workspace.DescendantAdded:Connect(InsertPrompt))
+GiveSignal(shared_Connect, "OnPromptAdded", Connect(shared.Workspace.DescendantAdded, InsertPrompt))
 
 --// Main Logic //
 
 --[[ @private ]]
 function PromptController:_ModTemplate(Property: string, Expected: boolean | number, IsMultiple: boolean?)
-    for Prompt, Id in self.Instance do
+    for Prompt, Id in self.Instances do
         if self[`{Property}Enabled`] then
             local Value = if type(Expected) == "boolean" then Expected else (Expected * (IsMultiple and self[Property][Prompt]) or 1)
 
-            shared.Connect:GiveSignal(`{Property}-{Id}`, PropertyChanged(Prompt, Property):Connect(function()
+            GiveSignal(shared_Connect, `{Property}-{Id}`, Connect(PropertyChanged(Prompt, Property), function()
                 Prompt[Property] = Value
             end))
             Prompt[Property] = Value
         else
-            shared.Connect:DisconnectSignal(`{Property}-{Id}`)
+            DisconnectSignal(shared_Connect, `{Property}-{Id}`)
             Prompt[Property] = self[Property][Prompt]
         end
     end
