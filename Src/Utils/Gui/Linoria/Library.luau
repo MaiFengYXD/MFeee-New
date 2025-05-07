@@ -124,26 +124,7 @@ pcall(function() Library.DevicePlatform = shared.UserInputService:GetPlatform();
 Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS);
 Library.MinSize = if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300);
 
-local RainbowStep = 0
-local Hue = 0
 local DPIScale = 1
-
-table.insert(Library.Signals, PreRender:Connect(function(Delta)
-    RainbowStep = RainbowStep + Delta
-
-    if RainbowStep >= (1 / 60) then
-        RainbowStep = 0;
-
-        Hue = Hue + (1 / 400);
-
-        if Hue > 1 then
-            Hue = 0;
-        end;
-
-        Library.CurrentRainbowHue = Hue;
-        Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.8, 1);
-    end;
-end));
 
 local function ApplyDPIScale(Position)
     return UDim2.new(Position.X.Scale, Position.X.Offset * DPIScale, Position.Y.Scale, Position.Y.Offset * DPIScale);
@@ -994,7 +975,7 @@ function Library:UpdateColorsUsingRegistry()
     -- Visible: true => Add to active list, and call UpdateColors function
     -- Visible: false => Remove from active list.
 
-    -- The above would be especially efficient for a rainbow menu color or live color-changing.
+    -- ~~The above would be especially efficient for a rainbow menu color or live color-changing.~~
 
     for Idx, Object in Library.Registry do
         for Property, ColorIdx in Object.Properties do
