@@ -13,6 +13,7 @@ local LocalPlayer = shared.Speaker
 local Mouse = LocalPlayer:GetMouse()
 
 local Translations = wax.shared.Translations
+local GetTranslation = Translations.GetTranslation
 local PreRender = shared.RunService.PreRender
 
 local Labels = {}
@@ -145,8 +146,8 @@ local Templates = {
 
     --// Library //
     Window = {
-        Title = Translations:GetTranslation("No Title"),
-        Footer = Translations:GetTranslation("No Footer"),
+        Title = GetTranslation(Translations, "No Title"),
+        Footer = GetTranslation(Translations, "No Footer"),
         Position = UDim2.fromOffset(6, 6),
         Size = UDim2.fromOffset(720, 600),
         IconSize = UDim2.fromOffset(30, 30),
@@ -162,7 +163,7 @@ local Templates = {
         AlwaysOnTop = false,
     },
     Toggle = {
-        Text = Translations:GetTranslation("Toggle"),
+        Text = GetTranslation(Translations, "Toggle"),
         Default = false,
 
         Callback = function() end,
@@ -173,7 +174,7 @@ local Templates = {
         Visible = true,
     },
     Input = {
-        Text = Translations:GetTranslation("Input"),
+        Text = GetTranslation(Translations, "Input"),
         Default = "",
         Finished = false,
         Numeric = false,
@@ -189,7 +190,7 @@ local Templates = {
         Visible = true,
     },
     Slider = {
-        Text = Translations:GetTranslation("Slider"),
+        Text = GetTranslation(Translations, "Slider"),
         Default = 0,
         Min = 0,
         Max = 100,
@@ -219,8 +220,8 @@ local Templates = {
 
     --// Addons \\-
     KeyPicker = {
-        Text = Translations:GetTranslation("KeyPicker"),
-        Default = Translations:GetTranslation("None"),
+        Text = GetTranslation(Translations, "KeyPicker"),
+        Default = GetTranslation(Translations, "None"),
         Mode = "Toggle",
         Modes = { "Always", "Toggle", "Hold" },
         SyncToggleState = false,
@@ -1651,7 +1652,7 @@ do
                     KeybindsToggle:SetNormal(true)
                 end
 
-                KeybindsToggle:SetText(("[%s] %s (%s)"):format(KeyPicker.Value, KeyPicker.Text, Translations:GetTranslation(KeyPicker.Mode)))
+                KeybindsToggle:SetText(("[%s] %s (%s)"):format(KeyPicker.Value, KeyPicker.Text, GetTranslation(Translations, KeyPicker.Mode)))
                 KeybindsToggle:SetVisibility(true)
                 KeybindsToggle:Display(State)
             end
@@ -1664,13 +1665,13 @@ do
                 return true
             elseif KeyPicker.Mode == "Hold" then
                 local Key = KeyPicker.Value
-                if Key == Translations:GetTranslation("None") then
+                if Key == GetTranslation(Translations, "None") then
                     return false
                 end
 
-                if Key == Translations:GetTranslation("MB1") or Key == Translations:GetTranslation("MB2") then
-                    return Key == Translations:GetTranslation("MB1") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                        or Key == Translations:GetTranslation("MB2") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                if Key == GetTranslation(Translations, "MB1") or Key == GetTranslation(Translations, "MB2") then
+                    return Key == GetTranslation(Translations, "MB1") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+                        or Key == GetTranslation(Translations, "MB2") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
                 end
 
                 return shared.UserInputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value])
@@ -1716,14 +1717,14 @@ do
             Picker.Size = UDim2.fromOffset(29 * Library.DPIScale, 18 * Library.DPIScale)
 
             local Input = shared.UserInputService.InputBegan:Wait()
-            local Key = Translations:GetTranslation("Unknown")
+            local Key = GetTranslation(Translations, "Unknown")
 
             if Input.UserInputType == Enum.UserInputType.Keyboard then
-                Key = Input.KeyCode == Enum.KeyCode.Escape and Translations:GetTranslation("None") or Input.KeyCode.Name
+                Key = Input.KeyCode == Enum.KeyCode.Escape and GetTranslation(Translations, "None") or Input.KeyCode.Name
             elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                Key = Translations:GetTranslation("MB1")
+                Key = GetTranslation(Translations, "MB1")
             elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
-                Key = Translations:GetTranslation("MB2")
+                Key = GetTranslation(Translations, "MB2")
             end
 
             KeyPicker.Value = Key
@@ -1746,8 +1747,8 @@ do
         Library:GiveSignal(shared.UserInputService.InputBegan:Connect(function(Input: InputObject)
             if
                 KeyPicker.Mode == "Always"
-                or KeyPicker.Value == Translations:GetTranslation("Unknown")
-                or KeyPicker.Value == Translations:GetTranslation("None")
+                or KeyPicker.Value == GetTranslation(Translations, "Unknown")
+                or KeyPicker.Value == GetTranslation(Translations, "None")
                 or Picking
                 or shared.UserInputService:GetFocusedTextBox()
             then
@@ -1757,10 +1758,10 @@ do
             if KeyPicker.Mode == "Toggle" then
                 local Key = KeyPicker.Value
 
-                if Key == Translations:GetTranslation("MB1") or Key == Translations:GetTranslation("MB2") then
+                if Key == GetTranslation(Translations, "MB1") or Key == GetTranslation(Translations, "MB2") then
                     if
-                        Key == Translations:GetTranslation("MB1") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                        or Key == Translations:GetTranslation("MB2") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                        Key == GetTranslation(Translations, "MB1") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+                        or Key == GetTranslation(Translations, "MB2") and shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
                     then
                         KeyPicker.Toggled = not KeyPicker.Toggled
                         KeyPicker:DoClick()
@@ -1776,8 +1777,8 @@ do
 
         Library:GiveSignal(shared.UserInputService.InputEnded:Connect(function()
             if
-                KeyPicker.Value == Translations:GetTranslation("Unknown")
-                or KeyPicker.Value == Translations:GetTranslation("None")
+                KeyPicker.Value == GetTranslation(Translations, "Unknown")
+                or KeyPicker.Value == GetTranslation(Translations, "None")
                 or Picking
                 or shared.UserInputService:GetFocusedTextBox()
             then
@@ -2075,19 +2076,19 @@ do
                 end)
             end
 
-            CreateButton(Translations:GetTranslation("Copy color"), function()
+            CreateButton(GetTranslation(Translations, "Copy color"), function()
                 Library.CopiedColor = { ColorPicker.Value, ColorPicker.Transparency }
             end)
 
-            CreateButton(Translations:GetTranslation("Paste color"), function()
+            CreateButton(GetTranslation(Translations, "Paste color"), function()
                 ColorPicker:SetValueRGB(Library.CopiedColor[1], Library.CopiedColor[2])
             end)
 
             if SetClipboard then
-                CreateButton(Translations:GetTranslation("Copy Hex"), function()
+                CreateButton(GetTranslation(Translations, "Copy Hex"), function()
                     SetClipboard(tostring(ColorPicker.Value:ToHex()))
                 end)
-                CreateButton(Translations:GetTranslation("Copy RGB"), function()
+                CreateButton(GetTranslation(Translations, "Copy RGB"), function()
                     SetClipboard(table.concat({
                         math.floor(ColorPicker.Value.R * 255),
                         math.floor(ColorPicker.Value.G * 255),
@@ -2462,7 +2463,7 @@ do
                 if Button.DoubleClick then
                     Button.Locked = true
 
-                    Button.Base.Text = Translations:GetTranslation("Are you sure?")
+                    Button.Base.Text = GetTranslation(Translations, "Are you sure?")
                     Button.Base.TextColor3 = Library.Scheme.AccentColor
                     Library.Registry[Button.Base].TextColor3 = "AccentColor"
 
@@ -3346,7 +3347,7 @@ do
         end
 
         function Slider:SetMax(Value)
-            assert(Value > Slider.Min, Translations:GetTranslation("Max value cannot be less than the current min value."))
+            assert(Value > Slider.Min, GetTranslation(Translations, "Max value cannot be less than the current min value."))
 
             Slider.Value = math.clamp(Slider.Value, Slider.Min, Value)
             Slider.Max = Value
@@ -3354,7 +3355,7 @@ do
         end
 
         function Slider:SetMin(Value)
-            assert(Value < Slider.Max, Translations:GetTranslation("Min value cannot be greater than the current max value."))
+            assert(Value < Slider.Max, GetTranslation(Translations, "Min value cannot be greater than the current max value."))
 
             Slider.Value = math.clamp(Slider.Value, Value, Slider.Max)
             Slider.Min = Value
@@ -3552,7 +3553,7 @@ do
         if Info.Searchable then
             SearchBox = New("TextBox", {
                 BackgroundTransparency = 1,
-                PlaceholderText = Translations:GetTranslation("Search..."),
+                PlaceholderText = GetTranslation(Translations, "Search..."),
                 Position = UDim2.fromOffset(-8, 0),
                 Size = UDim2.new(1, -12, 1, 0),
                 TextSize = 14,
@@ -3984,7 +3985,7 @@ function Library:CreateWindow(WindowInfo)
     local Tabs
     local Container
     do
-        Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu(Translations:GetTranslation("Keybinds"))
+        Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu(GetTranslation(Translations, "Keybinds"))
         Library.KeybindFrame.AnchorPoint = Vector2.new(0, 0.5)
         Library.KeybindFrame.Position = UDim2.new(0, 6, 0.5, 0)
         Library.KeybindFrame.Visible = false
@@ -4084,7 +4085,7 @@ function Library:CreateWindow(WindowInfo)
         SearchBox = New("TextBox", {
             AnchorPoint = Vector2.new(0, 0.5),
             BackgroundColor3 = "MainColor",
-            PlaceholderText = Translations:GetTranslation("Search"),
+            PlaceholderText = GetTranslation(Translations, "Search"),
             Position = UDim2.new(0.3, 8, 0.5, 0),
             Size = UDim2.new(0.7, -57, 1, -16),
             TextScaled = true,
@@ -4897,7 +4898,7 @@ function Library:CreateWindow(WindowInfo)
                 BackgroundColor3 = "MainColor",
                 BorderColor3 = "OutlineColor",
                 BorderSizePixel = 1,
-                PlaceholderText = Translations:GetTranslation("Key"),
+                PlaceholderText = GetTranslation(Translations, "Key"),
                 Size = UDim2.new(1, -71, 1, 0),
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -4916,7 +4917,7 @@ function Library:CreateWindow(WindowInfo)
                 BorderSizePixel = 1,
                 Position = UDim2.fromScale(1, 0),
                 Size = UDim2.new(0, 63, 1, 0),
-                Text = Translations:GetTranslation("Execute"),
+                Text = GetTranslation(Translations, "Execute"),
                 TextSize = 14,
                 Parent = Holder,
             })
@@ -5051,13 +5052,13 @@ function Library:CreateWindow(WindowInfo)
     end
 
     if Library.IsMobile then
-        local ToggleButton = Library:AddDraggableButton(Translations:GetTranslation("Toggle"), function()
+        local ToggleButton = Library:AddDraggableButton(GetTranslation(Translations, "Toggle"), function()
             Library:Toggle()
         end)
 
-        local LockButton = Library:AddDraggableButton(Translations:GetTranslation("Lock"), function(self)
+        local LockButton = Library:AddDraggableButton(GetTranslation(Translations, "Lock"), function(self)
             Library.CantDragForced = not Library.CantDragForced
-            self:SetText(Library.CantDragForced and Translations:GetTranslation("Unlock") or Translations:GetTranslation("Lock"))
+            self:SetText(Library.CantDragForced and GetTranslation(Translations, "Unlock") or GetTranslation(Translations, "Lock"))
         end)
 
         if WindowInfo.MobileButtonsSide == "Right" then

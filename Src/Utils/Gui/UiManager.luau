@@ -8,6 +8,9 @@ local FileHelper      = wax.shared.FileHelper
 local Translations    = wax.shared.Translations
 local EasingLibrary   = wax.shared.EasingLibrary
 
+local GetTranslation  = Translations.GetTranslation
+local FromTranslation = Translations.FromTranslation
+
 local WindowStyle   = FileHelper:CheckFile("MFeee~New/WindowStyle.txt"  , "Obsidian" , {"Obsidian", "Linoria"})
 local NotifySound   = FileHelper:CheckFile("MFeee~New/NotifySound.txt"  , WindowStyle, {"Obsidian", "Linoria"})
 local NotifySide    = FileHelper:CheckFile("MFeee~New/NotifySide.txt"   , "TopRight" , {"TopLeft" , "TopRight", "BottomLeft", "BottomRight"})
@@ -75,19 +78,19 @@ function UiManager:CreateMainTab()
     local UniversalMISC   = require("../Universal/MISC")
 
     --// Main Tab //
-    self.MainTab = self.Window:AddTab(Translations:GetTranslation("Main"), "home")
+    self.MainTab = self.Window:AddTab(GetTranslation(Translations, "Main"), "home")
 
     --// General Groupbox (Left)
-    self.MainTabGeneralGroup = self.MainTab:AddLeftGroupbox(Translations:GetTranslation("General"))
+    self.MainTabGeneralGroup = self.MainTab:AddLeftGroupbox(GetTranslation(Translations, "General"))
 
     self.MainTabGeneralGroup:AddToggle("AntiAFK", {
-        Text = Translations:GetTranslation("Anti AFK"),
+        Text = GetTranslation(Translations, "Anti AFK"),
         Disabled = not ExecutorSupport.getconnections,
         Default = false
     })
 
     self.MainTabGeneralGroup:AddToggle("AntiKick", {
-        Text = Translations:GetTranslation("Anti Kick (Client)"),
+        Text = GetTranslation(Translations, "Anti Kick (Client)"),
         Disabled = not (ExecutorSupport.hookfunction and ExecutorSupport.hookmetamethod),
         Default  = false
     })
@@ -98,34 +101,34 @@ function UiManager:CreateMainTab()
     self.Toggles.AntiKick:OnChanged(UniversalMISC.AntiKick.Start)
 
     --// Other Groupbox (Right)
-    self.MainTabOtherGroup = self.MainTab:AddRightGroupbox(Translations:GetTranslation("Other"))
+    self.MainTabOtherGroup = self.MainTab:AddRightGroupbox(GetTranslation(Translations, "Other"))
 
     do
-        self.ClickTimesLabel = self.MainTabOtherGroup:AddLabel(string_format(Translations:GetTranslation("You clicked %d times"), Clicked))
+        self.ClickTimesLabel = self.MainTabOtherGroup:AddLabel(string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
 
         local SetText = self.ClickTimesLabel.SetText
         local ClickMultiplier = 1
 
-        self.MainTabOtherGroup:AddButton(Translations:GetTranslation("Click Me!"), function()
+        self.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
             Clicked += ClickMultiplier
-            SetText(self.ClickTimesLabel, string_format(Translations:GetTranslation("You clicked %d times"), Clicked))
+            SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
             FileHelper:WriteFile("MFeee~New/Clicked.txt", tostring(Clicked))
         end)
 
         self.MainTabOtherGroup:AddInput("ClickMultiplier", {
-            Text = Translations:GetTranslation("Click Multiplier"),
+            Text = GetTranslation(Translations, "Click Multiplier"),
             Default = ClickMultiplier,
             Numeric = true,
             AllowEmpty = false
         })
 
         self.MainTabOtherGroup:AddButton({
-            Text = Translations:GetTranslation("Reset Clicks"),
+            Text = GetTranslation(Translations, "Reset Clicks"),
             DoubleClick = true,
             Func = function()
-                self:Notify(string_format(Translations:GetTranslation("You lost %d clicks"), Clicked))
+                self:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), Clicked))
                 Clicked = 0
-                SetText(self.ClickTimesLabel, string_format(Translations:GetTranslation("You clicked %d times"), Clicked))
+                SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), Clicked))
                 FileHelper:WriteFile("MFeee~New/Clicked.txt", tostring(Clicked))
             end
         })
@@ -145,13 +148,13 @@ function UiManager:CreateMainTab()
         end
 
         self.MainTabOtherGroup:AddDropdown("EasingMode", {
-            Text    = Translations:GetTranslation("Easing Mode"),
+            Text    = GetTranslation(Translations, "Easing Mode"),
             Values  = EasingModes,
             Default = "Quartic"
         })
 
         self.MainTabOtherGroup:AddDropdown("EasingDirection", {
-            Text = Translations:GetTranslation("Easing Direction"),
+            Text = GetTranslation(Translations, "Easing Direction"),
             Values = {
                 "In",
                 "Out",
@@ -161,7 +164,7 @@ function UiManager:CreateMainTab()
         })
 
         self.MainTabOtherGroup:AddSlider("EasingDuration", {
-            Text = Translations:GetTranslation("Easing Duration"),
+            Text = GetTranslation(Translations, "Easing Duration"),
             Default = 1,
             Min = 0.1,
             Max = 3,
@@ -189,13 +192,13 @@ function UiManager:CreatePlayerTab()
     local UniversalPlayer = require("../Universal/Player")
 
     --// Player Tab //
-    self.PlayerTab = self.Window:AddTab(Translations:GetTranslation("Player"), "user")
+    self.PlayerTab = self.Window:AddTab(GetTranslation(Translations, "Player"), "user")
 
     --// Left Tab Box
     self.PlayerLeftTabBox = self.PlayerTab:AddLeftTabbox()
 
     --// Player Overrides Tab
-    self.PlayerLeftTabBoxOverridesTab = self.PlayerLeftTabBox:AddTab(Translations:GetTranslation("Overrides"))
+    self.PlayerLeftTabBoxOverridesTab = self.PlayerLeftTabBox:AddTab(GetTranslation(Translations, "Overrides"))
 
     do
         local TempCharacter = shared.Speaker.Character
@@ -212,12 +215,12 @@ function UiManager:CreatePlayerTab()
         local TempJumpHeight = Round(tonumber(TempHumanoid.JumpHeight)) or 7.2
 
         self.PlayerLeftTabBoxOverridesTab:AddToggle("WalkSpeedOverride", {
-            Text = Translations:GetTranslation("WalkSpeed Override"),
+            Text = GetTranslation(Translations, "WalkSpeed Override"),
             Default = false
         })
 
         self.PlayerLeftTabBoxOverridesTab:AddSlider("WalkSpeed", {
-            Text = Translations:GetTranslation("WalkSpeed"),
+            Text = GetTranslation(Translations, "WalkSpeed"),
             Default = TempWalkSpeed,
             Min = 0,
             Max = 200,
@@ -227,12 +230,12 @@ function UiManager:CreatePlayerTab()
         })
 
         self.PlayerLeftTabBoxOverridesTab:AddToggle("JumpHeightOverride", {
-            Text = Translations:GetTranslation("JumpHeight Override"),
+            Text = GetTranslation(Translations, "JumpHeight Override"),
             Default = false
         })
 
         self.PlayerLeftTabBoxOverridesTab:AddSlider("JumpHeight", {
-            Text = Translations:GetTranslation("JumpHeight"),
+            Text = GetTranslation(Translations, "JumpHeight"),
             Default = TempJumpHeight,
             Min = 0,
             Max = 100,
@@ -243,12 +246,12 @@ function UiManager:CreatePlayerTab()
     end
 
     self.PlayerLeftTabBoxOverridesTab:AddToggle("GravityOverride", {
-        Text = Translations:GetTranslation("Gravity Override"),
+        Text = GetTranslation(Translations, "Gravity Override"),
         Default = false
     })
 
     self.PlayerLeftTabBoxOverridesTab:AddSlider("Gravity", {
-        Text = Translations:GetTranslation("Gravity"),
+        Text = GetTranslation(Translations, "Gravity"),
         Default = shared.Workspace.Gravity,
         Min = 0,
         Max = 1000,
@@ -260,22 +263,22 @@ function UiManager:CreatePlayerTab()
     self.PlayerLeftTabBoxOverridesTab:AddDivider()
 
     self.PlayerLeftTabBoxOverridesTab:AddToggle("NoAcceleration", {
-        Text = Translations:GetTranslation("No Acceleration"),
+        Text = GetTranslation(Translations, "No Acceleration"),
         Default = false
     })
 
     self.PlayerLeftTabBoxOverridesTab:AddToggle("AntiRobloxVoid", {
-        Text = Translations:GetTranslation("Anti Roblox Void"),
+        Text = GetTranslation(Translations, "Anti Roblox Void"),
         Default = false
     })
 
     self.PlayerLeftTabBoxOverridesTab:AddToggle("SpeedBoost", {
-        Text = Translations:GetTranslation("Speed Boost"),
+        Text = GetTranslation(Translations, "Speed Boost"),
         Default = false
     })
 
     self.PlayerLeftTabBoxOverridesTab:AddSlider("BoostSpeed", {
-        Text = Translations:GetTranslation("Boost Speed"),
+        Text = GetTranslation(Translations, "Boost Speed"),
         Default = UniversalPlayer.SpeedBoost.Speed,
         Min = 0,
         Max = 100,
@@ -288,11 +291,11 @@ function UiManager:CreatePlayerTab()
 
     self.PlayerLeftTabBoxOverridesTab
     :AddToggle("Noclip", {
-        Text = Translations:GetTranslation("Noclip"),
+        Text = GetTranslation(Translations, "Noclip"),
         Default = false
     })
     :AddKeyPicker("NoclipKeybind", {
-        Text = Translations:GetTranslation("Noclip"),
+        Text = GetTranslation(Translations, "Noclip"),
         Default = "N",
         Mode = "Toggle",
         SyncToggleState = true
@@ -300,11 +303,11 @@ function UiManager:CreatePlayerTab()
 
     self.PlayerLeftTabBoxOverridesTab
     :AddToggle("VehicleNoclip", {
-        Text = Translations:GetTranslation("Vehicle Noclip"),
+        Text = GetTranslation(Translations, "Vehicle Noclip"),
         Default = false
     })
     :AddKeyPicker("VehicleNoclipKeybind", {
-        Text = Translations:GetTranslation("Vehicle Noclip"),
+        Text = GetTranslation(Translations, "Vehicle Noclip"),
         Default = "H",
         Mode = "Toggle",
         SyncToggleState = true
@@ -344,7 +347,7 @@ end
 
 function UiManager:CreateUniversalTabs()
     --// MISC Tab //
-    self.MiscTab = self.Window:AddTab(Translations:GetTranslation("Misc"), "boxes")
+    self.MiscTab = self.Window:AddTab(GetTranslation(Translations, "Misc"), "boxes")
 
     --// Roblox Groupbox (Left)
     self.MiscTabRobloxGroup = self.MiscTab:AddLeftGroupbox("Roblox")
@@ -353,56 +356,56 @@ function UiManager:CreateUniversalTabs()
         local Toggles = {}
 
         Toggles.EnableReset = self.MiscTabRobloxGroup:AddToggle("EnableReset", {
-            Text = Translations:GetTranslation("Enable Reset"),
+            Text = GetTranslation(Translations, "Enable Reset"),
             Default = shared.StarterGui:GetCore("ResetButtonCallback")
         })
 
         Toggles.EnablePlayerList = self.MiscTabRobloxGroup:AddToggle("EnablePlayerList", {
-            Text = Translations:GetTranslation("Enable Player List"),
+            Text = GetTranslation(Translations, "Enable Player List"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.PlayerList)
         })
 
         Toggles.EnableHealth = self.MiscTabRobloxGroup:AddToggle("EnableHealth", {
-            Text = Translations:GetTranslation("Enable Health Bar"),
+            Text = GetTranslation(Translations, "Enable Health Bar"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Health)
         })
 
         Toggles.EnableBackpack = self.MiscTabRobloxGroup:AddToggle("EnableBackpack", {
-            Text = Translations:GetTranslation("Enable Backpack"),
+            Text = GetTranslation(Translations, "Enable Backpack"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
         })
 
         Toggles.EnableChat = self.MiscTabRobloxGroup:AddToggle("EnableChat", {
-            Text = Translations:GetTranslation("Enable Chat"),
+            Text = GetTranslation(Translations, "Enable Chat"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Chat)
         })
 
         Toggles.EnableEmotesMenu = self.MiscTabRobloxGroup:AddToggle("EnableEmotesMenu", {
-            Text = Translations:GetTranslation("Enable Emotes Menu"),
+            Text = GetTranslation(Translations, "Enable Emotes Menu"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu)
         })
 
         Toggles.EnableSelfView = self.MiscTabRobloxGroup:AddToggle("EnableSelfView", {
-            Text = Translations:GetTranslation("Enable Self View"),
-            Tooltip = Translations:GetTranslation("Avatar \"selfie\" (with facial capture enabled)"),
+            Text = GetTranslation(Translations, "Enable Self View"),
+            Tooltip = GetTranslation(Translations, "Avatar \"selfie\" (with facial capture enabled)"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.SelfView)
         })
 
         Toggles.EnableCapture = self.MiscTabRobloxGroup:AddToggle("EnableCapture", {
-            Text = Translations:GetTranslation("Enable Capture Button"),
+            Text = GetTranslation(Translations, "Enable Capture Button"),
             Default = shared.StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Captures)
         })
 
         self.MiscTabRobloxGroup:AddDivider()
 
         self.MiscTabRobloxGroup:AddToggle("DevConsole", {
-            Text = Translations:GetTranslation("Dev Console"),
+            Text = GetTranslation(Translations, "Dev Console"),
             Default = shared.StarterGui:GetCore("DevConsoleVisible")
         })
 
         Toggles.AvatarContextMenu = self.MiscTabRobloxGroup:AddToggle("AvatarContextMenu", {
-            Text = Translations:GetTranslation("Avatar Context Menu"),
-            Tooltip = Translations:GetTranslation("Left-clicking on a player's avatar will pop up a context menu, and stop you from moving\n(which players who enjoy Natural Disaster Survival should be very familiar with)"),
+            Text = GetTranslation(Translations, "Avatar Context Menu"),
+            Tooltip = GetTranslation(Translations, "Left-clicking on a player's avatar will pop up a context menu, and stop you from moving\n(which players who enjoy Natural Disaster Survival should be very familiar with)"),
             Default = shared.StarterGui:GetCore("AvatarContextMenuEnabled")
         })
 
@@ -447,41 +450,41 @@ function UiManager:CreateUniversalTabs()
 
     --[[
     --// Decompiler Groupbox (Right)
-    wax.shared.DecompilerGroup = self.MiscTab:AddRightGroupbox(Translations:GetTranslation("Decompiler"))
+    wax.shared.DecompilerGroup = self.MiscTab:AddRightGroupbox(GetTranslation(Translations, "Decompiler"))
     self.DecompilerGroup = wax.shared.DecompilerGroup
 
-    local StatusText = Translations:GetTranslation("Status")
+    local StatusText = GetTranslation(Translations, "Status")
     self.DecompilerInfo = self.DecompilerGroup:AddLabel({
-        Text     = `{StatusText}: {Translations:GetTranslation("Idle")}`,
+        Text     = `{StatusText}: {GetTranslation(Translations, "Idle")}`,
         DoesWrap = true
     })
 
     self.DecompilerGroup:AddToggle("ToggleDecompilation", {
-        Text    = Translations:GetTranslation("Decompile"),
+        Text    = GetTranslation(Translations, "Decompile"),
         Default = Decompiler.Running
     })
 
     self.DecompilerGroup:AddToggle("ToggleDecompilationState", {
-        Text    = Translations:GetTranslation("Pause"),
+        Text    = GetTranslation(Translations, "Pause"),
         Default = Decompiler.Paused
     })
 
     self.DecompilerGroup:AddDivider()
 
     self.DecompilerGroup:AddToggle("DecompilerOverwrite", {
-        Text = Translations:GetTranslation("Overwrite"),
-        Tooltip = Translations:GetTranslation("Overwrite existing files"),
+        Text = GetTranslation(Translations, "Overwrite"),
+        Tooltip = GetTranslation(Translations, "Overwrite existing files"),
         Default = Decompiler.Overwrite
     })
 
     self.DecompilerGroup:AddToggle("DecompilerDebugMode", {
-        Text = Translations:GetTranslation("Debug Mode"),
-        Tooltip = Translations:GetTranslation("Print a bunch of logs"),
+        Text = GetTranslation(Translations, "Debug Mode"),
+        Tooltip = GetTranslation(Translations, "Print a bunch of logs"),
         Default = Decompiler.DebugMode
     })
 
     self.DecompilerGroup:AddDropdown("DecompileClasses", {
-        Text = Translations:GetTranslation("Classes"),
+        Text = GetTranslation(Translations, "Classes"),
         Values = {
             "LocalScript",
             "ModuleScript"
@@ -493,7 +496,7 @@ function UiManager:CreateUniversalTabs()
     })
 
     self.DecompilerGroup:AddInput("DecompilerExtension", {
-        Text = Translations:GetTranslation("Extension"),
+        Text = GetTranslation(Translations, "Extension"),
         Default = Decompiler.Extension,
         EmptyReset = ".luau",
         Placeholder = ".luau",
@@ -501,7 +504,7 @@ function UiManager:CreateUniversalTabs()
     })
 
     self.DecompilerGroup:AddInput("DecompilerSaveFolder", {
-        Text = Translations:GetTranslation("Save Folder"),
+        Text = GetTranslation(Translations, "Save Folder"),
         Default = Decompiler.SaveFolder,
         EmptyReset = "MFeee~New/Decompiled Scripts",
         Placeholder = "MFeee~New/Decompiled Scripts",
@@ -517,16 +520,16 @@ function UiManager:CreateUniversalTabs()
 
         if Success then
             if self.Running then
-                self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Decompiling")}`)
+                self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Decompiling")}`)
                 
                 self.WaitingThread = coroutine.create(function()
                     local Info = coroutine.yield()
 
-                    self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Finished Decompiling")}\n{Translations:GetTranslation("Time Used")}: {Info.TotalTime}ms\n{Translations:GetTranslation("Decompiled")}: {Info.Scripts}{Translations:GetTranslation("Scripts")}\n{Translations:GetTranslation("Total Size")}: {Info.Bytes}bytes`)
-                    self:Notify(Translations:GetTranslation("Finished Decompiling"))
+                    self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Finished Decompiling")}\n{GetTranslation(Translations, "Time Used")}: {Info.TotalTime}ms\n{GetTranslation(Translations, "Decompiled")}: {Info.Scripts}{GetTranslation(Translations, "Scripts")}\n{GetTranslation(Translations, "Total Size")}: {Info.Bytes}bytes`)
+                    self:Notify(GetTranslation(Translations, "Finished Decompiling"))
                 end)
             else
-                self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Idle")}`)
+                self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Idle")}`)
             end
         end
 
@@ -536,7 +539,7 @@ function UiManager:CreateUniversalTabs()
                 return
             end
 
-            self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Decompiled")} {self.InfoInstance.Value}/{self.TotalScripts} {Translations:GetTranslation("Scripts")}`)
+            self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Decompiled")} {self.InfoInstance.Value}/{self.TotalScripts} {GetTranslation(Translations, "Scripts")}`)
         end))
     end)
 
@@ -548,9 +551,9 @@ function UiManager:CreateUniversalTabs()
 
         if Success then
             if self.Paused then
-                self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Paused")}`)
+                self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Paused")}`)
             else
-                self.DecompilerInfo:SetText(`{StatusText}: {Translations:GetTranslation("Decompiling")}`)
+                self.DecompilerInfo:SetText(`{StatusText}: {GetTranslation(Translations, "Decompiling")}`)
             end
         end
     end)
@@ -583,27 +586,27 @@ function UiManager:CreateUniversalTabs()
     ]]
 
     --// Settings Tab //
-    self.SettingsTab = self.Window:AddTab(Translations:GetTranslation("Settings"), "settings")
+    self.SettingsTab = self.Window:AddTab(GetTranslation(Translations, "Settings"), "settings")
 
     --// Menu Groupbox (Left)
-    self.SettingsTabMenuGroup = self.SettingsTab:AddLeftGroupbox(Translations:GetTranslation("Menu"))
+    self.SettingsTabMenuGroup = self.SettingsTab:AddLeftGroupbox(GetTranslation(Translations, "Menu"))
 
     self.SettingsTabMenuGroup:AddToggle("OpenKeybindMenu", {
-        Text = Translations:GetTranslation("Open Keybind Menu"),
+        Text = GetTranslation(Translations, "Open Keybind Menu"),
         Default = self.Library.KeybindFrame.Visible
     })
 
     self.SettingsTabMenuGroup:AddToggle("ShowCustomCursor", {
-        Text = Translations:GetTranslation("Show Custom Cursor"),
+        Text = GetTranslation(Translations, "Show Custom Cursor"),
         Default = CustomCursor
     })
 
     self.SettingsTabMenuGroup:AddToggle("ForceCheckbox", {
-        Text = Translations:GetTranslation("Force Checkbox"),
+        Text = GetTranslation(Translations, "Force Checkbox"),
         Default = ForceCheckbox
     })
 
-    self.SettingsTabMenuGroup:AddLabel(Translations:GetTranslation("Open Menu Key")):AddKeyPicker("OpenMenu", {
+    self.SettingsTabMenuGroup:AddLabel(GetTranslation(Translations, "Open Menu Key")):AddKeyPicker("OpenMenu", {
         Default = "RightControl",
         Mode = "Toggle",
         NoUI = true
@@ -612,7 +615,7 @@ function UiManager:CreateUniversalTabs()
     self.SettingsTabMenuGroup:AddDivider()
 
     self.SettingsTabMenuGroup:AddButton({
-        Text = Translations:GetTranslation("Unload"),
+        Text = GetTranslation(Translations, "Unload"),
         DoubleClick = true,
         Func = wax.shared.OnUnload
     })
@@ -642,10 +645,10 @@ function UiManager:CreateUniversalTabs()
     self.Library.ToggleKeybind = self.Options.OpenMenu
 
     --// UI Groupbox (Right)
-    self.SettingsTabUiGroup = self.SettingsTab:AddRightGroupbox(Translations:GetTranslation("UI"))
+    self.SettingsTabUiGroup = self.SettingsTab:AddRightGroupbox(GetTranslation(Translations, "UI"))
 
     self.SettingsTabUiGroup:AddToggle("AlwaysOnTop", {
-        Text = Translations:GetTranslation("Always On Top"),
+        Text = GetTranslation(Translations, "Always On Top"),
         Default = AlwaysOnTop
     })
 
@@ -661,7 +664,7 @@ function UiManager:CreateUniversalTabs()
         end
 
         self.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
-            Text    = Translations:GetTranslation("Change Language"),
+            Text    = GetTranslation(Translations, "Change Language"),
             Values  = NativeLanguage.Name,
             Default = wax.shared.AllowedLanguages[wax.shared.Language]
         })
@@ -671,21 +674,21 @@ function UiManager:CreateUniversalTabs()
             if not Index then return end
 
             FileHelper:WriteFile("MFeee~New/Language.txt", NativeLanguage[Index])
-            self:Notify(Translations:GetTranslation("Restart to Apply"))
+            self:Notify(GetTranslation(Translations, "Restart to Apply"))
         end)
     end
 
     self.SettingsTabUiGroup:AddDropdown("WindowStyle", {
-        Text = Translations:GetTranslation("Window Style"),
+        Text = GetTranslation(Translations, "Window Style"),
         Values = {
             "Obsidian",
             "Linoria"
         },
-        Default = Translations:GetTranslation(WindowStyle)
+        Default = GetTranslation(Translations, WindowStyle)
     })
 
     self.SettingsTabUiGroup:AddSlider("DPIScale", {
-        Text = Translations:GetTranslation("DPI Scale"),
+        Text = GetTranslation(Translations, "DPI Scale"),
         Default = DPIScale,
         Min = 50,
         Max = 200,
@@ -693,8 +696,8 @@ function UiManager:CreateUniversalTabs()
     })
 
     self.SettingsTabUiGroup:AddSlider("UICorner", {
-        Text = Translations:GetTranslation("UI Corner"),
-        Tooltip = Translations:GetTranslation("Restart to Apply"),
+        Text = GetTranslation(Translations, "UI Corner"),
+        Tooltip = GetTranslation(Translations, "Restart to Apply"),
         Default = UiCorner,
         Min = 0,
         Max = 10,
@@ -704,27 +707,27 @@ function UiManager:CreateUniversalTabs()
     self.SettingsTabUiGroup:AddDivider()
 
     self.SettingsTabUiGroup:AddDropdown("NotifySide", {
-        Text = Translations:GetTranslation("Notify Side"),
+        Text = GetTranslation(Translations, "Notify Side"),
         Values = {
-            Translations:GetTranslation("Top Left"),
-            Translations:GetTranslation("Top Right"),
-            Translations:GetTranslation("Bottom Left"),
-            Translations:GetTranslation("Bottom Right")
+            GetTranslation(Translations, "Top Left"),
+            GetTranslation(Translations, "Top Right"),
+            GetTranslation(Translations, "Bottom Left"),
+            GetTranslation(Translations, "Bottom Right")
         },
-        Default = Translations:GetTranslation(NotifySide)
+        Default = GetTranslation(Translations, NotifySide)
     })
 
     self.SettingsTabUiGroup:AddDropdown("NotifySound", {
-        Text = Translations:GetTranslation("Notify Sound"),
+        Text = GetTranslation(Translations, "Notify Sound"),
         Values = {
             "Obsidian",
             "Linoria"
         },
-        Default = Translations:GetTranslation(NotifySound)
+        Default = GetTranslation(Translations, NotifySound)
     })
 
     self.SettingsTabUiGroup:AddInput("NotifySoundID", {
-        Text = Translations:GetTranslation("Notify Sound ID"),
+        Text = GetTranslation(Translations, "Notify Sound ID"),
         Default = "",
         EmptyReset = "",
         Placeholder = tostring(DefaultSoundID),
@@ -732,7 +735,7 @@ function UiManager:CreateUniversalTabs()
     })
 
     self.SettingsTabUiGroup:AddSlider("NotifyVolume", {
-        Text = Translations:GetTranslation("Notify Volume"),
+        Text = GetTranslation(Translations, "Notify Volume"),
         Default = 200,
         Min = 0,
         Max = 1000,
@@ -740,7 +743,7 @@ function UiManager:CreateUniversalTabs()
     })
 
     do
-        local TestNotify = Translations:GetTranslation("Test Notify")
+        local TestNotify = GetTranslation(Translations, "Test Notify")
 
         self.SettingsTabUiGroup:AddButton(TestNotify, function()
             self:Notify({
@@ -761,7 +764,7 @@ function UiManager:CreateUniversalTabs()
 
     self.Options.WindowStyle:OnChanged(function(Style)
         FileHelper:WriteFile("MFeee~New/WindowStyle.txt", Style == "Obsidian" and "Obsidian" or "Linoria")
-        self:Notify(Translations:GetTranslation("Restart to Apply"))
+        self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
     do
@@ -788,11 +791,11 @@ function UiManager:CreateUniversalTabs()
 
     self.Options.UICorner:OnChanged(function(Corner)
         FileHelper:WriteFile("MFeee~New/UICorner.txt", tostring(Corner))
-        self:Notify(Translations:GetTranslation("Restart to Apply"))
+        self:Notify(GetTranslation(Translations, "Restart to Apply"))
     end)
 
     self.Options.NotifySide:OnChanged(function(Side)
-        Side = Translations:FromTranslation(Side)
+        Side = FromTranslation(Translations, Side)
         if not Side then return end
 
         FileHelper:WriteFile("MFeee~New/NotifySide.txt", Side)
@@ -819,74 +822,74 @@ function UiManager:CreateUniversalTabs()
     end)
 
     --// Info Tab //
-    self.InfoTab = self.Window:AddTab(Translations:GetTranslation("Info"), "info")
+    self.InfoTab = self.Window:AddTab(GetTranslation(Translations, "Info"), "info")
 
     --// Developers Groupbox (Left)
-    self.InfoTabDevelopersGroup = self.InfoTab:AddLeftGroupbox(Translations:GetTranslation("Developers"))
+    self.InfoTabDevelopersGroup = self.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Developers"))
 
     self.InfoTabDevelopersGroup:AddLabel({
-        Text = `[<font color="#1f6feb">MaiFengYXD</font>] {Translations:GetTranslation("Owner, developer")}`,
+        Text = `[<font color="#1f6feb">MaiFengYXD</font>] {GetTranslation(Translations, "Owner, developer")}`,
         DoesWrap = true
     })
 
     --// Credits Groupbox (Left)
-    self.InfoTabCreditsGroup = self.InfoTab:AddRightGroupbox(Translations:GetTranslation("Credits"))
+    self.InfoTabCreditsGroup = self.InfoTab:AddRightGroupbox(GetTranslation(Translations, "Credits"))
 
     self.InfoTabCreditsGroup:AddLabel({
-        Text = `[<font color="#1f6feb">upio</font>] {Translations:GetTranslation("Teaches me how to use wax")}`,
+        Text = `[<font color="#1f6feb">upio</font>] {GetTranslation(Translations, "Teaches me how to use wax")}`,
         DoesWrap = true
     })
 
     self.InfoTabCreditsGroup:AddLabel({
-        Text = `[<font color="#1f6feb">mspaint</font>] {Translations:GetTranslation("Gives me inspiration")}`,
+        Text = `[<font color="#1f6feb">mspaint</font>] {GetTranslation(Translations, "Gives me inspiration")}`,
         DoesWrap = true
     })
 
     self.InfoTabCreditsGroup:AddLabel({
-        Text = `[<font color="#1f6feb">GitHub Copilot</font>] {Translations:GetTranslation("Helps complete code")}`,
+        Text = `[<font color="#1f6feb">GitHub Copilot</font>] {GetTranslation(Translations, "Helps complete code")}`,
         DoesWrap = true
     })
 
     self.InfoTabCreditsGroup:AddLabel({
-        Text = `[<font color="#1f6feb">Google Gemini</font>] {Translations:GetTranslation("Helps translate (English)")}`,
+        Text = `[<font color="#1f6feb">Google Gemini</font>] {GetTranslation(Translations, "Helps translate (English)")}`,
         DoesWrap = true
     })
 
     self.InfoTabCreditsGroup:AddLabel({
-        Text = `[<font color="#1f6feb">{Translations:GetTranslation("And you!")}</font>] {Translations:GetTranslation("For using my script!")}`,
+        Text = `[<font color="#1f6feb">{GetTranslation(Translations, "And you!")}</font>] {GetTranslation(Translations, "For using my script!")}`,
         DoesWrap = true
     })
 
     --// Spechial Thanks Groupbox (Left)
-    self.InfoTabThanksGroup = self.InfoTab:AddLeftGroupbox(Translations:GetTranslation("Special Thanks"))
+    self.InfoTabThanksGroup = self.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Special Thanks"))
 
     self.InfoTabThanksGroup:AddLabel({
-        Text = `[<font color="#1f6feb">latte-soft</font>] {Translations:GetTranslation("Wax bundler")}`,
+        Text = `[<font color="#1f6feb">latte-soft</font>] {GetTranslation(Translations, "Wax bundler")}`,
         DoesWrap = true
     })
 
     self.InfoTabThanksGroup:AddLabel({
-        Text = `[<font color="#1f6feb">deividcomsono</font>] {Translations:GetTranslation("Obsidian UI Library")}`,
+        Text = `[<font color="#1f6feb">deividcomsono</font>] {GetTranslation(Translations, "Obsidian UI Library")}`,
         DoesWrap = true
     })
 
     self.InfoTabThanksGroup:AddLabel({
-        Text = `[<font color="#1f6feb">mstudio45</font>] {Translations:GetTranslation("Linoria UI Library and ESP Library")}`,
+        Text = `[<font color="#1f6feb">mstudio45</font>] {GetTranslation(Translations, "Linoria UI Library and ESP Library")}`,
         DoesWrap = true
     })
 
     self.InfoTabThanksGroup:AddLabel({
-        Text = `[<font color="#1f6feb">Exunys</font>] {Translations:GetTranslation("Aimbot Inspiration")}`,
+        Text = `[<font color="#1f6feb">Exunys</font>] {GetTranslation(Translations, "Aimbot Inspiration")}`,
         DoesWrap = true
     })
 
     self.InfoTabThanksGroup:AddLabel({
-        Text = `[<font color="#1f6feb">7GrandDadPGN</font>] {Translations:GetTranslation("SilentAim Inspiration")}`,
+        Text = `[<font color="#1f6feb">7GrandDadPGN</font>] {GetTranslation(Translations, "SilentAim Inspiration")}`,
         DoesWrap = true
     })
 
     --// About Game Groupbox (Right)
-    self.InfoTabAboutGameGroup = self.InfoTab:AddRightGroupbox(Translations:GetTranslation("About Game"))
+    self.InfoTabAboutGameGroup = self.InfoTab:AddRightGroupbox(GetTranslation(Translations, "About Game"))
 
     local PlayedLabel      = self.InfoTabAboutGameGroup:AddLabel()
     local TimeRunningLabel = self.InfoTabAboutGameGroup:AddLabel()
@@ -912,17 +915,17 @@ function UiManager:CreateUniversalTabs()
 
         shared.Connect:GiveSignal("YouPlayedLabel"  , shared.RunService.PreRender:Connect(function()
             local Time = ConvertTime(shared.Workspace.DistributedGameTime)
-            SetText(PlayedLabel, string_format(Translations:GetTranslation("You Played: %s"), Time))
+            SetText(PlayedLabel, string_format(GetTranslation(Translations, "You Played: %s"), Time))
         end))
 
         shared.Connect:GiveSignal("TimeRunningLabel", shared.RunService.PreRender:Connect(function()
             local Time = ConvertTime(elapsedTime())
-            SetText(TimeRunningLabel, string_format(Translations:GetTranslation("Time Running: %s"), Time))
+            SetText(TimeRunningLabel, string_format(GetTranslation(Translations, "Time Running: %s"), Time))
         end))
 
         task_spawn(function()
             repeat task_wait() until wax.shared.GameName
-            SetText(GameNameLabel, string_format(Translations:GetTranslation("Game Name: %s"), wax.shared.GameName))
+            SetText(GameNameLabel, string_format(GetTranslation(Translations, "Game Name: %s"), wax.shared.GameName))
         end)
     end
 
@@ -930,30 +933,30 @@ function UiManager:CreateUniversalTabs()
         local PlaceId = tostring(game.PlaceId)
 
         self.InfoTabAboutGameGroup:AddButton({
-            Text = string_format(Translations:GetTranslation("Place Id: %s"), PlaceId),
+            Text = string_format(GetTranslation(Translations, "Place Id: %s"), PlaceId),
             Func = function()
                 shared.ToClipboard(PlaceId)
-                self:Notify(Translations:GetTranslation("Place Id Copied"))
+                self:Notify(GetTranslation(Translations, "Place Id Copied"))
             end
         })
     end
 
     --// Links Groupbox (Right)
-    self.InfoTabLinksGroup = self.InfoTab:AddRightGroupbox(Translations:GetTranslation("Links"))
+    self.InfoTabLinksGroup = self.InfoTab:AddRightGroupbox(GetTranslation(Translations, "Links"))
 
     self.InfoTabLinksGroup
     :AddButton({
-        Text = Translations:GetTranslation("Discord"),
+        Text = GetTranslation(Translations, "Discord"),
         Func = function()
             shared.ToClipboard("https://discord.gg/YBQUd8X8PK")
-            self:Notify(Translations:GetTranslation("Discord Server Link Copied"))
+            self:Notify(GetTranslation(Translations, "Discord Server Link Copied"))
         end
     })
     :AddButton({
-        Text = Translations:GetTranslation("GitHub"),
+        Text = GetTranslation(Translations, "GitHub"),
         Func = function()
             shared.ToClipboard("https://github.com/MaiFengYXD")
-            self:Notify(Translations:GetTranslation("GitHub Link Copied"))
+            self:Notify(GetTranslation(Translations, "GitHub Link Copied"))
         end
     })
 

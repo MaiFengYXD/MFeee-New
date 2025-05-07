@@ -2,6 +2,7 @@
 
 local httpService = shared.HttpService
 local Translations = wax.shared.Translations
+local GetTranslation = Translations.GetTranslation
 local isfolder, isfile, listfiles = isfolder, isfile, listfiles
 
 if typeof(copyfunction) == "function" then
@@ -191,7 +192,7 @@ local SaveManager = {} do
     --// Save, Load, Delete, Refresh \\--
     function SaveManager:Save(name)
         if (not name) then
-            return false, Translations:GetTranslation("no config file is selected")
+            return false, GetTranslation(Translations, "no config file is selected")
         end
         SaveManager:CheckFolderTree()
 
@@ -222,7 +223,7 @@ local SaveManager = {} do
 
         local success, encoded = pcall(httpService.JSONEncode, httpService, data)
         if not success then
-            return false, Translations:GetTranslation("failed to encode data")
+            return false, GetTranslation(Translations, "failed to encode data")
         end
 
         writefile(fullPath, encoded)
@@ -231,7 +232,7 @@ local SaveManager = {} do
 
     function SaveManager:Load(name)
         if (not name) then
-            return false, Translations:GetTranslation("no config file is selected")
+            return false, GetTranslation(Translations, "no config file is selected")
         end
         SaveManager:CheckFolderTree()
 
@@ -240,10 +241,10 @@ local SaveManager = {} do
             file = self.Folder .. "/settings/" .. self.SubFolder .. "/" .. name .. ".json"
         end
 
-        if not isfile(file) then return false, Translations:GetTranslation("invalid file") end
+        if not isfile(file) then return false, GetTranslation(Translations, "invalid file") end
 
         local success, decoded = pcall(httpService.JSONDecode, httpService, readfile(file))
-        if not success then return false, Translations:GetTranslation("decode error") end
+        if not success then return false, GetTranslation(Translations, "decode error") end
 
         for _, option in decoded.objects do
             if not option.type then continue end
@@ -257,7 +258,7 @@ local SaveManager = {} do
 
     function SaveManager:Delete(name)
         if (not name) then
-            return false, Translations:GetTranslation("no config file is selected")
+            return false, GetTranslation(Translations, "no config file is selected")
         end
 
         local file = self.Folder .. "/settings/" .. name .. ".json"
@@ -265,10 +266,10 @@ local SaveManager = {} do
             file = self.Folder .. "/settings/" .. self.SubFolder .. "/" .. name .. ".json"
         end
 
-        if not isfile(file) then return false, Translations:GetTranslation("invalid file") end
+        if not isfile(file) then return false, GetTranslation(Translations, "invalid file") end
 
         local success = pcall(delfile, file)
-        if not success then return false, Translations:GetTranslation("delete file error") end
+        if not success then return false, GetTranslation(Translations, "delete file error") end
 
         return true
     end
@@ -312,9 +313,9 @@ local SaveManager = {} do
 
         if (not success) then
             if self.Library then
-                self.Library:Notify(Translations:GetTranslation("Failed to load config list: ") .. tostring(data))
+                self.Library:Notify(GetTranslation(Translations, "Failed to load config list: ") .. tostring(data))
             else
-                warn(Translations:GetTranslation("Failed to load config list: ") .. tostring(data))
+                warn(GetTranslation(Translations, "Failed to load config list: ") .. tostring(data))
             end
 
             return {}
@@ -356,15 +357,15 @@ local SaveManager = {} do
         if isfile(autoLoadPath) then
             local successRead, name = pcall(readfile, autoLoadPath)
             if not successRead then
-                return self.Library:Notify(Translations:GetTranslation("Failed to load autoload config: write file error"))
+                return self.Library:Notify(GetTranslation(Translations, "Failed to load autoload config: write file error"))
             end
 
             local success, err = self:Load(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to load autoload config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to load autoload config: ") .. err)
             end
 
-            return self.Library:Notify(string.format(Translations:GetTranslation("Auto loaded config %q"), name))
+            return self.Library:Notify(string.format(GetTranslation(Translations, "Auto loaded config %q"), name))
         end
         return
     end
@@ -378,7 +379,7 @@ local SaveManager = {} do
         end
 
         local success = pcall(writefile, autoLoadPath, name)
-        if not success then return false, Translations:GetTranslation("write file error") end
+        if not success then return false, GetTranslation(Translations, "write file error") end
 
         return true, ""
     end
@@ -392,7 +393,7 @@ local SaveManager = {} do
         end
 
         local success = pcall(delfile, autoLoadPath)
-        if not success then return false, Translations:GetTranslation("delete file error") end
+        if not success then return false, GetTranslation(Translations, "delete file error") end
 
         return true, ""
     end
@@ -401,22 +402,22 @@ local SaveManager = {} do
     function SaveManager:BuildConfigSection(tab)
         assert(self.Library, "Must set SaveManager.Library")
 
-        local section = tab:AddRightGroupbox(Translations:GetTranslation("Configuration"))
+        local section = tab:AddRightGroupbox(GetTranslation(Translations, "Configuration"))
 
-        section:AddInput("SaveManager_ConfigName",     { Text = Translations:GetTranslation("Config name") })
-        section:AddButton(Translations:GetTranslation("Create config"), function()
+        section:AddInput("SaveManager_ConfigName",     { Text = GetTranslation(Translations, "Config name") })
+        section:AddButton(GetTranslation(Translations, "Create config"), function()
             local name = self.Library.Options.SaveManager_ConfigName.Value
 
             if name:gsub(" ", "") == "" then
-                return self.Library:Notify(Translations:GetTranslation("Invalid config name (empty)"), 2)
+                return self.Library:Notify(GetTranslation(Translations, "Invalid config name (empty)"), 2)
             end
 
             local success, err = self:Save(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to create config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to create config: ") .. err)
             end
 
-            self.Library:Notify(string.format(Translations:GetTranslation("Created config %q"), name))
+            self.Library:Notify(string.format(GetTranslation(Translations, "Created config %q"), name))
 
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
@@ -425,73 +426,73 @@ local SaveManager = {} do
 
         section:AddDivider()
 
-        section:AddDropdown("SaveManager_ConfigList", { Text = Translations:GetTranslation("Config list"), Values = self:RefreshConfigList(), AllowNull = true })
-        section:AddButton(Translations:GetTranslation("Load config"), function()
+        section:AddDropdown("SaveManager_ConfigList", { Text = GetTranslation(Translations, "Config list"), Values = self:RefreshConfigList(), AllowNull = true })
+        section:AddButton(GetTranslation(Translations, "Load config"), function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Load(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to load config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to load config: ") .. err)
             end
 
-            return self.Library:Notify(string.format(Translations:GetTranslation("Loaded config %q"), name))
+            return self.Library:Notify(string.format(GetTranslation(Translations, "Loaded config %q"), name))
         end)
-        section:AddButton(Translations:GetTranslation("Overwrite config"), function()
+        section:AddButton(GetTranslation(Translations, "Overwrite config"), function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Save(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to overwrite config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to overwrite config: ") .. err)
             end
 
-            return self.Library:Notify(string.format(Translations:GetTranslation("Overwrote config %q"), name))
+            return self.Library:Notify(string.format(GetTranslation(Translations, "Overwrote config %q"), name))
         end)
 
-        section:AddButton(Translations:GetTranslation("Delete config"), function()
+        section:AddButton(GetTranslation(Translations, "Delete config"), function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:Delete(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to delete config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to delete config: ") .. err)
             end
 
-            self.Library:Notify(string.format(Translations:GetTranslation("Deleted config %q"), name))
+            self.Library:Notify(string.format(GetTranslation(Translations, "Deleted config %q"), name))
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
             return
         end)
 
-        section:AddButton(Translations:GetTranslation("Refresh list"), function()
+        section:AddButton(GetTranslation(Translations, "Refresh list"), function()
             self.Library.Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
             self.Library.Options.SaveManager_ConfigList:SetValue(nil)
         end)
 
-        local autoloadBtn = section:AddButton(Translations:GetTranslation("Set as autoload"))
+        local autoloadBtn = section:AddButton(GetTranslation(Translations, "Set as autoload"))
 
-        local resetAutoloadBtn = section:AddButton(Translations:GetTranslation("Reset autoload"))
+        local resetAutoloadBtn = section:AddButton(GetTranslation(Translations, "Reset autoload"))
 
-        self.AutoloadLabel = section:AddLabel(Translations:GetTranslation("Current autoload config: ") .. self:GetAutoloadConfig(), true)
+        self.AutoloadLabel = section:AddLabel(GetTranslation(Translations, "Current autoload config: ") .. self:GetAutoloadConfig(), true)
 
         autoloadBtn.Func = function()
             local name = self.Library.Options.SaveManager_ConfigList.Value
 
             local success, err = self:SaveAutoloadConfig(name)
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to set autoload config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to set autoload config: ") .. err)
             end
 
-            self.AutoloadLabel:SetText(Translations:GetTranslation("Current autoload config: ") .. name)
-            return self.Library:Notify(string.format(Translations:GetTranslation("Set %q to auto load"), name))
+            self.AutoloadLabel:SetText(GetTranslation(Translations, "Current autoload config: ") .. name)
+            return self.Library:Notify(string.format(GetTranslation(Translations, "Set %q to auto load"), name))
         end
 
         resetAutoloadBtn.Func = function()
             local success, err = self:DeleteAutoLoadConfig()
             if not success then
-                return self.Library:Notify(Translations:GetTranslation("Failed to set autoload config: ") .. err)
+                return self.Library:Notify(GetTranslation(Translations, "Failed to set autoload config: ") .. err)
             end
 
-            self.AutoloadLabel:SetText(Translations:GetTranslation("Current autoload config: none"))
-            return self.Library:Notify(Translations:GetTranslation("Set autoload to none"))
+            self.AutoloadLabel:SetText(GetTranslation(Translations, "Current autoload config: none"))
+            return self.Library:Notify(GetTranslation(Translations, "Set autoload to none"))
         end
 
         -- self:LoadAutoloadConfig()
