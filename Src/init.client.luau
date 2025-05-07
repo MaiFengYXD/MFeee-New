@@ -140,7 +140,7 @@ task.spawn(pcall, function()
     assert(Version ~= wax.shared.ScriptVersion)
 
     wax.shared.UiManager:Notify({
-        Title       = wax.shared.GetTranslation(Translations, "Version Mismatch"),
-        Description = wax.shared.GetTranslation(Translations, "The script version is outdated, please update it!"),
+        Title       = wax.shared.Translations:GetTranslation("Version Mismatch"),
+        Description = wax.shared.Translations:GetTranslation("The script version is outdated, please update it!"),
     })
 end)
