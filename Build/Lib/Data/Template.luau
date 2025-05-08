@@ -340,7 +340,7 @@ end
 local function LoadScript(scriptRef)
     local ScriptClassName = scriptRef.ClassName
 
-    -- Check for cached module value
+    -- First we'll check for a cached module value (packed into a tbl)
     local StoredModuleValue = StoredModuleValues[scriptRef]
     if StoredModuleValue and ScriptClassName == "ModuleScript" then
         return unpack(StoredModuleValue)
@@ -348,62 +348,63 @@ local function LoadScript(scriptRef)
 
     local Closure = ScriptClosures[scriptRef]
 
-    local function FormatError(Err)
-        Err = tostring(Err)
+    local function FormatError(err)
+        err = tostring(err)
         local VirtualFullName = scriptRef:GetFullName()
 
-        -- Rewrite error line number handling
+        -- Completely rewrite error line number handling logic
         if not LineOffsets then
-            return Err -- Return original error if no line offset info
+            return err -- If there's no line offset information, return the original error
         end
 
-        -- Process each line of the error stack
-        local NewStack = {}
-        for Line in string_gmatch(Err, "[^\n]+") do
-            -- Find error lines with line numbers
-            local FilePath, LineNum, Message = string_match(Line, "^([^:]+):(%d+): (.+)$")
+        -- Create a new error stack and process each line
+        local newStack = {}
+        for line in string_gmatch(err, "[^\n]+") do
+            -- Look for error info lines with line numbers
+            local filePath, lineNum, message = string_match(line, "^([^:]+):(%d+): (.+)$")
 
-            if FilePath and LineNum and Message then
+            if filePath and lineNum and message then
+                -- This is an error line with line number
                 local RefId = ScriptClosureRefIds[scriptRef]
                 if RefId and LineOffsets[RefId] then
-                    -- Convert to in-script line number
-                    local OrigLine = tonumber(LineNum)
-                    local ScriptLine = OrigLine - LineOffsets[RefId]
-                    if ScriptLine < 1 then ScriptLine = 1 end
+                    -- Convert original line number to in-script line number
+                    local origLine = tonumber(lineNum)
+                    local scriptLine = origLine - LineOffsets[RefId]
+                    if scriptLine < 1 then scriptLine = 1 end
 
-                    -- Use virtual file path
-                    table_insert(NewStack, VirtualFullName .. ":" .. ScriptLine .. ": " .. Message)
+                    -- Replace file path with virtual file path
+                    table_insert(newStack, VirtualFullName .. ":" .. scriptLine .. ": " .. message)
                 else
-                    -- Keep original line if no offset info
-                    table_insert(NewStack, Line)
+                    -- If offset information cannot be found, keep original line
+                    table_insert(newStack, line)
                 end
             else
-                -- Keep non-standard error lines
-                table_insert(NewStack, Line)
+                -- Not a regular error line, keep as is
+                table_insert(newStack, line)
             end
         end
 
-        -- Join processed error stack
-        return table.concat(NewStack, "\n")
+        -- Join the processed error stack
+        return table.concat(newStack, "\n")
     end
 
-    -- Handle script execution with xpcall
+    -- Modify xpcall usage
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
-        local RunSuccess, ErrorMessage = xpcall(Closure, function(Msg)
-            return FormatError(debug_traceback(Msg, 2))
+        local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
+            return FormatError(debug_traceback(msg, 2))
         end)
 
         if not RunSuccess then
-            error(ErrorMessage, 0) -- Throw formatted error
+            error(ErrorMessage, 0) -- Use level 0 to directly throw the fully formatted error
         end
         return
     else
-        -- Handle ModuleScript execution
+        -- Module script logic
         local PCallReturn
         local RunSuccess, ErrorMessage = xpcall(function()
             PCallReturn = {Closure()}
-        end, function(Msg)
-            return FormatError(debug_traceback(Msg, 2))
+        end, function(msg)
+            return FormatError(debug_traceback(msg, 2))
         end)
 
         if not RunSuccess then
