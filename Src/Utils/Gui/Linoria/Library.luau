@@ -321,7 +321,7 @@ function Library:Notify(...)
     local XSize, YSize = Library:GetTextBounds(Data.Description, Library.Font, 14);
     YSize = YSize + 7
 
-    local NotifyOuter = Library:Create('Frame', {
+    local NotifyOuter: Frame = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         Size = UDim2.new(0, 0, 0, YSize);
         ClipsDescendants = true;
@@ -396,11 +396,15 @@ function Library:Notify(...)
         Parent = NotifyOuter;
     });
 
+    local TweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
     function Data:Resize()
         XSize, YSize = Library:GetTextBounds(NotifyLabel.Text, Library.Font, 14);
         YSize = YSize + 7
-    
-        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize * DPIScale + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
+
+        shared.TweenService:Create(NotifyOuter, TweenInfo, {
+            Size = UDim2.new(0, XSize * DPIScale + 8 + 4, 0, YSize)
+        }):Play()
     end
 
     function Data:ChangeTitle(NewText)
@@ -441,20 +445,48 @@ function Library:Notify(...)
         }):Destroy();
     end
 
-    pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, XSize * DPIScale + 8 + 4, 0, YSize), 'Out', 'Quad', 0.4, true);
+    local Tween: Tween = shared.TweenService:Create(NotifyOuter, TweenInfo, {
+        Size = UDim2.new(0, XSize * DPIScale + 8 + 4, 0, YSize)
+    })
+    Tween:Play()
 
-    task.spawn(function()
+    task.delay(0.4, function() Tween = nil :: any;end)
+
+    local Finished = false
+    local Connection: RBXScriptConnection
+    local Thread: thread
+
+    local function OnFinihied()
+        if Finished then return end
+        Finished = true
+
+        if Tween  then Tween:Cancel() end
+        if Thread then coroutine.close(Thread) end
+        if Connection then Connection:Disconnect() end
+
+        shared.TweenService:Create(NotifyOuter, TweenInfo, {
+            Size = UDim2.new(0, 0, 0, YSize)
+        }):Play()
+        task.delay(0.4, NotifyOuter.Destroy, NotifyOuter)
+    end
+
+    Connection = Library:GiveSignal(NotifyOuter.InputBegan:Connect(function(InputObject: InputObject)
+        if InputObject.UserInputType == Enum.UserInputType.MouseButton1 or InputObject.UserInputType == Enum.UserInputType.Touch then
+            OnFinihied()
+        end
+    end))
+
+    Thread = coroutine.create(function()
         if typeof(Data.Time) == "Instance" then
             Data.Time.Destroying:Wait();
         else
             task.wait(Data.Time or 5);
         end
 
-        pcall(NotifyOuter.TweenSize, NotifyOuter, UDim2.new(0, 0, 0, YSize), 'Out', 'Quad', 0.4, true);
-        task.wait(0.4);
-        NotifyOuter:Destroy();
+        OnFinihied()
     end);
 
+    coroutine.resume(Thread);
     return Data
 end;
 
