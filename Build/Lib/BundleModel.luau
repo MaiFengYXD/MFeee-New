@@ -122,9 +122,6 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
             local CompileSuccess, CompileError = pcall(luau.compile, ScriptSource)
 
             if CompileSuccess then
-                -- The added line here is the "\nend" below every arbitrary closure
-                ClosureSourceLineCounts[RefId] = StringUtils.LineCount(ScriptSource) + 1
-
                 -- Helper function to parse the script and mark code, string, and comment regions
                 local function BuildCodeRegions(Text)
                     local Regions = {} -- { {Type = "code"/"string"/"comment", Start = n, End = n}, ... }
@@ -265,22 +262,27 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
                     end
                 end
 
-                -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
-                -- to the raw value, which is the script closure
-                ClosureBindings[RefId] = function()
-                    -- Silence unused variables
-                    local UsesWax     = ContainsWholeWord(ScriptSource, "wax")
-                    local UsesScript  = ContainsWholeWord(ScriptSource, "script")
-                    local UsesRequire = ContainsWholeWord(ScriptSource, "require")
+                -- Silence unused variables
+                local UsesWax     = ContainsWholeWord(ScriptSource, "wax")
+                local UsesScript  = ContainsWholeWord(ScriptSource, "script")
+                local UsesRequire = ContainsWholeWord(ScriptSource, "require")
 
-                    return string_format([[
+                local ClosureWrapper = string_format([[
 function()
 local %s = __waximport(%d)
 
 return (function()
 
 %s
-end)() end]],        `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
+end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
+
+                -- Count the number of lines of the entire generated closure code
+                ClosureSourceLineCounts[RefId] = StringUtils.LineCount(ClosureWrapper)
+
+                -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
+                -- to the raw value, which is the script closure
+                ClosureBindings[RefId] = function()
+                    return ClosureWrapper
                 end
             else
                 local FirstLineOfError = string_match(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")
