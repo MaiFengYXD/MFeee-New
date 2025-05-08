@@ -461,26 +461,20 @@ end;
 function Library:SafeCallback(Func, ...)
     if not (Func and typeof(Func) == "function") then
         return
-    end
+    end;
 
-    local run = function(func, ...)
-        local Success, Response = pcall(func, ...)
-        if Success then
-            return Response
-        end
-    
+    local Success, Response = xpcall(Func, function(Error)
         local Traceback = debug.traceback():gsub("\n", " ")
         local _, i = Traceback:find(":%d+ ")
         Traceback = Traceback:sub(i + 1):gsub(" :", ":")
-    
-        task.defer(error, Response .. " - " .. Traceback)
-        if Library.NotifyOnError then
-            return Library:Notify(Response)
-        end
-        return
-    end;
 
-    task.spawn(run, Func, ...);
+        task.defer(error, Error .. " - " .. Traceback)
+        if Library.NotifyOnError then
+            Library:Notify(Error)
+        end
+    end, ...);
+
+    return if Success then Response else nil;
 end;
 
 function Library:AttemptSave()
