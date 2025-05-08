@@ -849,6 +849,8 @@ function Library:Notify(...)
     })
     Tween:Play()
 
+    task.delay(Library.NotifyTweenInfo.Time, function() Tween = nil :: any;end)
+
     local Finished = false
     local Connection: RBXScriptConnection
     local Thread: thread
