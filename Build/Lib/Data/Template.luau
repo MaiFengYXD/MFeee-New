@@ -348,52 +348,73 @@ local function LoadScript(scriptRef)
 
     local Closure = ScriptClosures[scriptRef]
 
-    local function FormatError(originalErrorMessage)
-        originalErrorMessage = tostring(originalErrorMessage)
-
+    local function FormatError(err)
+        err = tostring(err)
         local VirtualFullName = scriptRef:GetFullName()
 
-        -- Check for vanilla/Roblox format
-        local OriginalErrorLine, BaseErrorMessage = string_match(originalErrorMessage, "[^:]+:(%d+): (.+)")
-
-        if not OriginalErrorLine or not LineOffsets then
-            return VirtualFullName .. ":*: " .. (BaseErrorMessage or originalErrorMessage)
+        -- Completely rewrite error line number handling logic
+        if not LineOffsets then
+            return err -- If there's no line offset information, return the original error
         end
 
-        OriginalErrorLine = tonumber(OriginalErrorLine)
+        -- Create a new error stack and process each line
+        local newStack = {}
+        for line in string_gmatch(err, "[^\n]+") do
+            -- Look for error info lines with line numbers
+            local filePath, lineNum, message = string_match(line, "^([^:]+):(%d+): (.+)$")
 
-        local RefId = ScriptClosureRefIds[scriptRef]
-        local LineOffset = LineOffsets[RefId]
+            if filePath and lineNum and message then
+                -- This is an error line with line number
+                local RefId = ScriptClosureRefIds[scriptRef]
+                if RefId and LineOffsets[RefId] then
+                    -- Convert original line number to in-script line number
+                    local origLine = tonumber(lineNum)
+                    local scriptLine = origLine - LineOffsets[RefId]
+                    if scriptLine < 1 then scriptLine = 1 end
 
-        local RealErrorLine = OriginalErrorLine - LineOffset + 1
-        if RealErrorLine < 0 then
-            RealErrorLine = "?"
+                    -- Replace file path with virtual file path
+                    table_insert(newStack, VirtualFullName .. ":" .. scriptLine .. ": " .. message)
+                else
+                    -- If offset information cannot be found, keep original line
+                    table_insert(newStack, line)
+                end
+            else
+                -- Not a regular error line, keep as is
+                table_insert(newStack, line)
+            end
         end
 
-        return VirtualFullName .. ":" .. RealErrorLine .. ": " .. BaseErrorMessage
+        -- Join the processed error stack
+        return table.concat(newStack, "\n")
     end
 
-    -- If it's a BaseScript, we'll just run it directly!
+    -- Modify xpcall usage
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
-            return debug_traceback(msg, 2)
+            return FormatError(debug_traceback(msg, 2))
         end)
+
         if not RunSuccess then
-            return error(FormatError(ErrorMessage), 0)
+            error(ErrorMessage, 0) -- Use level 0 to directly throw the fully formatted error
         end
         return
     else
-        local PCallReturn = {xpcall(Closure, function(msg)
-            return debug_traceback(msg, 2)
-        end)}
+        -- Module script logic
+        local PCallReturn
+        local RunSuccess, ErrorMessage = xpcall(function()
+            PCallReturn = {Closure()}
+        end, function(msg)
+            return FormatError(debug_traceback(msg, 2))
+        end)
 
-        local RunSuccess = table_remove(PCallReturn, 1)
         if not RunSuccess then
-            local ErrorMessage = table_remove(PCallReturn, 1)
-            error(FormatError(ErrorMessage), 0)
+            error(ErrorMessage, 0)
         end
 
-        StoredModuleValues[scriptRef] = PCallReturn
+        if ScriptClassName == "ModuleScript" then
+            StoredModuleValues[scriptRef] = PCallReturn
+        end
+
         return unpack(PCallReturn)
     end
 end
