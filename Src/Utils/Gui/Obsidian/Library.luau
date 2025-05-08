@@ -850,10 +850,34 @@ function Library:Notify(...)
     Tween:Play()
 
     local Finished = false
+    local Connection: RBXScriptConnection
+    local Thread: thread
 
     local function OnFinihied()
         if Finished then return end
         Finished = true
+
+        if Tween  then Tween:Cancel() end
+        if Thread then coroutine.close(Thread) end
+        if Connection then Connection:Disconnect() end
+
+        shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
+            Position = IsLeft and UDim2.new(-1, -6, IsBottom and 1 or 0, -2) or UDim2.new(1, 6, IsBottom and 1 or 0, -2),
+        }):Play()
+        task.delay(Library.NotifyTweenInfo.Time, function()
+            Library.Notifications[FakeBackground] = nil
+            FakeBackground:Destroy()
+        end)
+    end
+
+    Connection = Library:GiveSignal(Background.InputBegan:Connect(function(InputObject: InputObject)
+        if InputObject.UserInputType == Enum.UserInputType.MouseButton1 or InputObject.UserInputType == Enum.UserInputType.Touch then
+            OnFinihied()
+        end
+    end))
+
+    Thread = coroutine.create(function()
+        task.wait(Library.NotifyTweenInfo.Time)
 
         if typeof(Data.Time) == "Instance" then
             Data.Time.Destroying:Wait()
@@ -864,25 +888,10 @@ function Library:Notify(...)
             task.wait(Data.Time)
         end
 
-        if Tween then Tween:Cancel() end
-        shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
-            Position = IsLeft and UDim2.new(-1, -6, IsBottom and 1 or 0, -2) or UDim2.new(1, 6, IsBottom and 1 or 0, -2),
-        }):Play()
-        task.delay(Library.NotifyTweenInfo.Time, function()
-            Library.Notifications[FakeBackground] = nil
-            FakeBackground:Destroy()
-        end)
-    end
+        OnFinihied()
+    end)
 
-    local Connection: RBXScriptConnection
-    Connection = Library:GiveSignal(Background.InputBegan:Connect(function(InputObject: InputObject)
-        if InputObject.UserInputType == Enum.UserInputType.MouseButton1 or InputObject.UserInputType == Enum.UserInputType.Touch then
-            OnFinihied()
-            Connection:Disconnect()
-        end
-    end))
-
-    task.delay(Library.NotifyTweenInfo.Time, OnFinihied)
+    coroutine.resume(Thread)
     return Data
 end
 
