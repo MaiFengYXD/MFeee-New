@@ -15,9 +15,6 @@ local ClosureBindings = ${ClosureBindings} -- [RefId] = Closure
 -- Holds the actual DOM data
 local ObjectTree = ${ObjectTree}
 
--- Line offsets for debugging (only included when minifyTables is false)
-local LineOffsets = ${LineOffsets}
-
 -- Misc AOT variable imports
 local WaxVersion = "${Version}"
 local EnvName = "${EnvName}"
@@ -25,8 +22,8 @@ local EnvName = "${EnvName}"
 -- ++++++++ RUNTIME IMPL BELOW ++++++++ --
 
 -- Localizing certain libraries and built-ins for runtime efficiency
-local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, debug_traceback
-    = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring, tonumber, debug.traceback
+local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
+    = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
 
 if not require then require = function(...) return nil end;end
 
@@ -352,11 +349,6 @@ local function LoadScript(scriptRef)
         err = tostring(err)
         local VirtualFullName = scriptRef:GetFullName()
 
-        -- Completely rewrite error line number handling logic
-        if not LineOffsets then
-            return err -- If there's no line offset information, return the original error
-        end
-
         -- Create a new error stack and process each line
         local newStack = {}
         for line in string_gmatch(err, "[^\n]+") do
@@ -364,20 +356,8 @@ local function LoadScript(scriptRef)
             local filePath, lineNum, message = string_match(line, "^([^:]+):(%d+): (.+)$")
 
             if filePath and lineNum and message then
-                -- This is an error line with line number
-                local RefId = ScriptClosureRefIds[scriptRef]
-                if RefId and LineOffsets[RefId] then
-                    -- Convert original line number to in-script line number
-                    local origLine = tonumber(lineNum)
-                    local scriptLine = origLine - LineOffsets[RefId]
-                    if scriptLine < 1 then scriptLine = 1 end
-
-                    -- Replace file path with virtual file path
-                    table_insert(newStack, VirtualFullName .. ":" .. scriptLine .. ": " .. message)
-                else
-                    -- If offset information cannot be found, keep original line
-                    table_insert(newStack, line)
-                end
+                -- Replace file path with virtual file path
+                table_insert(newStack, VirtualFullName .. ":" .. lineNum .. ": " .. message)
             else
                 -- Not a regular error line, keep as is
                 table_insert(newStack, line)
@@ -391,7 +371,7 @@ local function LoadScript(scriptRef)
     -- Modify xpcall usage
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
-            return FormatError(debug_traceback(msg, 2))
+            return FormatError(debug.traceback(msg, 2))
         end)
 
         if not RunSuccess then
@@ -404,7 +384,7 @@ local function LoadScript(scriptRef)
         local RunSuccess, ErrorMessage = xpcall(function()
             PCallReturn = {Closure()}
         end, function(msg)
-            return FormatError(debug_traceback(msg, 2))
+            return FormatError(debug.traceback(msg, 2))
         end)
 
         if not RunSuccess then
@@ -426,7 +406,7 @@ function __waximport(refId)
 
     local function RealCall(f, ...)
         local PCallReturn = {xpcall(f, function(msg)
-            return debug_traceback(msg, 2)
+            return debug.traceback(msg, 2)
         end, ...)}
 
         local CallSuccess = table_remove(PCallReturn, 1)

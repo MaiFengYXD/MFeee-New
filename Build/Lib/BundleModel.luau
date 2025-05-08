@@ -20,8 +20,6 @@ local Version = require("Data/Version")
 local InitScriptTemplate = require("Data/Template")
 
 -- The line where the 1st closure's function will start in bundled codegen
-local InitialLineOffset = 8
-
 local ClassNameIdKeys = {
     Folder = 1,
     ModuleScript = 2,
@@ -35,7 +33,6 @@ local ClassNameIdKeys = {
 local function BundleModel(modelData: string | {roblox.Instance}, envName: string?, minifyCodegen: boolean?, extraLinesToOffset: number?, verbose: boolean?): (string, number)
     local EnvName = envName or "WaxRuntime"
     local MinifyCodegen = if minifyCodegen == nil then true else minifyCodegen
-    local ExtraLinesToOffset = extraLinesToOffset or 0
     local Verbose = if verbose == nil then true else verbose
 
     -- Same as in Wax CLI
@@ -44,8 +41,6 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
             f(...)
         end
     end
-
-    local LineDebugging = MinifyCodegen == false
 
     local ModelRoot = if type(modelData) == "string" then
         roblox.deserializeModel(modelData)
@@ -60,7 +55,6 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
     -- We'll initialize the output object tree, then walk through what we need to
     local ObjectTree = {}
     local ClosureBindings = {} -- [RefId] = Closure
-    local ClosureSourceLineCounts = {} -- [RefId] = LineCount
 
     local ScrapedInstanceTree = {} -- [RealRef] = {Child, ...}
     local RefIds = {} -- [RefId] = RealRef
@@ -276,9 +270,6 @@ return (function()
 %s
 end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
 
-                -- Count the number of lines of the entire generated closure code
-                ClosureSourceLineCounts[RefId] = StringUtils.LineCount(ClosureWrapper)
-
                 -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
                 -- to the raw value, which is the script closure
                 ClosureBindings[RefId] = function()
@@ -288,8 +279,6 @@ end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, 
                 local FirstLineOfError = string_match(tostring(CompileError), "%w* ?:%d*: ?([^\n]*)\n")
                 Log.Warn(`WARNING: {instance.ClassName} "{currentPathString}" failed to compile: {FirstLineOfError or "[Failed to parse compiler error]"}`)
                 FailedCompilations += 1
-
-                ClosureSourceLineCounts[RefId] = 1 -- Guaranteed 1 line; see below lol
 
                 ClosureBindings[RefId] = function()
                     return `function()error("[AOT COMPILER ERROR] {StringUtils.SerializeStringData(FirstLineOfError)}")end`
@@ -334,17 +323,6 @@ end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, 
         end
     end
 
-    local LineOffsets = {}
-    if LineDebugging then
-        -- Where the first closure func start should be
-        local CurrentLineOffset = ExtraLinesToOffset + InitialLineOffset
-
-        for RefId, LineCount in ClosureSourceLineCounts do
-            LineOffsets[RefId] = CurrentLineOffset
-            CurrentLineOffset += LineCount
-        end
-    end
-
     -- Now we're done reading everything!
     local ReadEndTime = os.clock()
     RunIfVerbose(Log.Info, `Finished bundling model data in {string_format("%.4f", ReadEndTime - ReadStartTime)} (seconds)`)
@@ -361,19 +339,11 @@ end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, 
         FunctionsReturnRaw = true, -- For Script.Source function closures
     })
 
-    local SerializedLineOffsets = if not LineDebugging then
-        "nil"
-    else
-        LuaEncode(LineOffsets, {
-            Prettify = Prettify,
-        })
-
     local CodegenOutput = StringUtils.Replace(InitScriptTemplate, {
         Version = StringUtils.SerializeStringData(Version),
         EnvName = StringUtils.SerializeStringData(EnvName),
         ObjectTree = SerializedObjectTree,
-        ClosureBindings = SerializedClosureBindings,
-        LineOffsets = SerializedLineOffsets,
+        ClosureBindings = SerializedClosureBindings
     })
 
     -- If there's a top-level init modulescript, we'll return it from the output's closure directly
