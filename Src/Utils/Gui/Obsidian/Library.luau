@@ -689,7 +689,7 @@ function Library:Notify(...)
     local IsLeft = NotifyDirection:match("left")
     local IsBottom = NotifyDirection:match("bottom")
 
-    local Background = Library:MakeOutline(FakeBackground, Library.CornerRadius, 5)
+    local Background: Frame = Library:MakeOutline(FakeBackground, Library.CornerRadius, 5)
     Background.AutomaticSize = Enum.AutomaticSize.Y
     Background.Position = IsLeft and UDim2.new(-1, -6, IsBottom and 1 or 0, -2) or UDim2.new(1, 6, IsBottom and 1 or 0, -2)
     Background.Size = UDim2.fromScale(1, 0)
@@ -844,11 +844,17 @@ function Library:Notify(...)
     FakeBackground.Visible = true
 
     local ShowPosition = IsLeft and UDim2.new(0, -2, IsBottom and 1 or 0, -2) or UDim2.new(1, -2, IsBottom and 1 or 0, -2)
-    shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
+    local Tween: Tween = shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
         Position = ShowPosition,
-    }):Play()
+    })
+    Tween:Play()
 
-    task.delay(Library.NotifyTweenInfo.Time, function()
+    local Finished = false
+
+    local function OnFinihied()
+        if Finished then return end
+        Finished = true
+
         if typeof(Data.Time) == "Instance" then
             Data.Time.Destroying:Wait()
         else
@@ -858,6 +864,7 @@ function Library:Notify(...)
             task.wait(Data.Time)
         end
 
+        if Tween then Tween:Cancel() end
         shared.TweenService:Create(Background, Library.NotifyTweenInfo, {
             Position = IsLeft and UDim2.new(-1, -6, IsBottom and 1 or 0, -2) or UDim2.new(1, 6, IsBottom and 1 or 0, -2),
         }):Play()
@@ -865,8 +872,17 @@ function Library:Notify(...)
             Library.Notifications[FakeBackground] = nil
             FakeBackground:Destroy()
         end)
-    end)
+    end
 
+    local Connection: RBXScriptConnection
+    Connection = Library:GiveSignal(Background.InputBegan:Connect(function(InputObject: InputObject)
+        if InputObject.UserInputType == Enum.UserInputType.MouseButton1 or InputObject.UserInputType == Enum.UserInputType.Touch then
+            OnFinihied()
+            Connection:Disconnect()
+        end
+    end))
+
+    task.delay(Library.NotifyTweenInfo.Time, OnFinihied)
     return Data
 end
 
@@ -875,20 +891,18 @@ function Library:SafeCallback(Func: (...any) -> ...any, ...: any)
         return
     end
 
-    local Success, Response = pcall(Func, ...)
-    if Success then
-        return Response
-    end
+    local Success, Response = xpcall(Func, function(Error)
+        local Traceback = debug.traceback():gsub("\n", " ")
+        local _, i = Traceback:find(":%d+ ")
+        Traceback = Traceback:sub(i + 1):gsub(" :", ":")
 
-    local Traceback = debug.traceback():gsub("\n", " ")
-    local _, i = Traceback:find(":%d+ ")
-    Traceback = Traceback:sub(i + 1):gsub(" :", ":")
+        task.defer(error, Error .. " - " .. Traceback)
+        if Library.NotifyOnError then
+            Library:Notify(Error)
+        end
+    end, ...)
 
-    task.defer(error, Response .. " - " .. Traceback)
-    if Library.NotifyOnError then
-        Library:Notify(Response)
-    end
-    return
+    return if Success then Response else nil
 end
 
 function Library:MakeDraggable(UI: GuiObject, DragFrame: GuiObject, IgnoreToggled: boolean?, IsMainWindow: boolean?)
