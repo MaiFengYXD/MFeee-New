@@ -11,10 +11,14 @@ $$ | \_/ $$ |$$ |      \$$$$$$$\ \$$$$$$$\ \$$$$$$$\
 
 [+] Creator | MaiFengYXD
 [+] License | MIT
-[+] Build   | 1
+[+] Version | Build 1
 
-[~] This script was bundled by Wax, and is NOT intended to be modified directly.
+[~] This script was bundled by Wax, and is NOT intended to be modified.
 [~] View the source code in the 'Src' folder at https://github.com/MaiFengYXD/MFeee-New.
 [~] Join my Discord channel: https://discord.gg/YBQUd8X8PK.
 
 --]]
+
+--!nocheck
+--!nolint
+--!optimize 2
