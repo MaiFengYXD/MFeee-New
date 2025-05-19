@@ -1,7 +1,8 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
+--!nonstrict
 
-local string_sub, string_match, string_find, string_format, string_rep,  table_insert,  table_find
-    = string.sub, string.match, string.find, string.format, string.rep, table.insert, table.find
+local string_match, string_format, table_insert, table_find, table_concat
+    = string.match, string.format, table.insert, table.find, table.concat
 
 local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
@@ -116,159 +117,24 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
             local CompileSuccess, CompileError = pcall(luau.compile, ScriptSource)
 
             if CompileSuccess then
-                -- Helper function to parse the script and mark code, string, and comment regions
-                local function BuildCodeRegions(Text)
-                    local Regions = {} -- { {Type = "code"/"string"/"comment", Start = n, End = n}, ... }
-                    local I = 1
-                    local Len = #Text
-                    local State = "code"
-                    local RegionStart = 1
-                    local StringQuote = nil
-                    local LongStringEquals = nil
-
-                    while I <= Len do
-                        if State == "code" then
-                            -- Single-line comment
-                            if string_sub(Text, I, I+1) == "--" then
-                                if string_sub(Text, I+2, I+3) == "[[" or string_match(string_sub(Text, I+2), "^%[(=*)%[") then
-                                    -- Multi-line comment
-                                    local _, eqs = string_match(string_sub(Text, I+2), "^(%[(=*)%[)")
-                                    eqs = eqs or ""
-                                    if RegionStart < I then
-                                        table_insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
-                                    end
-                                    State = "longcomment"
-                                    LongStringEquals = eqs
-                                    RegionStart = I
-                                    I = I + 2 + #eqs + 1
-                                else
-                                    -- Single-line comment
-                                    if RegionStart < I then
-                                        table_insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
-                                    end
-                                    State = "comment"
-                                    RegionStart = I
-                                    I = I + 2
-                                end
-                            -- Long string
-                            elseif string_sub(Text, I, I) == "[" and string_match(string_sub(Text, I), "^%[(=*)%[") then
-                                local _, eqs = string_match(string_sub(Text, I), "^(%[(=*)%[)")
-                                eqs = eqs or ""
-                                if RegionStart < I then
-                                    table_insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
-                                end
-                                State = "longstring"
-                                LongStringEquals = eqs
-                                RegionStart = I
-                                I = I + 1 + #eqs + 1
-                            -- String literal
-                            elseif string_sub(Text, I, I) == '"' or string_sub(Text, I, I) == "'" or string_sub(Text, I, I) == "`" then
-                                StringQuote = string_sub(Text, I, I)
-                                if RegionStart < I then
-                                    table_insert(Regions, {Type = "code", Start = RegionStart, End = I-1})
-                                end
-                                State = "string"
-                                RegionStart = I
-                                I = I + 1
-                            else
-                                I = I + 1
-                            end
-                        elseif State == "string" then
-                            if string_sub(Text, I, I) == "\\" then
-                                I = I + 2 -- skip escaped char
-                            elseif string_sub(Text, I, I) == StringQuote then
-                                I = I + 1
-                                table_insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
-                                RegionStart = I
-                                State = "code"
-                            else
-                                I = I + 1
-                            end
-                        elseif State == "longstring" then
-                            local closePat = "]" .. string_rep("=", #LongStringEquals) .. "]"
-                            local closePos, _ = string_find(Text, closePat, I, true)
-                            if closePos then
-                                I = closePos + #closePat
-                                table_insert(Regions, {Type = "string", Start = RegionStart, End = I-1})
-                                RegionStart = I
-                                State = "code"
-                            else
-                                break -- unterminated
-                            end
-                        elseif State == "comment" then
-                            local nl = string_find(Text, "\n", I, true)
-                            if nl then
-                                I = nl + 1
-                                table_insert(Regions, {Type = "comment", Start = RegionStart, End = nl-1})
-                                RegionStart = I
-                                State = "code"
-                            else
-                                table_insert(Regions, {Type = "comment", Start = RegionStart, End = Len})
-                                break
-                            end
-                        elseif State == "longcomment" then
-                            local closePat = "]" .. string_rep("=", #LongStringEquals) .. "]"
-                            local closePos, _ = string_find(Text, closePat, I, true)
-                            if closePos then
-                                I = closePos + #closePat
-                                table_insert(Regions, {Type = "comment", Start = RegionStart, End = I-1})
-                                RegionStart = I
-                                State = "code"
-                            else
-                                break -- unterminated
-                            end
-                        end
-                    end
-                    if RegionStart <= Len then
-                        table_insert(Regions, {Type = State, Start = RegionStart, End = Len})
-                    end
-                    return Regions
-                end
-
-                -- Main function to find a 'whole word' match that is not inside a comment or string
-                local function ContainsWholeWord(Text, Word)
-                    local Regions = BuildCodeRegions(Text)
-                    local WordLen = #Word
-                    local TextLen = #Text
-                    local StartIndex = 1
-
-                    if type(Text) ~= "string" or type(Word) ~= "string" or WordLen == 0 then
-                        return false
-                    end
-
-                    while true do
-                        local FoundIndex = string_find(Text, Word, StartIndex, true)
-                        if not FoundIndex then
-                            return false
-                        end
-                        local EndIndex = FoundIndex + WordLen - 1
-                        local IsStartBoundary = (FoundIndex == 1) or (not string_match(string_sub(Text, FoundIndex - 1, FoundIndex - 1), "%w"))
-                        local IsEndBoundary = (EndIndex == TextLen) or (not string_match(string_sub(Text, EndIndex + 1, EndIndex + 1), "%w"))
-                        if IsStartBoundary and IsEndBoundary then
-                            -- Check if this position is in a code region
-                            for _, Region in Regions do
-                                if Region.Type == "code" and FoundIndex >= Region.Start and EndIndex <= Region.End then
-                                    return true
-                                end
-                            end
-                        end
-                        StartIndex = FoundIndex + 1
-                    end
-                end
-
-                -- Silence unused variables
-                local UsesWax     = ContainsWholeWord(ScriptSource, "wax")
-                local UsesScript  = ContainsWholeWord(ScriptSource, "script")
-                local UsesRequire = ContainsWholeWord(ScriptSource, "require")
-
-                local ClosureWrapper = string_format([[
-function()
-local %s = __waximport(%d)
-
-return (function()
-
+                -- Optimize for maximum speed by tuning parameter variables
+                local ClosureTemplate = [[
+function(shared, wax, script, require)
 %s
-end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, {UsesRequire and "require" or "_"}` ,RefId, ScriptSource)
+    end]]
+
+                -- Add the indents to the script source for better readability
+                local ClosureLines = {}
+                for Line in ScriptSource:gmatch("([^\n]*)(\n?)") do
+                    table_insert(ClosureLines, Line == "" and "" or `        {Line}`)
+                end
+
+                if ClosureLines[#ClosureLines] == "" then
+                    ClosureLines[#ClosureLines] = nil
+                end
+
+                -- Format the closure with the indents
+                local ClosureWrapper = string_format(ClosureTemplate, table_concat(ClosureLines, "\n"))
 
                 -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
                 -- to the raw value, which is the script closure
@@ -337,6 +203,7 @@ end)() end]],    `{UsesWax and "wax" or "_"}, {UsesScript and "script" or "_"}, 
     local SerializedClosureBindings = LuaEncode(ClosureBindings, {
         Prettify = Prettify,
         FunctionsReturnRaw = true, -- For Script.Source function closures
+        ExtraNewlineAfterComma = true,
     })
 
     local CodegenOutput = StringUtils.Replace(InitScriptTemplate, {
