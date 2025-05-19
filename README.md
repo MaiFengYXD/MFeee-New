@@ -73,5 +73,5 @@
 >- ESP for *players*, *guns*
 >- Bullet breadcrumbs
 >- Universal features available...
-- ***(server validation makes exploits hard, and blatant cheating is detectable)***
+>- *(server validation makes exploits hard, and blatant cheating is detectable)*
 <br>
