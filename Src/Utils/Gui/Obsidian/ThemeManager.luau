@@ -255,10 +255,9 @@ local ThemeManager = {} do
         groupbox:AddLabel(GetTranslation(Translations, "Font color")):AddColorPicker("FontColor", { Default = self.Library.Scheme.FontColor })
         groupbox:AddDropdown("FontFace", {
             Text = GetTranslation(Translations, "Font Face"),
-            Default = "Code",
+            Default = "BuilderSans",
             Values = {"BuilderSans", "Code", "Fantasy", "Gotham", "Jura", "Roboto", "RobotoMono", "SourceSans"}
         })
-
 
         local ThemesArray = {}
         for Name, Theme in self.BuiltInThemes do
@@ -336,8 +335,6 @@ local ThemeManager = {} do
             self.Library.Options.ThemeManager_CustomThemeList:SetValue(nil)
             return self.Library:Notify(GetTranslation(Translations, "Set default theme to nothing"))
         end)
-
-        self:LoadDefault()
 
         local function UpdateTheme() self:ThemeUpdate() end
         self.Library.Options.BackgroundColor:OnChanged(UpdateTheme)
