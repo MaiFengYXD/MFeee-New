@@ -1,7 +1,7 @@
 # MFeee~ New
 
 >[!CAUTION]
->### ⚠️The Current Release Has Not Been Tested!
+>### The Current Release Has Not Been Tested!
 
 ---
 
