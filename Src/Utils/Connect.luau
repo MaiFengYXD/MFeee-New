@@ -1,71 +1,141 @@
-local table_clear
-    = table.clear
+local unpack, pcall, typeof, table_clear, coroutine_close, coroutine_resume
+    = unpack, pcall, typeof, table.clear, coroutine.close, coroutine.resume
 
-local ConnectionManager = {}
+local _Connect   = game.Close.Connect
+local Disconnect = game.Close:Once(function() end).Disconnect
+
+local RunService = shared.RunService
+
+local BindToRenderStep     = RunService.BindToRenderStep
+local UnbindFromRenderStep = RunService.UnbindFromRenderStep
+
+local ContextService = shared.ContextActionService
+
+local BindAction           = ContextService.BindAction
+local BindActionAtPriority = ContextService.BindActionAtPriority
+local UnbindAction         = ContextService.UnbindAction
+
+local Connect = {}
 
 local Connections       = {}
+local Threads           = {}
 local RenderConnections = {}
 local ActionConnections = {}
 
-type Priority = {Value: number} | number
+type ActionCallback = (
+    ActionName:  string,
+    InputState:  Enum.UserInputState,
+    InputObject: InputObject
+) -> (nil)
 
-function ConnectionManager:GiveSignal(
-    Index: string?,
-    Signal: RBXScriptSignal | RBXScriptConnection
+function Connect:GiveSignal(
+    Index:    string?,
+    Signal:   RBXScriptSignal | RBXScriptConnection,
+    Callback: Function?
 ): RBXScriptConnection
-    Connections[Index] = Connections[Index] and Connections[Index]:Disconnect() or Signal
-    return Connections[Index]
+    if Connections[Index] then self:DisconnectSignal(Index) end
+
+    if typeof(Signal) == "RBXScriptSignal" then
+        return self:GiveSignal(Index, _Connect(Signal, Callback))
+    end
+
+    Connections[Index] = Signal
+    return (Signal :: RBXScriptConnection)
 end
 
-function ConnectionManager:BindRenderStep(
-    Index:     string?,
-    Priority:  Priority,
-    Function: (number) -> nil
-): RBXScriptConnection
-    if type(Priority) ~= "number" then Priority = Priority.Value;end
+function Connect:RunThread(Index: string?, Thread: thread): thread
+    if Threads[Index] then self:StopThread(Index) end
+    Threads[Index] = Thread
 
-    shared.RunService:UnbindFromRenderStep(Index)
-    shared.RunService:BindToRenderStep(Index, Priority, Function)
+    pcall(coroutine_resume, Thread)
+    return Thread
+end
+
+function Connect:BindRenderStep(
+    Index:     string?,
+    Priority:  Enum.RenderPriority | number,
+    Function: (number) -> nil
+): (number) -> nil
+    self:UnbindRenderStep(Index)
+
+    Priority = if typeof(Priority) ~= "number" then (Priority :: Enum.RenderPriority).Value else Priority
+
+    BindToRenderStep(RunService, Index, Priority, Function)
 
     RenderConnections[Index] = Function
     return RenderConnections[Index]
 end
 
-function ConnectionManager:BindAction(
+function Connect:BindAction(
     Index:     string?,
-    Function: (any) -> nil,
+    Function:  ActionCallback,
     TouchIcon: boolean?,
-    Priority:  Priority,
+    Priority:  (Enum.ContextActionPriority | number)?,
     ...:       EnumItem
-): RBXScriptConnection
+): ActionCallback
+    self:UnbindAction(Index)
+
     local Enums = {...}
     local IsNormal = false
 
-    if not Priority then IsNormal = true
-    elseif type(Priority) ~= "number" then Priority = Priority.Value end
-
-    shared.ContextActionService:UnbindAction(Index)
-
-    if IsNormal then
-        shared.ContextActionService:BindAction(Index, Function, TouchIcon, unpack(Enums))
+    if typeof(Priority) ~= "EnumItem" then
+        if typeof(Priority) ~= "number" then IsNormal = true end
     else
-        shared.ContextActionService:BindActionAtPriority(Index, Function, TouchIcon, Priority, unpack(Enums))
+        Priority = (Priority :: Enum.ContextActionPriority).Value
     end
 
+    if IsNormal then
+        BindAction(ContextService, Index, Function, TouchIcon, unpack(Enums))
+    else
+        BindActionAtPriority(ContextService, Index, Function, TouchIcon, Priority, unpack(Enums))
+    end
+
+    table_clear(Enums)
     ActionConnections[Index] = Function
-    return table_clear(Enums) or ActionConnections[Index]
+
+    return Function
 end
 
-function ConnectionManager:DisconnectSignal(Index: string?)
-    Connections[Index] = Connections[Index] and Connections[Index]:Disconnect()
+function Connect:DisconnectSignal(Index: string?)
+    if pcall(Disconnect,  Connections[Index]) then Connections[Index] = nil end
 end
 
-function ConnectionManager:UnbindRenderStep(Index: string?)
-    RenderConnections[Index] = shared.RunService:UnbindFromRenderStep(Index)
+function Connect:StopThread(Index: string?)
+    if pcall(coroutine_close, Threads[Index]) then Threads[Index] = nil end
 end
 
-function ConnectionManager:UnbindAction(Index: string?)
-    ActionConnections[Index] = shared.ContextActionService:UnbindAction(Index)
+function Connect:UnbindRenderStep(Index: string?)
+    UnbindFromRenderStep(RunService, Index)
+    RenderConnections[Index] = nil
 end
 
-return ConnectionManager
+function Connect:UnbindAction(Index: string?)
+    UnbindAction(ContextService, Index)
+    ActionConnections[Index] = nil
+end
+
+wax.shared.AddOnUnload(function()
+    local Connect
+        = Connect
+
+    local         DisconnectSignal,         StopThread,         UnbindRenderStep,         UnbindAction
+        = Connect.DisconnectSignal, Connect.StopThread, Connect.UnbindRenderStep, Connect.UnbindAction
+
+    for Index in Connections do
+        DisconnectSignal(Connect, Index)
+    end
+
+    for Index in Threads do
+        StopThread(Connect, Index)
+    end
+
+    for Index in RenderConnections do
+        UnbindRenderStep(Connect, Index)
+    end
+
+    for Index in ActionConnections do
+        UnbindAction(Connect, Index)
+    end
+end)
+
+return Connect
