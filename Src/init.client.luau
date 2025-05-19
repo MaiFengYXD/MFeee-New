@@ -1,3 +1,6 @@
+local pcall
+    = pcall
+
 --// Pre-Checks //
 require("Utils/Services"):GetServices({
     "ContextActionService",
@@ -23,6 +26,8 @@ if type(getgenv) ~= "function" then
     shared.Speaker:Kick("This script doesn't support non-executor environments.");return
 end
 
+local Global = getgenv()
+
 local function Notify(Title: string, Text: string)
     print(`[MFeee~ New] {Title} {Text}`)
 
@@ -36,11 +41,11 @@ end
 
 wax.shared.MiniNotify = Notify
 
-if getgenv().MFeeeLoaded  then Notify("Loading Stopped!", "Error: Already loaded.");return end
-if getgenv().MFeeeLoading then Notify("Loading Stopped!", "Error: Loading.")       ;return end
+if Global.MFeeeLoaded  then Notify("Loading Stopped!", "Error: already loaded.") ;return end
+if Global.MFeeeLoading then Notify("Loading Stopped!", "Error: already loading.");return end
 
-getgenv().MFeeeLoading = true
-getgenv().MFeeeLoaded  = false
+Global.MFeeeLoading = true
+Global.MFeeeLoaded  = false
 
 task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
     "rbxassetid://103134660123798",
@@ -51,11 +56,50 @@ task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
+shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (function(IsA, Wait, ChildAdded)
+    local PlayerGui
+
+    repeat
+        PlayerGui = Wait(ChildAdded)
+    until IsA(PlayerGui, "PlayerGui")
+
+    return PlayerGui
+end)(game.IsA, game.Close.Wait, shared.Player.ChildAdded)
+
+do
+    local table_insert, unpack
+        = table.insert, unpack
+
+    local OnUnloadFunctions = {} :: {
+        [number]: {
+            [number]: any,
+        }
+    }
+
+    function wax.shared.Unload()
+        local pcall, task_defer
+            = pcall, task.defer
+
+        for _, Bundled in OnUnloadFunctions do
+            task_defer(pcall, Bundled[1], unpack(Bundled[2]))
+        end
+
+        Global.MFeeeLoaded  = false
+        Global.MFeeeLoading = false
+    end
+
+    function wax.shared.AddOnUnload(Callback: () -> (), ...: any)
+        table_insert(OnUnloadFunctions, {(Callback :: any), {...}})
+    end
+end
+
 --// Start to Load //
 wax.shared.TempStorage = {}
 
-task.spawn(pcall, function()
-    wax.shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
+task.spawn(function()
+    while not (pcall(function()
+        wax.shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
+    end) and wax.shared.GameName) do end
 end)
 
 shared.Camera = shared.Workspace.CurrentCamera
@@ -64,8 +108,34 @@ wax.shared.Emoji           = require("Utils/ArtEmoji")
 wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
 wax.shared.FileHelper      = require("Utils/FileHelper")
 
-shared.Connect     = require("Utils/Connect")
-shared.ToClipboard = type(shared.ToClipboard) == "function" and shared.ToClipboard or function(...) end
+do
+    local utf8_char
+        = utf8.char
+
+    local Random      = Random.new()
+    local NextInteger = Random.NextInteger
+
+    function Global.randomstring(Length: number | nil): string
+        local String = ""
+
+        for _ = 1, Length or 16 do
+            String ..= utf8_char(NextInteger(Random, 0, 1114111))
+        end
+
+        return String
+    end
+end
+
+do
+    local Color3_fromHSV, tick
+        = Color3.fromHSV, tick
+
+    function Global.getrainbowcolor(RainbowSpeed: number | nil): Color3
+        return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
+    end
+end
+
+shared.Connect = require("Utils/Connect")
 
 wax.shared.AllowedLanguages = {
     ["am"] = "አማርኛ",
@@ -111,9 +181,24 @@ do
     end
 end
 
+do
+    local tonumber, string_match, table_sort
+        = tonumber, string.match, table.sort
+
+    function wax.shared.Sequencing(Table: table): table
+        table_sort(Table, function(A, B)
+            local NumA = tonumber(string_match(A.Name, "^(%d+)%."))
+            local NumB = tonumber(string_match(B.Name, "^(%d+)%."))
+
+            return NumA < NumB
+        end)
+
+        return Table
+    end
+end
+
 wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
-wax.shared.NpcHandler    = require("Utils/Universal/NPCHandler")
 
 shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     shared.Camera  = shared.Workspace.CurrentCamera
@@ -126,21 +211,26 @@ end))
 --// Loader //
 wax.shared.ScriptVersion = "Build 1"
 
-wax.shared.Icons     = require("Utils/Gui/Lucide")
 wax.shared.UiManager = require("Utils/Gui/UIManager")
-wax.shared.Window    = wax.shared.UiManager:CreateWindow()
+wax.shared.Window    = wax.shared.UiManager:CreateWindow();
 
-require(`Places/Loader/{wax.shared.ScriptFolder}`)
+(require :: Function)((`Places/Loader/{wax.shared.ScriptFolder}`) :: string)
 
-getgenv().MFeeeLoaded  = true
-getgenv().MFeeeLoading = false
+wax.shared.UiManager:CreateUniversalTabs()
+
+wax.shared.UiManager.SaveManager :LoadAutoloadConfig()
+wax.shared.UiManager.ThemeManager:LoadDefault()
+
+Global.MFeeeLoaded  = true
+Global.MFeeeLoading = false
 
 task.spawn(pcall, function()
-    local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/.version")
-    assert(Version ~= wax.shared.ScriptVersion)
+    local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
+    assert(Version ~= wax.shared.ScriptVersion and #Version > 0)
 
     wax.shared.UiManager:Notify({
         Title       = wax.shared.Translations:GetTranslation("Version Mismatch"),
         Description = wax.shared.Translations:GetTranslation("The script version is outdated, please update it!"),
+        Time        = 15
     })
 end)
