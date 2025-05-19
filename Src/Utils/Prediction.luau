@@ -22,7 +22,7 @@ local function CubeRoot(Value)
     return (Value > 0) and math_pow(Value, 1/3) or -math_pow(math_abs(Value), 1/3)
 end
 
-local function SolveQuadratic(Coeff0, Coeff1, Coeff2)
+local function SolveQuadratic(Coeff0: number, Coeff1: number, Coeff2: number): (number?, number?)
     local Root1, Root2
     local NormalizedP  = Coeff1 / (2 * Coeff0)
     local NormalizedQ  = Coeff2 / Coeff0
@@ -41,7 +41,7 @@ local function SolveQuadratic(Coeff0, Coeff1, Coeff2)
     end
 end
 
-local function SolveCubic(Coeff0, Coeff1, Coeff2, Coeff3)
+local function SolveCubic(Coeff0: number, Coeff1: number, Coeff2: number, Coeff3: number): (number, number?, number?)
     local Root1, Root2, Root3, RootCount
 
     local NormalizedA = Coeff1 / Coeff0
@@ -94,8 +94,8 @@ local function SolveCubic(Coeff0, Coeff1, Coeff2, Coeff3)
     return Root1, Root2, Root3
 end
 
-function Prediction.SolveQuartic(Coeff0, Coeff1, Coeff2, Coeff3, Coeff4)
-    local Roots, Coefficients = {}, {}
+function Prediction.SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number, Coeff3: number, Coeff4: number)
+    local Roots, Coefficients = {} :: any, {}
     local IntermediateZ, SqrtU, SqrtV, Adjustment, RootCount
 
     local NormalizedA = Coeff1 / Coeff0
@@ -177,14 +177,14 @@ function Prediction.SolveTrajectory(
     Origin         : Vector3, ProjectileSpeed : number, Gravity        : number,
     TargetPosition : Vector3, TargetVelocity  : Vector3,
     PlayerGravity  : number?, PlayerHeight    : number?, RaycastParams : RaycastParams?
-)
+): Vector3?
     local Displacement = TargetPosition - Origin
     local TargetVelX, TargetVelY, TargetVelZ = TargetVelocity.X, TargetVelocity.Y, TargetVelocity.Z
     local DispX, DispY, DispZ = Displacement.X, Displacement.Y, Displacement.Z
     local GravityFactor = -0.5 * Gravity
 
     --/ Attempt gravity calculation, may return to it in the future.
-    if math_abs(TargetVelY) > 0.01 and PlayerGravity and PlayerGravity > 0 then
+    if math_abs(TargetVelY) > 0.01 and PlayerGravity and PlayerGravity > 0 and PlayerHeight then
         local EstimatedTime = Displacement.Magnitude / ProjectileSpeed
         TargetVelY -= 0.5 * PlayerGravity * EstimatedTime
 
