@@ -1,8 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "Info=[[34mINFO[0m]"
-set "Error=[[31mERROR[0m]"
+set "ColorReset=[0m"
+set "ColorBlue=[34m"
+set "ColorRed=[31m"
+
+set "Info=%ColorBlue%[INFO]%ColorReset%"
+set "Error=%ColorRed%[ERROR]%ColorReset%"
 
 echo %Info% Starting bundle script...
 
@@ -71,8 +75,6 @@ echo      * darklua-config-path[=(".darklua.json", ".darklua.json5")]
 echo           Custom Darklua config path
 echo      * temp-dir-base[="{output-dir}"]
 echo           Temp directory for Rojo/Darklua processing
-echo      * extra-offset-lines[=0]
-echo           Line offset for debugging info
 echo      * ci-mode[=true]
 echo           CI mode (non-interactive, errors exit with code 1)
 echo      * verbose[=true]
@@ -86,7 +88,7 @@ set /p "UserOptions=Enter your bundle options: "
 
 :: Step 5 - Run lune with user options
 echo.
-echo %Info% Running: lune run Build bundle %UserOptions%
+echo %Info% ^> lune run Build bundle %UserOptions%
 echo ----------------------------------------
 lune run Build bundle %UserOptions%
 if %errorlevel% neq 0 (
