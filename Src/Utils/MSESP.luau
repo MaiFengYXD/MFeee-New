@@ -12,10 +12,8 @@ local math_rad, math_cos, math_atan2, math_deg, math_sin, math_floor, string_mat
 local randomstring, setmetatable, assert, pcall, tostring, getrainbowcolor, typeof
     = randomstring, setmetatable, assert, pcall, tostring, getrainbowcolor, typeof
 
-local Disconnect = (game.Close:Once()).Disconnect
-
-local      IsA,      Destroy
-    = game.IsA, game.Destroy
+local      IsA,      Destroy,                                 Disconnect: (RBXScriptConnection) -> nil
+    = game.IsA, game.Destroy, game.Close:Once(function() end).Disconnect
 
 local UserInputService = shared.UserInputService
 local GetMouseLocation = UserInputService.GetMouseLocation
@@ -75,10 +73,6 @@ type ESPSettings = {
     ModelRoot: Instance?,
 }
 
---// Executor Variables //
-local gethui = wax.shared.ExecutorSupport.gethui and gethui or (function() return shared.CoreGui end);
-local HiddenUi = gethui();
-
 --// Variables //
 local tablefreeze = function<T>(provided_table: T & {}): any
     local proxy = {}
@@ -104,7 +98,7 @@ local GetPivot = (function()
 
     local GetPivot = Instance_new("Part").GetPivot
 
-    return function(Instance: Instance | any): CFrame
+    return function(Instance: Bone | Attachment | Camera | PVInstance | any): CFrame
         if IsA(Instance, "Bone") then
             return Instance.TransformedWorldCFrame
         elseif IsA(Instance, "Attachment") then
@@ -112,7 +106,7 @@ local GetPivot = (function()
         elseif IsA(Instance, "Camera") then
             return Instance.CFrame
         elseif IsA(Instance, "PVInstance") then
-            return GetPivot(Instance)
+            return GetPivot(Instance :: PVInstance)
         end
 
         return CFrame_identity
@@ -133,20 +127,20 @@ local InstancesLib = {
                 continue --/ Parenting is expensive, do last.
             end
 
-            instance[name] = val
+            (instance :: any)[name] = val
         end
 
         instance["Parent"] = properties["Parent"]
 
-        return instance
+        return instance :: typeof(instance)
     end,
 
-    TryGetProperty = function(instance, propertyName): any
+    TryGetProperty = function(instance: Instance | Object?, propertyName): any
         assert(typeof(instance) == "Instance", "Argument #1 must be an Instance.")
         assert(typeof(propertyName) == "string", "Argument #2 must be a string.")
 
         local success, property = pcall(function()
-            return instance[propertyName]
+            return (instance :: any)[propertyName]
         end)
 
         return if success then property else nil;
@@ -183,7 +177,7 @@ local ActiveFolder = InstancesLib.Create("Folder", {})
 local StorageFolder = InstancesLib.Create("Folder", {})
 
 local MainGUI = InstancesLib.Create("ScreenGui", {
-    Parent = HiddenUi,
+    Parent = gethui(),
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
@@ -192,7 +186,7 @@ local MainGUI = InstancesLib.Create("ScreenGui", {
 })
 
 local BillboardGUI = InstancesLib.Create("ScreenGui", {
-    Parent = HiddenUi,
+    Parent = gethui(),
     IgnoreGuiInset = true,
     ResetOnSpawn = false,
     ClipToDeviceSafeArea = false,
@@ -210,7 +204,7 @@ local Library = {
     MainGUI = MainGUI,
     BillboardGUI = BillboardGUI,
     ESP = {},
-    Connections = {},
+    Connections = {} :: { RBXScriptConnection },
 
     --// Global Config
     GlobalConfig = {
@@ -236,13 +230,7 @@ local character: Model
 local rootPart: Part?
 local Camera: Camera = shared.Camera
 
-local function worldToViewport(...)
-    if Camera == nil then
-        return Vector2_new(0, 0), false
-    end
-
-    return Camera:WorldToViewportPoint(...)
-end
+local WorldToViewportPoint = Camera.WorldToViewportPoint
 
 local function UpdatePlayerVariables(newCharacter: any, force: boolean?)
     if force ~= true and Library.GlobalConfig.IgnoreCharacter == true then
@@ -272,7 +260,7 @@ function Library:Clear()
         if not ESP then continue end
 
         if not PublicESPDestroy then
-            PublicESPDestroy = ESP.Destroy
+            PublicESPDestroy = (ESP :: any).Destroy
         end
         PublicESPDestroy(ESP)
     end
@@ -300,8 +288,7 @@ function Library:Destroy()
         Disconnect(connection)
     end
 
-    table_clear(Library.Connections)
-    Library = setmetatable({}, {})
+    table_clear(Library)
 end
 
 --// Type Checks //
@@ -341,7 +328,7 @@ local function TracerCreate(espSettings: TracerESPSettings, instanceName: string
     end
 
     --// Create Path2D
-    local Path2D = InstancesLib.Create("Path2D", {
+    local Path2D = (InstancesLib.Create("Path2D", {
         Parent = MainGUI,
         Name = if typeof(instanceName) == "string" then instanceName else "Tracer",
         Closed = true,
@@ -350,7 +337,7 @@ local function TracerCreate(espSettings: TracerESPSettings, instanceName: string
         Color3 = espSettings.Color,
         Thickness = espSettings.Thickness,
         Transparency = espSettings.Transparency,
-    })
+    }) :: Path2D)
 
     local SetControlPoints = Path2D.SetControlPoints
 
@@ -371,7 +358,7 @@ local function TracerCreate(espSettings: TracerESPSettings, instanceName: string
         Thickness = espSettings.Thickness,
         Transparency = espSettings.Transparency,
     }
-    UpdateTracer(data.From, data.To);
+    UpdateTracer((data.From :: Vector2), (data.To :: Vector2));
 
     --// Tracer Metatable
     local proxy = {}
@@ -383,19 +370,19 @@ local function TracerCreate(espSettings: TracerESPSettings, instanceName: string
 
             if key == "From" then
                 assert(typeof(value) == "Vector2", tostring(key) .. "; expected Vector2, got " .. typeof(value))
-                UpdateTracer(value, data.To)
+                UpdateTracer(value, (data.To :: Vector2))
 
             elseif key == "To" then
                 assert(typeof(value) == "Vector2", tostring(key) .. "; expected Vector2, got " .. typeof(value))
-                UpdateTracer(data.From, value)
+                UpdateTracer((data.From :: Vector2), value)
 
             elseif key == "Transparency" or key == "Thickness" then
-                assert(typeof(value) == "number", tostring(key) .. "; expected number, got " .. typeof(value))
-                Path2D[key] = value
+                assert(typeof(value) == "number", tostring(key) .. "; expected number, got " .. typeof(value));
+                (Path2D :: any)[key] = value
 
             elseif key == "Color3" then
-                assert(typeof(value) == "Color3", tostring(key) .. "; expected Color3, got " .. typeof(value))
-                Path2D.Color3 = value
+                assert(typeof(value) == "Color3", tostring(key) .. "; expected Color3, got " .. typeof(value));
+                (Path2D :: any).Color3 = value
 
             elseif key == "Visible" then
                 assert(typeof(value) == "boolean", tostring(key) .. "; expected boolean, got " .. typeof(value))
@@ -412,13 +399,13 @@ local function TracerCreate(espSettings: TracerESPSettings, instanceName: string
             end
 
             if key == "Destroy" or key == "Delete" then
-                return function()
+                return (function()
                     SetControlPoints(Path2D, {});
                     Path2D = Destroy(Path2D);
-                end
+                end) :: any
             end
 
-            return data[key]
+            return (data :: any)[key]
         end,
     }
 
@@ -450,7 +437,7 @@ function Library:Add(espSettings: ESPSettings)
     --// Fix Settings
     local Name = "Name"
 
-    espSettings.Name = if typeof(espSettings.Name) == "string" then espSettings[Name] else espSettings.Model[Name];
+    espSettings.Name = if typeof(espSettings.Name) == "string" then espSettings[Name] else (espSettings.Model :: any)[Name];
     espSettings.TextModel = if typeof(espSettings.TextModel) == "Instance" then espSettings.TextModel else espSettings.Model;
 
     espSettings.Visible = if typeof(espSettings.Visible) == "boolean" then espSettings.Visible else true;
@@ -485,10 +472,10 @@ function Library:Add(espSettings: ESPSettings)
         Deleted = false,
         Connections = {} :: { RBXScriptConnection },
         RenderThread = nil :: thread?
-    }
+    } :: table
 
     --// Create Billboard
-    local Billboard = InstancesLib.Create("BillboardGui", {
+    local Billboard = (InstancesLib.Create("BillboardGui", {
         Parent = BillboardGUI,
         Name = ESP.Index,
 
@@ -500,9 +487,9 @@ function Library:Add(espSettings: ESPSettings)
         --// Settings
         Adornee = ESP.CurrentSettings.TextModel or ESP.CurrentSettings.Model,
         StudsOffset = ESP.CurrentSettings.StudsOffset or Vector3_new(),
-    })
+    }) :: BillboardGui)
 
-    local BillboardText = InstancesLib.Create("TextLabel", {
+    local BillboardText = (InstancesLib.Create("TextLabel", {
         Parent = Billboard,
 
         Size = UDim2_new(0, 200, 0, 50),
@@ -517,14 +504,14 @@ function Library:Add(espSettings: ESPSettings)
         Text = ESP.CurrentSettings.Name,
         TextColor3 = ESP.CurrentSettings.Color or Color3_new(),
         TextSize = ESP.CurrentSettings.TextSize or 16,
-    })
+    }) :: TextLabel)
 
     InstancesLib.Create("UIStroke", {
         Parent = BillboardText
     })
 
     --// Create Highlighter
-    local Highlighter, IsAdornment = nil, not not string_match(ESP.OriginalSettings.ESPType, "Adornment")
+    local Highlighter: any, IsAdornment = nil, not not string_match(ESP.OriginalSettings.ESPType, "Adornment")
 
     if IsAdornment then
         local _, ModelSize
@@ -625,13 +612,13 @@ function Library:Add(espSettings: ESPSettings)
 
     --// Create Tracer and Arrow
     local TracerData = ESP.CurrentSettings.Tracer :: TracerESPSettings?
-    local Tracer = if typeof(TracerData) == "table" then TracerCreate(TracerData, ESP.Index) else nil;
+    local Tracer = if typeof(TracerData) == "table" then TracerCreate((TracerData :: TracerESPSettings), ESP.Index) else nil;
 
     local ArrowData = ESP.CurrentSettings.Arrow :: ArrowESPSettings?
-    local Arrow = nil;
+    local Arrow = nil :: ImageLabel?;
 
     if typeof(ArrowData) == "table" then
-        Arrow = InstancesLib.Create("ImageLabel", {
+        Arrow = (InstancesLib.Create("ImageLabel", {
             Parent = MainGUI,
             Name = ESP.Index,
 
@@ -645,28 +632,28 @@ function Library:Add(espSettings: ESPSettings)
 
             Image = "http://www.roblox.com/asset/?id=16368985219",
             ImageColor3 = ESP.CurrentSettings.Color or Color3_new(),
-        });
+        }) :: ImageLabel);
 
-        ArrowData.CenterOffset = if typeof(ArrowData.CenterOffset) == "number" then ArrowData.CenterOffset else 300;
+        (ArrowData :: table).CenterOffset = if typeof((ArrowData :: table).CenterOffset) == "number" then (ArrowData :: table).CenterOffset else 300;
     end
 
     --// Setup Delete Handler
     function ESP:Destroy()
-        if ESP.Deleted == true then
+        if self.Deleted == true then
             return;
         end
 
-        ESP.Deleted = true
+        self.Deleted = true
 
-        if ESP.RenderThread then
-            pcall(coroutine.close, ESP.RenderThread)
+        if self.RenderThread then
+            pcall(coroutine.close, self.RenderThread)
         end
 
-        if table_find(Library.ESP, ESP.Index) then
-            table_remove(Library.ESP, table_find(Library.ESP, ESP.Index))
+        if table_find(Library.ESP, self.Index) then
+            table_remove(Library.ESP, table_find(Library.ESP, self.Index))
         end
 
-        Library.ESP[ESP.Index] = nil
+        Library.ESP[self.Index] = nil
 
         --// Delete ESP Instances
         if Billboard then Destroy(Billboard) end
@@ -675,7 +662,7 @@ function Library:Add(espSettings: ESPSettings)
         if Arrow then Destroy(Arrow) end
 
         --// Clear connections
-        for _, connection in ESP.Connections do
+        for _, connection in self.Connections do
             if not connection.Connected then
                 continue
             end
@@ -683,15 +670,15 @@ function Library:Add(espSettings: ESPSettings)
             Disconnect(connection)
         end
 
-        table_clear(ESP.Connections)
+        table_clear(self.Connections)
 
         --// OnDestroy
-        if ESP.OriginalSettings.OnDestroy then
-            pcall(ESP.OriginalSettings.OnDestroy.Fire, ESP.OriginalSettings.OnDestroy)
+        if self.OriginalSettings.OnDestroy then
+            pcall(self.OriginalSettings.OnDestroy.Fire, self.OriginalSettings.OnDestroy)
         end
 
-        if ESP.OriginalSettings.OnDestroyFunc then
-            pcall(ESP.OriginalSettings.OnDestroyFunc)
+        if self.OriginalSettings.OnDestroyFunc then
+            pcall(self.OriginalSettings.OnDestroyFunc)
         end
     end
 
@@ -784,7 +771,8 @@ function Library:Add(espSettings: ESPSettings)
         end
 
         local ModelRoot = ESP.CurrentSettings.ModelRoot :: Instance
-        local screenPos, isOnScreen = worldToViewport(
+        local screenPos, isOnScreen = WorldToViewportPoint(
+            Camera,
             GetPivot(ModelRoot or ESP.CurrentSettings.Model).Position
         )
 
@@ -793,18 +781,19 @@ function Library:Add(espSettings: ESPSettings)
             (if Library.GlobalConfig.IgnoreCharacter == true then (Camera or rootPart) else rootPart)
         )
 
-        if distanceFromPlayer > ESP.CurrentSettings.MaxDistance then
+        if distanceFromPlayer > (ESP.CurrentSettings.MaxDistance :: number) then
             Hide()
             return
         end
 
         --// Update Arrow (only requires distance check) //
         if Arrow then
+            local ArrowData = ESP.CurrentSettings.Arrow :: ArrowESPSettings
             Arrow.Visible = Library.GlobalConfig.Arrows == true and ArrowData.Enabled == true and (isOnScreen ~= true)
 
             if Arrow.Visible then
                 local screenSize = Camera.ViewportSize
-                local centerPos = Vector2_new(screenSize.X / 2, screenSize.Y / 2)
+                local centerPos = screenSize / 2
 
                 --[[use aspect to make oval circle
                 local aspectRatioX = screenSize.X / screenSize.Y;
@@ -821,7 +810,7 @@ function Library:Add(espSettings: ESPSettings)
                 local direction = (partPos - centerPos)
                 local arctan = math_atan2(direction.Y, direction.X)
                 local angle = math_deg(arctan) + 90
-                local distance = (ArrowData.CenterOffset * 0.001) * screenSize.Y
+                local distance = ((ArrowData.CenterOffset :: number) * 0.001) * screenSize.Y
 
                 Arrow.Rotation = angle + 180 * (IsInverted and 0 or 1)
                 Arrow.Position = UDim2_new(
@@ -831,7 +820,7 @@ function Library:Add(espSettings: ESPSettings)
                     centerPos.Y + (distance * math_sin(arctan) * invert)
                 )
                 Arrow.ImageColor3 =
-                    if Library.GlobalConfig.Rainbow then Library.RainbowColor else ArrowData.Color;
+                    (if Library.GlobalConfig.Rainbow then Library.RainbowColor else ArrowData.Color :: Color3);
             end
         end
 
@@ -842,7 +831,7 @@ function Library:Add(espSettings: ESPSettings)
 
         --// Update Tracer //
         if Tracer then
-            local TracerData = ESP.CurrentSettings.Tracer :: TracerESPSettings?
+            local TracerData = ESP.CurrentSettings.Tracer :: TracerESPSettings
             Tracer.Visible = Library.GlobalConfig.Tracers == true and TracerData.Enabled == true;
 
             if Tracer.Visible then
@@ -852,7 +841,7 @@ function Library:Add(espSettings: ESPSettings)
                 elseif TracerData.From == "Top" then
                     Tracer.From = Vector2_new(Camera.ViewportSize.X / 2, 0)
                 elseif TracerData.From == "Center" then
-                    Tracer.From = Vector2_new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    Tracer.From = Camera.ViewportSize / 2
                 else
                     Tracer.From = Vector2_new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                 end
