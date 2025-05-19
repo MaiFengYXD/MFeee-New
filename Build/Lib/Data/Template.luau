@@ -1,16 +1,11 @@
--- This codegen template *must* be 100% compatible with Lua 5.1x+, NOT just Luau
--- With that being said, this explains the weird cflow in some parts
+-- This codegen template *not* be 100% compatible with Lua 5.1x+, MUST just Luau :Content:
+-- With that being said, this explains the weird cflow in any parts
 
 return [[
-local shared = shared :: {[any]: any}
-
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
--- Will be used later for getting flattened globals
-local __waximport
-
--- Holds direct closure data (defining this before the DOM tree for line debugging etc)
-local ClosureBindings = ${ClosureBindings} -- [RefId] = Closure
+-- Holds direct closure data
+local ClosureBindings = ${ClosureBindings} :: {[number]: () -> (...any)} -- [RefId] = Closure
 
 -- Holds the actual DOM data
 local ObjectTree = ${ObjectTree}
@@ -26,6 +21,8 @@ local string, task, setmetatable, error, table, unpack, coroutine, script, type,
     = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
 
 if not require then require = function(...) return nil end;end
+
+local shared: {[any]: any} = shared
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -53,6 +50,9 @@ local Defer = task_defer or function(f, ...)
     coroutine_wrap(f)(...)
 end
 
+-- Will be used later for getting flattened globals
+local ImportGlobals: (number) -> (table, table, Function)
+
 -- ClassName "IDs"
 local ClassNameIdBindings = {
     [1] = "Folder",
@@ -70,7 +70,7 @@ local StoredModuleValues = {}
 local ScriptsToRun = {}
 
 -- wax.shared __index/__newindex
-local SharedEnvironment = {}
+local SharedEnvironment = {} :: any
 
 -- We're creating 'fake' instance refs soley for traversal of the DOM for require() compatibility
 -- It's meant to be as lazy as possible
@@ -335,6 +335,32 @@ for RefId, Closure in ClosureBindings do
 end
 
 local function LoadScript(scriptRef)
+    local function OnError()
+        local Title = "Error Loading!"
+        local Text  = "Would you like to unload?"
+
+        local Bindable = Instance.new("BindableFunction")
+        function Bindable.OnInvoke(Choice)
+            if Choice ~= "Yes" then return end
+
+            pcall(pcall, SharedEnvironment.Unload)
+
+            getgenv().MFeeeLoaded  = false
+            getgenv().MFeeeLoading = false
+        end
+
+        print(`[{EnvName}] {Title} {Text}`)
+
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title    = Title,
+            Text     = Text,
+            Button1  = "Yes",
+            Button2  = "No",
+            Duration = (1 / 0),
+            Callback = Bindable
+        })
+    end
+
     local ScriptClassName = scriptRef.ClassName
 
     -- First we'll check for a cached module value (packed into a tbl)
@@ -372,9 +398,10 @@ local function LoadScript(scriptRef)
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
             return FormatError(debug.traceback(msg, 2))
-        end)
+        end, shared, ImportGlobals(scriptRef))
 
         if not RunSuccess then
+            Defer(OnError)
             error(ErrorMessage, 0) -- Use level 0 to directly throw the fully formatted error
         end
         return
@@ -382,12 +409,13 @@ local function LoadScript(scriptRef)
         -- Module script logic
         local PCallReturn
         local RunSuccess, ErrorMessage = xpcall(function()
-            PCallReturn = {Closure()}
+            PCallReturn = {Closure(shared, ImportGlobals(scriptRef))}
         end, function(msg)
             return FormatError(debug.traceback(msg, 2))
         end)
 
         if not RunSuccess then
+            Defer(OnError)
             error(ErrorMessage, 0)
         end
 
@@ -401,7 +429,7 @@ end
 
 -- We'll assign the actual func from the top of this output for flattening user globals at runtime
 -- Returns (in a tuple order): wax, script, require
-function __waximport(refId)
+function ImportGlobals(refId)
     local ScriptRef = RefBindings[refId]
 
     local function RealCall(f, ...)
@@ -417,31 +445,17 @@ function __waximport(refId)
         return unpack(PCallReturn)
     end
 
-    -- `wax.shared` index
-    local WaxShared = table_freeze(setmetatable({}, {
-        __index = SharedEnvironment,
-        __newindex = function(_, index, value)
-            SharedEnvironment[index] = value
-        end,
-        __len = function()
-            return #SharedEnvironment
-        end,
-        __iter = function()
-            return SharedEnvironment
-        end,
-    }))
-
-    local Global_wax = table_freeze({
+    local Global_wax = {
         -- From AOT variable imports
         version = WaxVersion,
         envname = EnvName,
 
-        shared = WaxShared,
+        shared = SharedEnvironment,
 
         -- "Real" globals instead of the env set ones
         script = script,
         require = require,
-    })
+    }
 
     local Global_script = ScriptRef
 
