@@ -144,6 +144,7 @@ wax.shared.AllowedLanguages = {
     ["de"] = "Deutsch",
     ["en"] = "English",
     ["es"] = "Español",
+    ["et"] = "Eesti",
     ["fa"] = "فارسی",
     ["fr"] = "Français",
     ["hi"] = "हिन्दी",
