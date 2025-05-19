@@ -1,11 +1,11 @@
-local TweenInfo_new, table_clear, type
-    = TweenInfo.new, table.clear, type
+local TweenInfo_new, type
+    = TweenInfo.new, type
 
-local        TweenService
-    = shared.TweenService
+local      Destroy
+    = game.Destroy
 
-local              Create
-    = TweenService.Create
+local TweenService = shared.TweenService
+local Create       = TweenService.Create
 
 local Play, Cancel;do
     local Tween = Instance.new("Tween")
@@ -13,7 +13,7 @@ local Play, Cancel;do
     Play   = Tween.Play
     Cancel = Tween.Cancel
 
-    Tween:Destroy()
+    Destroy(Tween)
 end
 
 local EasingLibrary = {
@@ -46,10 +46,13 @@ local EasingLibrary = {
         ["InOut"] = Enum.EasingDirection.InOut
     },
 
-    EasingMode      = "Quartic" :: "None" | string?,
-    EasingDirection = "Out",
+    EasingMode      = "Quartic" :: "None" | string,
+    EasingDirection = "Out" :: string,
     EasingDuration  = 1,
 }
+
+local Quart = Enum.EasingStyle.Quart
+local Out   = Enum.EasingDirection.Out
 
 type StoredTween = {
     Tween:       Tween | TweenBase,
@@ -57,16 +60,19 @@ type StoredTween = {
 }
 
 function EasingLibrary:CancelTween(Index: string)
-    if not self.RunningTween[Index] then return end
-    Cancel(self.RunningTween[Index].Tween) --/ OnCompleted will automatically clean the RunningTween
+    local Running = self.RunningTween[Index]
+    if not Running then return end
+
+    Cancel (Running.Tween) --/ OnCompleted will automatically clean the RunningTween
+    Destroy(Running.Tween)
 end
 
-function EasingLibrary:PlayTween(Tween: Tween | TweenBase, Index: string): StoredTween
-    self.RunningTween[Index] = self:CancelTween(Index) or {
+function EasingLibrary:PlayTween(Index: string?, Tween: Tween | TweenBase): StoredTween
+    self.RunningTween[Index] = (self:CancelTween(Index) :: nil) or {
         Tween = Tween,
 
         OnCompleted = Tween.Completed:Once(function()
-            self.RunningTween[Index] = table_clear(self.RunningTween[Index])
+            self.RunningTween[Index] = Destroy(self.RunningTween[Index].Tween)
         end)
     } :: StoredTween
 
@@ -76,27 +82,33 @@ function EasingLibrary:PlayTween(Tween: Tween | TweenBase, Index: string): Store
 end
 
 function EasingLibrary:Ease(
-    Target:    Instance,
+    Target:    Instance & any,
     Property:  string | {[number]: string},
     EndValue:  any,
-    Index:     string,
-    Duration:  number?,
-    Mode:      string?,
-    Direction: string?
-): StoredTween?
-    if self.EasingMode == "None" then
-        Target[Property] = EndValue
+    Index:     string?,
+    Duration:  number | nil,
+    Mode:      string | Enum.EasingStyle | nil,
+    Direction: string | Enum.EasingDirection | nil
+): StoredTween | nil
+    if Mode == "None" or self.EasingMode == "None" then
+        if type(Property) == "string" then
+            (Target :: any)[Property] = EndValue
+        else
+            for Key, Value in (Property :: table) do
+                (Target :: any)[Key] = Value
+            end
+        end
         return
     end
 
     local TweenInfo = TweenInfo_new(
         Duration  or self.EasingDuration or 1,
-        Mode      or self.EasingModes[self.EasingMode] or Enum.EasingStyle.Quart,
-        Direction or self.EasingDirections[self.EasingDirection] or Enum.EasingDirection.Out
+        type(Mode) == "string" and self.EasingModes[Mode] or self.EasingModes[self.EasingMode] or Quart,
+        type(Direction) == "string" and self.EasingDirections[Direction] or self.EasingDirections[self.EasingDirection] or Out
     )
     local Goal = if type(Property) == "table" then Property else {[Property] = EndValue}
 
-    return self:PlayTween(Create(TweenService, Target, TweenInfo, Goal), Index)
+    return self:PlayTween(Index, Create(TweenService, Target, TweenInfo, Goal))
 end
 
 return EasingLibrary
