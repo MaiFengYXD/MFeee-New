@@ -11,24 +11,16 @@ local Translations = wax.shared.Translations;
 local GetTranslation = Translations.GetTranslation
 
 local DrawingLib = wax.shared.ExecutorSupport.Drawing and Drawing or { drawing_replaced = true };
-local ProtectGui = wax.shared.ExecutorSupport.protectgui and shared.ProtectGui or function(Gui: GuiObject)
-    Gui.Archivable = false;
-end;
-local GetHUI = wax.shared.ExecutorSupport.gethui and gethui or function()
-    return shared.CoreGui;
-end;
 
 local IsBadDrawingLib = false;
 
 local ScreenGui = Instance.new('ScreenGui');
-pcall(ProtectGui, ScreenGui);
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.DisplayOrder = 1e7;
 ScreenGui.ResetOnSpawn = false;
 
-local Parented = pcall(function() ScreenGui.Parent = GetHUI(); end);
-if not Parented then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end;
+pcall(function() ScreenGui.Parent = (gethui() :: CoreGui); end);
 
 --[[
     You can access Toggles & Options through (I'm planning to remove **a** option):
@@ -215,7 +207,9 @@ function Library:Create(Class, Properties)
 
         xpcall(function()
             _Instance[Property] = Value;
-        end, warn);
+        end, function(Error)
+            warn(`Failed to create instance {Class} due to {Error}`)
+        end);
     end;
 
     return _Instance;
