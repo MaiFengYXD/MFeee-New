@@ -32,4 +32,5 @@
     },
     "stylua.disableVersionCheck": true,
     "markdown.validate.enabled": false,
+    "luau-lsp.plugin.port": 4678,
 }
