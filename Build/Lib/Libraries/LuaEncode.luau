@@ -243,6 +243,7 @@ local function LuaEncode(inputTable, options)
     local FunctionsReturnRaw = (options.FunctionsReturnRaw == nil and false) or options.FunctionsReturnRaw
     local UseInstancePaths = (options.UseInstancePaths == nil and true) or options.UseInstancePaths
     local SerializeMathHuge = (options.SerializeMathHuge == nil and true) or options.SerializeMathHuge
+    local ExtraNewlineAfterComma = (options.ExtraNewlineAfterComma == nil and false) or options.ExtraNewlineAfterComma
 
     -- Internal options:
 
@@ -715,7 +716,7 @@ local function LuaEncode(inputTable, options)
             if next(inputTable, Key) then
                 -- Yes.. The nesting here is deliberate
                 if ValueWasEncoded then
-                    EntryOutput = EntryOutput .. ","
+                    EntryOutput = EntryOutput .. "," .. (ExtraNewlineAfterComma and "\n" or "")
                 end
             else
                 -- If there isn't another value after the current index, add ending formatting
