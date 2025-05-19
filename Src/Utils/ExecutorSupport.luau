@@ -1,168 +1,297 @@
-local assert:<T>(T, string?) -> T
-    = assert
+require("LiteralBlank")
 
-local task_wait, string_find, Instance_new, table_find, pcall, print
-    = task.wait, string.find, Instance.new, table.find, pcall, print
+local pcall, xpcall, error, type, print, string_find, string_sub, table_clear, table_insert, task_defer
+    = pcall, xpcall, error, type, print, string.find, string.sub, table.clear, table.insert, task.defer
 
-local      IsA
-    = game.IsA
+local Global = getgenv()
 
 --// Prepare Environment //
-local ExecutorSupport = {}
-local Fixable         = {
-    "fireproximityprompt",
-    "firetouchinterest",
-    "randomstring"
+local ExecutorSupport = {
+    SupportFileSystem = false,
+    TotalTestes       = 0,
+    TotalWorking      = 0
 }
 
-local function Test(Name: string, Function: (...any) -> (...any))
-    local CanBeFixed = table_find(Fixable, Name)
+local OutputList = {}
+local Grabages   = {} :: {Function}
 
-    local Support, Message = pcall(Function)
-    ExecutorSupport[Name]  = if CanBeFixed then true else Support
+local assert;do
+    --/ Disable error traceback
+    local Nan = (0 / 0)
 
-    if string_find(Message, "attempt to call a nil value") then
-        Message = `{Name} doesn't exist`
+    function assert<T>(Assertion: T, Message: string?): (nil)
+        return if Assertion then nil else error(Message, Nan)
     end
-
-    if not Support and CanBeFixed then
-        Message ..= ", but it can be fixed"
-    end
-
-    print(Support and `✅ [{Name}]` or `{CanBeFixed and "⚠️" or "❌"} [{Name}] {Message}`)
 end
+
+local function Test(
+    Name:     string,
+    Requires: {string?},
+    Aliases:  {string?},
+    TestFunction: (...any) -> (nil),
+    Fix: ((nil) -> (nil)) | nil,
+    CannotTest: boolean   | nil,
+    CustomInfo: string    | nil
+): (nil)
+    ExecutorSupport.TotalTestes += 1
+
+    local Success:    boolean,
+          TestResult: string?
+
+    local IsFixable = type(Fix) == "function"
+
+    local function GoSummary()
+        for _, Function in Grabages do
+            task_defer(pcall, Function)
+        end
+
+        local RealSuccess = Success or IsFixable
+
+        ExecutorSupport[Name] = RealSuccess
+        ExecutorSupport.TotalWorking += RealSuccess and 1 or 0
+
+        table_insert(OutputList, `> {Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"} [{Name}]{not Success and ` - {TestResult}` or CustomInfo and ` - {CustomInfo}` or ""}`)
+
+        task_defer(table_clear, Requires)
+        task_defer(table_clear, Aliases)
+    end
+
+    local function TryToFix(ErrorMessage: string): string?
+        if not IsFixable then return ErrorMessage end
+
+        local FixSuccess = pcall((Fix :: Function))
+        IsFixable = FixSuccess
+
+        return if FixSuccess then `{ErrorMessage}, but it can be fixed` else ErrorMessage
+    end
+
+    local RequirementValidated = true
+
+    for _, Requirement in Requires do
+        if type(Global[Requirement]) == "function" then continue end
+
+        RequirementValidated = false
+        Success    = false
+        TestResult = `Missing requirement '{Requirement}'`
+        break
+    end
+
+    if not RequirementValidated then
+        return GoSummary()
+    end
+
+    local RealFunction = Global[Name]
+    local UsesAlias    = false
+
+    if not RealFunction then
+        for _, Alias in (Aliases :: {string}) do
+            local Table = string_find(Alias, "table: ")
+            local Key   = string_find(Alias, "key: ")
+
+            if Table and Key then
+                local TableName = string_sub(Alias, Table + 1, Key - 1)
+                local KeyName   = string_sub(Alias, Key + 4)
+
+                local TableFunction = if type(Global[TableName]) == "table" then Global[TableName][KeyName] else nil
+                RealFunction = if type(TableFunction) == "function" then TableFunction else nil
+
+                if not RealFunction then continue
+                else break end
+            end
+
+            if type(Global[Alias]) ~= "function" then continue end
+
+            RealFunction = Global[Alias]
+            break
+        end
+
+        if not RealFunction then
+            Success    = false
+            TestResult = TryToFix(`Missing function '{Name}' and its aliases`) :: string
+
+            return GoSummary()
+        end
+
+        UsesAlias = true
+    end
+
+    Success, TestResult = xpcall(TestFunction, TryToFix, RealFunction)
+
+    if UsesAlias then
+        Global[Name] = RealFunction
+    end
+
+    return GoSummary()
+end
+
+table_insert(OutputList, "----------------")
 
 --// File System //
+local TestFolder = "MFeee-New/.test"
+local TestFile   = `{TestFolder}/test.txt`
 
---// Folders
-local function FolderTest(Assert: string?)
-    makefolder("MFeee-New.test")
-    assert(isfolder("MFeee-New.test"), Assert or "Failed to create a folder")
+local function CleanFolder()
+    delfolder(TestFolder)
 end
 
-Test("makefolder", FolderTest)
-
-Test("isfolder", function()
-    FolderTest("Failed to check if folder exists")
+--// Folder
+Test("makefolder", {"isfolder"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    assert(isfolder(TestFolder), "Folder not created")
 end)
 
-Test("delfolder", function()
-    FolderTest()
-    delfolder ("MFeee-New.test")
-    assert(isfolder("MFeee-New.test") == false, "Failed to delete a folder")
+Test("isfolder", {"makefolder"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    assert(isfolder(TestFolder), "Folder existence check failed")
 end)
 
---// Files
-local function FileTest(Assert: string?)
-    makefolder("MFeee-New.test")
-    writefile ("MFeee-New.test/Hello.txt", "Hello, World!")
-    assert(isfile("MFeee-New.test/Hello.txt"), Assert or "Failed to create a file")
-end
-
-Test("writefile", FileTest)
-
-Test("isfile", function()
-    FileTest("Failed to check if file exists")
+Test("delfolder", {"makefolder", "isfolder"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    delfolder(TestFolder)
+    assert(isfolder(TestFolder) == false, "Folder deletion failed")
 end)
 
-Test("readfile", function()
-    FileTest()
-    assert(readfile("MFeee-New.test/Hello.txt") == "Hello, World!", "Failed to read a file")
+--// File
+Test("writefile", {"makefolder", "readfile"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    writefile(TestFile, "Hello, World!")
+    assert(readfile(TestFile) == "Hello, World!", "File content mismatch")
 end)
 
-Test("appendfile", function()
-    FileTest()
-    appendfile("MFeee-New.test/Hello.txt", "\nHello, World!")
-    assert(readfile("MFeee-New.test/Hello.txt") == "Hello, World!\nHello, World!", "Failed to append to a file")
+Test("isfile", {"makefolder", "writefile"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    writefile(TestFile, "Hello, World!")
+    assert(isfile(TestFile), "File existence check failed")
 end)
 
-Test("delfile", function()
-    FileTest()
-    delfile("MFeee-New.test/Hello.txt")
-    assert(isfile("MFeee-New.test/Hello.txt") == false, "Failed to delete a file")
+Test("readfile", {"makefolder", "writefile"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    writefile(TestFile, "Hello, World!")
+    assert(readfile(TestFile) == "Hello, World!", "File content mismatch")
 end)
 
---// Metatables and Hooks //
-Test("hookmetamethod", function()
-    local Object = setmetatable({}, {
-        __index  = function()
-            return "Hello,"
-        end
-    })
+Test("delfile", {"makefolder", "writefile"}, {}, function()
+    table_insert(Grabages, CleanFolder)
+    makefolder(TestFolder)
+    writefile(TestFile, "Hello, World!")
+    delfile(TestFile)
+    assert(isfile(TestFile) == false, "File deletion failed")
+end)
 
-    local Reference = hookmetamethod(Object, "__index", function()
-        return " World!"
+--// Metatable //
+Test("hookmetamethod", {}, {}, function()
+    local Object    = newproxy(true)
+    local MetaTable = getmetatable(Object)
+
+    table_insert(Grabages, function()
+        Object, MetaTable = nil, nil
     end)
 
-    assert(Object.Hi   == " World!"  , "Failed to hook metamethod")
-    assert(Reference() == "Hello,"   , "Failed to get old metamethod reference")
-    assert(Object.Hi   ~= Reference(), "hooked metamethod should not be equal to the original")
-
-    hookmetamethod(Object, "__index", Reference)
-    assert(Object.Hi == "Hello,", "Failed to restore the original metamethod")
-end)
-
-Test("getnamecallmethod", function()
-    assert(pcall(function() game:Hi() end) or getnamecallmethod() == "Hi", "Failed to get a namecall method")
-end)
-
-Test("hookfunction", function()
-    local function Original()
-        return "Hello,"
+    --// Original meta methods
+    MetaTable.__index = function(_, Key)
+        return Key == "Banana" and 123 or "Hello "
     end
 
-    local Reference = hookfunction(Original, function()
-        return " World!"
+    MetaTable.__namecall = function(_, Arg)
+        return Arg == "Orange" and 456 or "World!"
+    end
+
+    local Originals = {} :: {
+        ["__index"   ]: (any, Key: string?) -> string | number,
+        ["__namecall"]: (any, Arg: string?) -> string | number
+    }
+
+    --// Hook and store references from the original meta method
+    Originals.__index    = hookmetamethod(Object, "__index"   , function(_, Key)
+        return Key == "Banana" and "Hello " or 123
     end)
 
-    assert(Original()  == " World!", "Failed to hook function")
-    assert(Reference() == "Hello," , "Failed to get old function reference")
-    assert(Original    ~= Reference, "hooked function should not be equal to the original")
-
-    hookfunction(Original, Reference)
-    assert(Original() == "Hello,", "Failed to restore the original function") 
-end)
-
-Test("getcallingscript", function()
-    assert(getcallingscript() == nil, "Calling script test should return nil cause this script isn't a instance")
-end)
-
-Test("checkcaller", function()
-    assert(checkcaller() == true, "Check caller test should return true cause we are in the main thread")
-end)
-
---// Instances //
-Test("fireproximityprompt", function()
-    assert(type(fireproximityprompt) == "function", "attempt to call a nil value")
-    local Prompt = Instance_new("ProximityPrompt")
-
-    Prompt.Triggered:Once(function()
-        Prompt = Prompt:Destroy()
+    Originals.__namecall = hookmetamethod(Object, "__namecall", function(_, Arg)
+        return Arg == "Orange" and "World!" or 456
     end)
 
-    assert(pcall(fireproximityprompt, Prompt) and task_wait(0.1) and Prompt == nil, "Failed to fire a ProximityPrompt")
+    --// Test hooked meta methods
+    assert(Object.Banana           == "Hello " and Object.Orange           == 123, "Failed to hook (__index)")
+    assert(Object:OhTest("Orange") == "World!" and Object:OhTest("Banana") == 456, "Failed to hook (__namecall)")
+
+    --// Test original references
+    assert(Originals.__index   (nil, "Banana") == 123 and Originals.__index   (nil, "Orange") == "Hello ", "Failed to get original reference (__index)")
+    assert(Originals.__namecall(nil, "Orange") == 456 and Originals.__namecall(nil, "Banana") == "World!", "Failed to get original reference (__namecall)")
+
+    --// Hook back original meta methods and test again
+    hookmetamethod(Object, "__index"   , Originals.__index)
+    hookmetamethod(Object, "__namecall", Originals.__namecall)
+
+    assert(Object.Banana           == 123 and Object.Orange           == "Hello ", "Failed to restore original reference (__index)")
+    assert(Object:OhTest("Orange") == 456 and Object:OhTest("Banana") == "World!", "Failed to restore original reference (__namecall)")
 end)
 
-Test("firetouchinterest", function()
-    shared.FireTouch = firetouchinterest or firetouchtransmitter
-    assert(type(shared.FireTouch) == "function", "attempt to call a nil value")
-
-    local Part1 = Instance_new("Part")
-    local Part2 = Instance_new("Part")
-
-    Part2.Touched:Once(function()
-        Part1 = Part1:Destroy()
-        Part2 = Part2:Destroy()
+Test("getnamecallmethod", {}, {}, function()
+    pcall(function()
+        game:HelloWorld() 
     end)
 
-    assert(pcall(shared.FireTouch, Part1, Part2, 0) and task_wait(0.1) and not (Part1 and Part2), "Failed to fire the 'TouchInterest'")
+    local Method = tostring(getnamecallmethod())
+
+    assert(Method == "HelloWorld", `Failed to get __namecall method (expected 'HelloWorld', got '{Method}')`)
 end)
 
-Test("getconnections", function()
-    shared.GetConnections = getconnections or get_signal_cons
-    assert(type(shared.GetConnections) == "function", "attempt to call a nil value")
+--// Closures //
+Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: ((Function, Function) -> Function))
+    local Test = ({
+        function(Arg)
+            return Arg == "Hello " and "World!" or 456
+        end
+    })[1]
 
-    local Types = {
+    --// Hook function and store reference to the original function
+    local Original = RealFunction(Test, function(Arg)
+        return Arg == "Hello " and 456 or "World!"
+    end)
+
+    assert(Test    ("Hello ") == 456      and Test    (123) == "World!", "Failed to hook function")
+    assert(Original("Hello ") == "World!" and Original(123) == 456     , "Failed to get original reference")
+
+    --// Hook back the original function and test again
+    RealFunction(Test, Original)
+
+    assert(Test("Hello ") == "World!" and Test(123) == 456, "Failed to restore original reference")
+end)
+
+Test("checkcaller", {}, {}, function()
+    local IsCaller = checkcaller()
+    assert(IsCaller == true, `Failed to check caller (expected true, got {tostring(IsCaller)}`)
+end)
+
+Test("getcallingscript", {}, {}, function()
+    local Calling = getcallingscript()
+    assert(Calling == nil, `Failed to get calling script (expected nil, got {typeof(Calling) == "Instance" and Calling:GetFullName() or tostring(Calling)})`)
+end)
+
+--// Cache //
+Test("cloneref", {}, {"clonereference"}, function()
+    local Part = Instance.new("Part")
+    table_insert(Grabages, function()
+        Part:Destroy()
+    end)
+
+    local Cloned = cloneref(Part) :: Part
+
+    assert(Cloned ~= Part, "Failed to clone reference (clone is same as original)")
+
+    Cloned.Name = "ClonedPart"
+    assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
+end)
+
+--// Instance //
+Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: (RBXScriptConnection) -> Table)
+    local Returns = {
         Enabled = "boolean",
         ForeignState = "boolean",
         LuaConnection = "boolean",
@@ -175,314 +304,194 @@ Test("getconnections", function()
         Enable = "function"
     }
 
-    local Signal = Instance_new("BindableEvent")
-    Signal.Event:Once(function() end)
+    --// Create a RBXScriptConnection and get its connections
+    game.ChildAdded:Once(function() end)
+    local Connection = RealFunction(game.ChildAdded)[1]
 
-    local Connection = shared.GetConnections(Signal.Event)[1]
-    for Key, Type in Types do
-        assert(Connection[Key] ~= nil, `Did not return a table with a '{Key}' field`)
-        assert(type(Connection[Key]) == Type, `'{Key}' field is not a {Type}`)
+    for Key, Type in Returns do
+        assert(Connection[Key] ~= nil, `Failed to get connection property {Key}`)
+        assert(type(Connection[Key]) == Type, `Failed to get connection property {Key} (expected '{Type}', got '{type(Connection[Key])}')`)
     end
 end)
 
-Test("require", function()
-    local require: (Instance) -> any
-        = getgenv().require
+Test("fireproximityprompt", {}, {}, function()
+    local Prompt = Instance.new("ProximityPrompt", shared.Workspace) :: any & Instance
 
-    assert(type(require) == "function", "attempt to call a nil value")
+    local function DestroyPrompt()
+        Prompt = Prompt:Destroy()
+    end
 
-    local ModuleScript
+    table_insert(Grabages, DestroyPrompt)
+    Prompt.Triggered:Once(DestroyPrompt)
+
+    fireproximityprompt(Prompt)
+
+    task.wait(0.1)
+    assert(Prompt == nil, "Failed to fire proximity prompt")
+end, function()
+    local      IsA,            Once, shared
+        = game.IsA, game.Close.Once, shared
+
+    local InputHoldBegin, InputHoldEnd;do
+        local Prompt = Instance.new("ProximityPrompt")
+
+        InputHoldBegin = Prompt.InputHoldBegin
+        InputHoldEnd   = Prompt.InputHoldEnd
+
+        Prompt:Destroy()
+    end
+
+    local Firing = {}
+    local Inf    = (1 / 0)
+
+    function Global.fireproximityprompt(Prompt: ProximityPrompt, Distance: number): boolean
+        local Success, Result = xpcall(function()
+            if Firing[Prompt] then return false end
+
+            assert((Prompt :: any) ~= nil, "missing argument #1 to 'fireproximityprompt' (userdata expected)")
+            assert(type(Prompt) == "userdata", `invalid argument #1 to 'fireproximityprompt' (userdata expected, got {type(Prompt)})`)
+            assert(IsA(Prompt, "ProximityPrompt"), `invalid argument #1 to 'fireproximityprompt' (expected ProximityPrompt, got {Prompt.ClassName})`)
+
+            Firing[Prompt] = true
+
+            if type(Distance) ~= "number" or not shared.Speaker.Character or Distance ~= Distance then
+                Distance = Inf
+            end
+
+            local PreDuration = Prompt.HoldDuration
+            local PreDistance = Prompt.MaxActivationDistance
+            local PreNoclip   = Prompt.RequiresLineOfSight
+
+            Prompt.HoldDuration = 0
+            Prompt.MaxActivationDistance = Distance
+            Prompt.RequiresLineOfSight   = false
+
+            Once(Prompt.Triggered, function()
+                InputHoldEnd(Prompt)
+
+                Prompt.HoldDuration          = PreDuration
+                Prompt.MaxActivationDistance = PreDistance
+                Prompt.RequiresLineOfSight   = PreNoclip
+
+                Firing[Prompt] = nil
+            end)
+
+            InputHoldBegin(Prompt)
+            return true
+        end, function(Message)
+            Firing[Prompt] = nil
+            error(Message, 2)
+        end)
+
+        return if Success then Result else false
+    end
+end)
+
+Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: (Part1: BasePart, Part2: BasePart, State: number) -> nil)
+    --/ nope cause firetouchinterest only works on server-side BasePart
+end, nil, true, "Hard to test cause it only works on server-side BasePart")
+
+Test("gethui", {}, {}, function()
+    local HiddenUi = gethui()
+
+    assert(typeof(HiddenUi) == "Instance", `Failed to get hidden UI (expected type 'Instance', got type '{typeof(HiddenUi)}')`)
+    assert(HiddenUi:IsA("CoreGui"), `Failed to get hidden UI (expected class 'CoreGui', got class '{HiddenUi.ClassName}')`)
+    assert(HiddenUi ~= game:GetService("CoreGui"), "Failed to get hidden UI (useless)")
+end, function()
+    function Global.gethui(): CoreGui
+        return shared.CoreGui
+    end
+end)
+
+--// Environment //
+Test("require", {}, {}, function()
+    local      IsA,     require
+        = game.IsA, wax.require
 
     for _, Object in game:GetDescendants() do
-        --// I did this because it was really quick on test
         if not IsA(Object, "ModuleScript") then continue end
         if require(Object) == nil then continue end
 
-        ModuleScript = Object
-        break
+        return
     end
 
-    assert(ModuleScript, "Failed to find a ModuleScript")
-end)
-
-Test("gethui", function()
-    assert(IsA(gethui(), "CoreGui"), "Failed to get CoreGui")
-end)
-
-Test("protectgui", function()
-    shared.ProtectGui = protectgui or syn and syn.protect_gui
-    assert(type(shared.ProtectGui) == "function", "attempt to call a nil value")
-
-    local Gui = Instance_new("ScreenGui")
-    shared.ProtectGui(Gui)
-
-    Gui.Parent = shared.Workspace
-    for _, Object in shared.Workspace:GetChildren() do
-        assert(Object == Gui, "Failed to protect GUI")
-    end
-
-    Gui:Destroy()
+    assert(false, "Failed to find an available module script (or require is broken)")
 end)
 
 --// Miscellaneous //
-Test("queue_on_teleport", function()
-    shared.QueueTeleport = queue_on_teleport or queueonteleport or syn and syn.queue_on_teleport or fluxus and fluxus.queue_on_teleport
-    assert(type(shared.QueueTeleport) == "function", "Seems like queue_on_teleport doesn't exist")
+Test("queue_on_teleport", {}, {"queueonteleport", "table: syn key: queue_on_teleport", "table: fluxus key: queue_on_teleport"}, function(RealFunction: (string) -> nil)
+    xpcall(RealFunction, function(Message)
+        return assert(false, `Failed to queue on teleport due to {Message}`)
+    end, "return 1")
+    --/ There's only this much I can do
+end, nil, true, "Only test whether the call is successful")
+
+Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "table: syn key: write_clipboard", "table: Clipboard key: set"}, function(RealFunction: (string) -> nil)
+    --/ nope cause it involves managing the user's clipboard (it may be impolite and cannot verify if it works)
+end, nil, true, "This test cannot be tested, only checking the existence")
+
+Test("Drawing", {}, {}, function()
+    local typeof
+        = typeof
+
+    local Properties = {
+        Color = "Color3",
+        Filled = "boolean",
+        NumSides = "number",
+        -- Opacity = "number",
+        Position = "Vector2",
+        Radius = "number",
+        Thickness = "number",
+        Transparency = "number",
+        Visible = "boolean",
+        ZIndex = "number",
+        Destroy = "function",
+        -- MoveToBack = "function",
+        -- MoveToFront = "function",
+        Remove = "function"
+    }
+
+    local Circle: any = Drawing.new("Circle")
+    table_insert(Grabages, function()
+        Circle:Remove()
+    end)
+
+    for Property, Type in Properties do
+        assert(typeof(Circle[Property]) ~= "string", `Failed to get property '{Property}' (got unexpected type string)`)
+        assert(typeof(Circle[Property]) == Type, `Failed to get property '{Property}' (expected type '{Type}', got type '{typeof(Circle[Property])}')`)
+    end
+
+    xpcall(Circle.Remove, function()
+        assert(false, "Failed to test")
+    end, Circle)
 end)
-
-Test("toclipboard", function()
-    shared.ToClipboard = (
-        toclipboard or setclipboard or write_clipboard or setrbxclipboard or
-        syn and syn.write_clipboard or Clipboard and Clipboard.set
-    )
-    assert(type(shared.ToClipboard) == "function", "Seems like toclipboard doesn't exist")
-end)
-
-Test("Drawing", function()
-    local Draw = Drawing.new("Circle")
-    Draw.Visible = false
-
-    assert(pcall(Draw.Remove, Draw), "Drawing API is incomplete")
-end)
-
-Test("randomstring", function()
-    local String = randomstring(99)
-    assert(type(String) == "string" and #String == 99, "Failed to generate a random string")
-end)
-
---// Fixes //
-local Global = getgenv()
-
-if not ExecutorSupport.fireproximityprompt then
-    local Inf = (1 / 0)
-
-    function Global.fireproximityprompt(Prompt: ProximityPrompt, Distance: number | nil)
-        local PreDuration = Prompt.HoldDuration
-        local PreDistance = Prompt.MaxActivationDistance
-        local PreNoclip   = Prompt.RequiresLineOfSight
-
-        Prompt.HoldDuration = 0
-        Prompt.MaxActivationDistance = Distance or Inf
-        Prompt.RequiresLineOfSight   = false
-
-        Prompt.Triggered:Once(function()
-            Prompt:InputHoldEnd()
-
-            Prompt.HoldDuration          = PreDuration
-            Prompt.MaxActivationDistance = PreDistance
-            Prompt.RequiresLineOfSight   = PreNoclip
-        end)
-
-        Prompt:InputHoldBegin()
-    end
-end
-
-if not ExecutorSupport.firetouchinterest then
-    local PreTouch1 = {}
-    local PreTouch2 = {}
-
-    local PreCollided1 = {}
-    local PreCollided2 = {}
-
-    local PreTransparency1 = {}
-    local PreTransparency2 = {}
-
-    local PrePositions = {}
-
-    local function Touch1(Part1: BasePart, Part2: BasePart)
-        PreTouch1[Part1] = Part1.CanTouch
-        PreTouch2[Part2] = Part2.CanTouch
-
-        PreCollided1[Part1] = Part1.CanCollide
-        PreCollided2[Part2] = Part2.CanCollide
-
-        PreTransparency1[Part1] = Part1.Transparency
-        PreTransparency2[Part2] = Part2.Transparency
-
-        PrePositions[Part2] = Part2.Position
-
-        Part1.CanTouch = true
-        Part2.CanTouch = true
-
-        Part1.CanCollide = false
-        Part2.CanCollide = false
-
-        Part1.Transparency = 1
-        Part2.Transparency = 1
-
-        Part2.Position = Part1.Position
-    end
-
-    local function Touch0(Part1: BasePart, Part2: BasePart)
-        Part2.Touched:Once(function()
-            Part1.CanTouch = PreTouch1[Part1]
-            Part2.CanTouch = PreTouch2[Part2]
-
-            Part1.CanCollide = PreCollided1[Part1]
-            Part2.CanCollide = PreCollided2[Part2]
-
-            Part1.Transparency = PreTransparency1[Part1]
-            Part2.Transparency = PreTransparency2[Part2]
-
-            Part2.Position = PrePositions[Part2]
-
-            PreTouch1[Part1] = nil
-            PreTouch2[Part2] = nil
-
-            PreCollided1[Part1] = nil
-            PreCollided2[Part2] = nil
-
-            PreTransparency1[Part1] = nil
-            PreTransparency2[Part2] = nil
-
-            PrePositions[Part2] = nil
-        end)
-
-        Touch1(Part1, Part2)
-    end
-
-    function Global.firetouchinterest(Part1: BasePart, Part2: BasePart, Touching: number)
-        if     Touching == 1 then
-            Touch1(Part1, Part2)
-        elseif Touching == 0 then
-            Touch0(Part1, Part2)
-        end
-    end
-
-    shared.FireTouch = Global.firetouchinterest
-end
-
-if not ExecutorSupport.randomstring then
-    local stringchar
-        = string.char
-
-    local Random      = Random.new()
-    local NextInteger = Random.NextInteger
-
-    function Global.randomstring(Length: number | nil): string
-        local String = ""
-
-        for _ = 1, Length or 16 do
-            String ..= stringchar(NextInteger(Random, 33, 126))
-        end
-
-        return String
-    end
-end
-
-do
-    local Color3_fromHSV, tick
-        = Color3.fromHSV, tick
-
-    function Global.getrainbowcolor(RainbowSpeed: number | nil): Color3
-        return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
-    end
-end
-
---[[ CoreGui Detection Bypass:
-
-```luau
-while true do
-    local CoreGui = game:GetService("CoreGui") --/ Get CoreGui strong reference
-    local Dummy   = {} :: any
-
-    local MetaTable = setmetatable({}, {
-        --// Set as weak table so Lua garbage collection can collect it without any strong references
-        __mode = "kv"
-    })
-
-    --// Add these two variables to the weak table as weak references in the weak table
-    MetaTable[1] = CoreGui
-    MetaTable[2] = Dummy
-
-    --// Clean up the two strong references so Lua can collect CoreGui on the next garbage collection
-    CoreGui = nil
-    Dummy   = nil
-
-    while MetaTable[2] do
-        --// Waiting for Lua garbage collection
-        task.wait()
-    end
-
-    if MetaTable[1] then
-        --// CoreGui reference exists, and an object uses CoreGui (most likely an exploit)
-        game:GetService("Players").LocalPlayer:Kick()
-    end
-end
-```
-Creator can use the above code to detect CoreGui exploits.
-
-So let's use a hook to make GetService("CoreGui") and game.CoreGui return nil or error every time.
-
---]]
-
-type Object = Instance | DataModel
-
-if ExecutorSupport.gethui then
-    --// gethui can bypass this detection
-    shared.CoreGui = gethui()
-elseif ExecutorSupport.checkcaller then
-    local game, checkcaller, error
-        = game, checkcaller, error
-
-    local OldIndex, OldNameCall, OldFunction
-
-    local ErrorMessage = "The current thread cannot access 'CoreGui' (lacking capability Plugin)"
-
-    if ExecutorSupport.hookmetamethod then
-        OldIndex = hookmetamethod(game, "__index", function(self: Object, Key: string): (...any)
-            if self == game and Key == "CoreGui" and not checkcaller() then
-                return error(ErrorMessage, 2)
-            end
-
-            return OldIndex(self, Key)
-        end)
-
-        if ExecutorSupport.getnamecallmethod then
-            local getnamecallmethod
-                = getnamecallmethod
-
-            OldNameCall = hookmetamethod(game, "__namecall", function(self: Object, ...: any): (...any)
-                if self == game and getnamecallmethod() == "GetService" and ... == "CoreGui" and not checkcaller() then
-                    return if pcall(OldNameCall, self, ...) then nil else error(ErrorMessage, 2)
-                end
-
-                return OldNameCall(self, ...)
-            end)
-        end
-    end
-
-    if ExecutorSupport.hookfunction then
-        OldFunction = hookfunction(game.GetService, function(self: Object, ServiceName: string): (...any)
-            if not checkcaller() and ServiceName == "CoreGui" then
-                return if pcall(OldFunction, self, ServiceName) then nil else error(ErrorMessage, 2)
-            end
-
-            return OldFunction(self, ServiceName)
-        end)
-    end
-
-    require("Services"):GetServices({"CoreGui"})
-end
 
 --// Summary //
-local FileSystem = {
-    "makefolder",
-    "isfolder",
-    "delfolder",
-    "writefile",
-    "isfile",
-    "readfile",
-    "appendfile",
-    "delfile"
-}
+do
+    local FileSystem = {
+        "makefolder",
+        "isfolder",
+        "delfolder",
+        "writefile",
+        "isfile",
+        "readfile",
+        "delfile"
+    }
 
-local FileSystemSupport = 0
+    local FileSystemSupport = 0
 
-for _, Function in FileSystem do
-    FileSystemSupport += ExecutorSupport[Function] and 1 or 0
+    for _, Function in FileSystem do
+        FileSystemSupport += ExecutorSupport[Function] and 1 or 0
+    end
+
+    ExecutorSupport.SupportFileSystem = FileSystemSupport == #FileSystem
 end
 
-ExecutorSupport.SupportFileSystem = FileSystemSupport == #FileSystem
+table_insert(OutputList, "----------------")
+table_insert(OutputList, `> 🛠️ Total working: {ExecutorSupport.TotalWorking}/{ExecutorSupport.TotalTestes}\n`)
+
+for _, Output in OutputList do
+    print(Output)
+end
 
 return ExecutorSupport
