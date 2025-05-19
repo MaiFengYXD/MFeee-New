@@ -10,9 +10,13 @@ if Language ~= "en" then
     local Elasped = 0
 
     local Thread = coroutine.create(function()
+        print(`[MFeee~ New] Fetching translations for {Language}...`)
+
         Success, Result = pcall(function()
             local UrlContent = game:HttpGet(`https://raw.githubusercontent.com/MaiFengYXD/Translations/refs/heads/main/Translations/{Language}.json`)
-            assert(UrlContent:find("{"), "Translations raw page error or HttpGet problem, please report it!")
+            if not (UrlContent:find("{") and UrlContent:find("}")) then
+                error("Translations raw page error or HttpGet problem, please report it!", (0 / 0))
+            end
 
             return shared.HttpService:JSONDecode(UrlContent)
         end)
@@ -46,12 +50,15 @@ Translations.Reverse = {};do
     end
 end
 
+local Translation = Translations[Language]
+local Reverse     = Translations.Reverse
+
 function Translations:GetTranslation(Key: string): string
-    return self[Language] and self[Language][Key] or Key
+    return Translation and Translation[Key] or Key
 end
 
 function Translations:FromTranslation(Value: string): string?
-    return self.Reverse[Value]
+    return not Translation and Value or Reverse[Value]
 end
 
 return Translations
