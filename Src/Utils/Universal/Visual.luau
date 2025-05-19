@@ -1,107 +1,83 @@
+local randomstring
+    = randomstring
+
+local      GetPropertyChangedSignal
+    = game.GetPropertyChangedSignal
+
+local Connect;do
+    local Signal = game.Close
+
+    Connect = Signal.Connect
+end
+
 local Universal = {}
 
 local EasingLibrary = wax.shared.EasingLibrary
+local RunningTween  = EasingLibrary.RunningTween
+local Ease = EasingLibrary.Ease
 
-Universal.FOV = {
-    Enabled = false,
+local _Connect = shared.Connect
+local GiveSignal = _Connect.GiveSignal
+local DisconnectSignal = _Connect.DisconnectSignal
 
-    DefaultFOV = shared.Camera.FieldOfView,
-    ModedFOV = shared.Camera.FieldOfView,
+type Template<T> = {
+    Enabled: boolean,
+    Stopped: boolean,
 
-    Start = function(Enabled: boolean)
-        local self = Universal.FOV
+    Default: (nil & T)?,
+    Moded:   (nil & T)?,
+}
+
+local function GenerateFor<T>(Object: Instance, Property: string, Default: (nil & T)?, Moded: (nil & T)?): Template<T>
+    local EaseIndex     = randomstring()
+    local ChangedSignal = `{Property}ChangedSignal`
+
+    local Generated = {
+        Enabled = false,
+        Stopped = false,
+
+        Default = Default or (Object :: any)[Property],
+        Moded   = Moded   or (Object :: any)[Property]
+    }
+
+    function Generated.Start(Enabled: boolean)
+        local self   = Generated
         self.Enabled = Enabled
 
         if Enabled then
-            EasingLibrary:Ease(shared.Camera, "FieldOfView", self.ModedFOV, "FOV")
+            Ease(EasingLibrary, Object, Property, self.Moded, EaseIndex)
 
-            shared.Connect:GiveSignal("FOV", shared.Camera:GetPropertyChangedSignal("FieldOfView"):Connect(function()
-                if not EasingLibrary.RunningTween.FOV then
-                    shared.Camera.FieldOfView = self.ModedFOV
+            GiveSignal(_Connect, ChangedSignal, Connect(GetPropertyChangedSignal(Object, Property), function()
+                if self.Stopped then return end
+
+                local CurrentValue = (Object :: any)[Property]
+                if CurrentValue ~= self.Moded then
+                    self.Default = CurrentValue
+                end
+
+                if not RunningTween[EaseIndex] then
+                    (Object :: any)[Property] = self.Moded
                 end
             end))
         else
-            shared.Connect:DisconnectSignal("FOV")
-            EasingLibrary:Ease(shared.Camera, "FieldOfView", self.DefaultFOV, "FOV")
-        end
-    end,
-
-    SetFOV = function(FOV: number)
-        local self = Universal.FOV
-        self.ModedFOV = FOV
-
-        if self.Enabled then
-            EasingLibrary:Ease(shared.Camera, "FieldOfView", FOV, "FOV")
+            DisconnectSignal(ChangedSignal)
+            Ease(EasingLibrary, Object, Property, self.Default, EaseIndex)
         end
     end
-}
 
-Universal.MaxZoom = {
-    Enabled = false,
+    function Generated.SetValue(Value: T)
+        local self = Generated
+        self.Moded = (Value :: any)
 
-    DefaultZoom = shared.Speaker.CameraMaxZoomDistance,
-    ModedZoom = shared.Speaker.CameraMaxZoomDistance,
-
-    Start = function(Enabled: boolean)
-        local self = Universal.MaxZoom
-        self.Enabled = Enabled
-
-        if Enabled then
-            EasingLibrary:Ease(shared.Speaker, "CameraMaxZoomDistance", self.ModedZoom, "MaxZoom")
-
-            shared.Connect:GiveSignal("MaxZoom", shared.Speaker:GetPropertyChangedSignal("CameraMaxZoomDistance"):Connect(function()
-                if not EasingLibrary.RunningTween.MaxZoom then
-                    shared.Speaker.CameraMaxZoomDistance = self.ModedZoom
-                end
-            end))
-        else
-            shared.Connect:DisconnectSignal("MaxZoom")
-            EasingLibrary:Ease(shared.Speaker, "CameraMaxZoomDistance", self.DefaultZoom, "MaxZoom")
-        end
-    end,
-
-    SetZoom = function(Zoom: number)
-        local self = Universal.MaxZoom
-        self.ModedZoom = Zoom
-
-        if self.Enabled then
-            EasingLibrary:Ease(shared.Speaker, "CameraMaxZoomDistance", Zoom, "MaxZoom")
-        end
+        if not self.Enabled then return end
+        Ease(EasingLibrary, Object, Property, Value, EaseIndex)
     end
-}
 
-Universal.MinZoom = {
-    Enabled = false,
+    return Generated
+end
 
-    DefaultZoom = shared.Speaker.CameraMinZoomDistance,
-    ModedZoom = shared.Speaker.CameraMinZoomDistance,
-
-    Start = function(Enabled: boolean)
-        local self = Universal.MinZoom
-        self.Enabled = Enabled
-
-        if Enabled then
-            EasingLibrary:Ease(shared.Speaker, "CameraMinZoomDistance", self.ModedZoom, "MinZoom")
-
-            shared.Connect:GiveSignal("MinZoom", shared.Speaker:GetPropertyChangedSignal("CameraMinZoomDistance"):Connect(function()
-                if not EasingLibrary.RunningTween.MinZoom then
-                    shared.Speaker.CameraMinZoomDistance = self.ModedZoom
-                end
-            end))
-        else
-            shared.Connect:DisconnectSignal("MinZoom")
-            EasingLibrary:Ease(shared.Speaker, "CameraMinZoomDistance", self.DefaultZoom, "MinZoom")
-        end
-    end,
-
-    SetZoom = function(Zoom: number)
-        local self = Universal.MinZoom
-        self.ModedZoom = Zoom
-
-        if self.Enabled then
-            EasingLibrary:Ease(shared.Speaker, "CameraMinZoomDistance", Zoom, "MinZoom")
-        end
-    end
-}
+Universal.FOV     = GenerateFor(shared.Camera , "FieldOfView")
+Universal.MaxZoom = GenerateFor(shared.Speaker, "CameraMaxZoomDistance")
+Universal.MinZoom = GenerateFor(shared.Speaker, "CameraMinZoomDistance")
 
 return Universal
