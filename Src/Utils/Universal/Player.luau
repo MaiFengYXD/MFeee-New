@@ -1,181 +1,245 @@
+local pcall, table_clear, Instance_new, task_wait, PhysicalProperties_new, Vector3_new, CFrame_lookAt, RaycastParams_new
+    = pcall, table.clear, Instance.new, task.wait, PhysicalProperties.new, Vector3.new, CFrame.lookAt, RaycastParams.new
+
+local      IsA,      Destroy,      GetPropertyChangedSignal,      GetDescendants,                CharacterAdded
+    = game.IsA, game.Destroy, game.GetPropertyChangedSignal, game.GetDescendants, shared.Speaker.CharacterAdded
+
+local      FindFirstChild,      FindFirstChildOfClass,      WaitForChild
+    = game.FindFirstChild, game.FindFirstChildOfClass, game.WaitForChild
+
+local Custom, Track, Scriptable, Vector, World, Wait, Connect, Once, Dot, VectorLerp, CFrameLerp, TranslateBy;do
+    local Model      = Instance_new("Model")
+    local Signal     = game.Close :: RBXScriptSignal
+    local Vector3    = Vector3_new()
+    local CFrame     = CFrame.new()
+    local CameraType = Enum.CameraType
+
+    TranslateBy = Model.TranslateBy
+
+    Custom     = CameraType.Custom
+    Track      = CameraType.Track
+    Scriptable = CameraType.Scriptable
+
+    Vector = Enum.VelocityConstraintMode.Vector
+    World  = Enum.ActuatorRelativeTo.World
+
+    Wait    = Signal.Wait
+    Connect = Signal.Connect
+    Once    = Signal.Once
+
+    Dot = Vector3.Dot
+
+    VectorLerp = Vector3.Lerp
+    CFrameLerp = CFrame.Lerp
+
+    Destroy(Model)
+end
+
 local Universal = {}
 
-local TempCharacter = shared.Speaker.Character
-local TempHumanoid  = TempCharacter and TempCharacter:FindFirstChildOfClass("Humanoid")
+local Inf = (1 / 0)
+local Nan = (0 / 0)
 
-local Inf     = (1 / 0)
 local Toggles = wax.shared.UiManager.Library.Toggles
 
 local ControlModule = require("../Universal/ControlModule")
+local GetMoveVector = ControlModule.GetMoveVector
 
-Universal.WalkSpeed = {
-    Enabled = false,
+local _Connect = shared.Connect
+local GiveSignal = _Connect.GiveSignal
+local DisconnectSignal = _Connect.DisconnectSignal
 
-    DefaultSpeed = TempHumanoid and TempHumanoid.WalkSpeed or 16,
-    ModedSpeed   = TempHumanoid and TempHumanoid.WalkSpeed or 16,
+local Workspace = shared.Workspace
+local Raycast   = Workspace.Raycast
 
-    Override = function(Enabled: boolean)
-        local self   = Universal.WalkSpeed
+local function GetCharacter()
+    return shared.Speaker.Character or Wait(CharacterAdded)
+end
+
+local function GetHumanoid(Character: Model)
+    return Character and FindFirstChildOfClass(Character, "Humanoid")
+end
+
+local function WaitHumanoid(Character: Model)
+    return Character and WaitForChild(Character, "Humanoid")
+end
+
+local function WaitRootPart(Character: Model)
+    return Character and WaitForChild(Character, "HumanoidRootPart")
+end
+
+local TempCharacter = shared.Speaker.Character
+local TempHumanoid  = GetHumanoid(TempCharacter)
+
+type Template<T> = {
+    Enabled: boolean,
+    Stopped: boolean,
+
+    Default: (nil & T)?,
+    Moded:   (nil & T)?,
+}
+
+local function GenerateOverride<T>(
+    IsHumanoid: boolean,  Property: string,
+    Default: (nil & T)?,  Moded: (nil & T)?, Object: any
+)
+    local ChangedSignal  = `{Property}ChangedSignal`
+    local _CharacterAdded = if IsHumanoid then `{Property}CharacterAdded` else nil
+
+    local Generated = {
+        Enabled = false,
+        Stopped = false,
+
+        Default = Default,
+        Moded   = Moded or Default
+    }
+
+    function Generated.Override(Enabled: boolean)
+        local self   = Generated
         self.Enabled = Enabled
 
         if Enabled then
-            local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
-            local Humanoid  = Character:WaitForChild("Humanoid")
-            
-            self.DefaultSpeed  = Humanoid.WalkSpeed
-            Humanoid.WalkSpeed = self.ModedSpeed
+            if IsHumanoid then
+                local Humanoid = WaitHumanoid(GetCharacter())
 
-            shared.Connect:GiveSignal("WalkSpeedChangeSignal", Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-                Humanoid.WalkSpeed = self.ModedSpeed
-            end))
+                local function ConnectChanged()
+                    GiveSignal(_Connect, ChangedSignal, Connect(GetPropertyChangedSignal(Humanoid, Property), function()
+                        if self.Stopped then return end
 
-            shared.Connect:GiveSignal("WalkSpeedCharacterAdded", shared.Speaker.CharacterAdded:Connect(function(NewCharacter)
-                Humanoid = NewCharacter:WaitForChild("Humanoid")
+                        local CurrentValue = Humanoid[Property]
+                        if CurrentValue ~= self.Moded then
+                            self.Default = CurrentValue
+                        end
 
-                self.DefaultSpeed  = Humanoid.WalkSpeed
-                Humanoid.WalkSpeed = self.ModedSpeed
+                        Humanoid[Property] = self.Moded
+                    end))
+                end
 
-                shared.Connect:GiveSignal("WalkSpeedChangeSignal", Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-                    Humanoid.WalkSpeed = self.ModedSpeed
+                ConnectChanged()
+
+                GiveSignal(_Connect, _CharacterAdded, Connect(CharacterAdded, function(NewCharacter)
+                    Humanoid = WaitHumanoid(NewCharacter)
+
+                    ConnectChanged()
+
+                    self.Default   = Humanoid[Property]
+                    Humanoid[Property] = self.Moded
                 end))
-            end))
-        else
-            shared.Connect:DisconnectSignal("WalkSpeedChangeSignal")
-            shared.Connect:DisconnectSignal("WalkSpeedCharacterAdded")
 
-            pcall(function()
-                shared.Speaker.Character.Humanoid.WalkSpeed = self.DefaultSpeed
-            end)
-        end
-    end,
+                self.Default   = Humanoid[Property]
+                Humanoid[Property] = self.Moded
+            else
+                GiveSignal(_Connect, ChangedSignal, Connect(GetPropertyChangedSignal(Object, Property), function()
+                    if self.Stopped then return end
 
-    SetSpeed = function(Speed: number)
-        local self      = Universal.WalkSpeed
-        self.ModedSpeed = Speed
+                    local CurrentValue = Object[Property]
+                    if CurrentValue ~= self.Moded then
+                        self.Default = self.Moded
+                    end
 
-        if self.Enabled then
-            pcall(function()
-                shared.Speaker.Character.Humanoid.WalkSpeed = Speed
-            end)
-        end
-    end
-}
-
-Universal.JumpHeight = {
-    Enabled = false,
-
-    DefaultHeight = TempHumanoid and TempHumanoid.JumpHeight or 7.2,
-    ModedHeight   = TempHumanoid and TempHumanoid.JumpHeight or 7.2,
-
-    Override = function(Enabled: boolean)
-        local self   = Universal.JumpHeight
-        self.Enabled = Enabled
-
-        if Enabled then
-            local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
-            local Humanoid  = Character:WaitForChild("Humanoid")
-
-            self.DefaultHeight = Humanoid.JumpHeight
-            Humanoid.JumpHeight = self.ModedHeight
-
-            shared.Connect:GiveSignal("JumpHeightChangeSignal", Humanoid:GetPropertyChangedSignal("JumpHeight"):Connect(function()
-                Humanoid.JumpHeight = self.ModedHeight
-            end))
-
-            shared.Connect:GiveSignal("JumpHeightCharacterAdded", shared.Speaker.CharacterAdded:Connect(function(NewCharacter)
-                Humanoid = NewCharacter:WaitForChild("Humanoid")
-
-                self.DefaultHeight = Humanoid.JumpHeight
-                Humanoid.JumpHeight = self.ModedHeight
-
-                shared.Connect:GiveSignal("JumpHeightChangeSignal", Humanoid:GetPropertyChangedSignal("JumpHeight"):Connect(function()
-                    Humanoid.JumpHeight = self.ModedHeight
+                    Object[Property] = self.Moded
                 end))
-            end))
+
+                self.Default = Object[Property]
+                Object[Property] = self.Moded
+            end
         else
-            shared.Connect:DisconnectSignal("JumpHeightChangeSignal")
-            shared.Connect:DisconnectSignal("JumpHeightCharacterAdded")
+            DisconnectSignal(_Connect, ChangedSignal)
 
-            pcall(function()
-                shared.Speaker.Character.Humanoid.JumpHeight = self.DefaultHeight
-            end)
-        end
-    end,
-
-    SetHeight = function(Height: number)
-        local self       = Universal.JumpHeight
-        self.ModedHeight = Height
-
-        if self.Enabled then
-            pcall(function()
-                shared.Speaker.Character.Humanoid.JumpHeight = Height
-            end)
+            if IsHumanoid then
+                DisconnectSignal(_Connect, _CharacterAdded)
+                pcall(function()
+                    shared.Speaker.Character.Humanoid[Property] = self.Default
+                end)
+            else
+                pcall(function()
+                    Object[Property] = self.Default
+                end)
+            end
         end
     end
-}
 
-Universal.Gravity = {
-    Enabled = false,
+    function Generated.SetValue(Value: T)
+        local self = Generated
+        self.Moded = (Value :: any)
 
-    DefaultGravity = shared.Workspace.Gravity,
-    ModedGravity   = shared.Workspace.Gravity,
+        if not self.Enabled then return end
 
-    Override = function(Enabled: boolean)
-        local self   = Universal.Gravity
-        self.Enabled = Enabled
-
-        if Enabled then
-            self.DefaultGravity      = shared.Workspace.Gravity
-            shared.Workspace.Gravity = self.ModedGravity
-
-            shared.Connect:GiveSignal("GravityChangeSignal", shared.Workspace:GetPropertyChangedSignal("Gravity"):Connect(function()
-                shared.Workspace.Gravity = self.ModedGravity
-            end))
-        else
-            shared.Connect:DisconnectSignal("GravityChangeSignal")
-            shared.Workspace.Gravity = self.DefaultGravity
-        end
-    end,
-
-    SetGravity = function(Gravity: number)
-        local self        = Universal.Gravity
-        self.ModedGravity = Gravity
-
-        if self.Enabled then
-            shared.Workspace.Gravity = Gravity
-        end
+        pcall(function()
+            if IsHumanoid then
+                GetHumanoid(shared.Speaker.Character)[Property] = Value
+            elseif Object then
+                Object[Property] = Value
+            end
+        end)
     end
-}
+
+    return Generated
+end
+
+Universal.WalkSpeed  = GenerateOverride(
+    true,
+    "WalkSpeed",
+    TempHumanoid and TempHumanoid.WalkSpeed or 16
+)
+
+Universal.JumpHeight = GenerateOverride(
+    true,
+    "JumpHeight",
+    TempHumanoid and TempHumanoid.JumpHeight or 7.2
+)
+
+Universal.JumpPower  = GenerateOverride(
+    true,
+    "JumpPower",
+    TempHumanoid and TempHumanoid.JumpPower or 50
+)
+
+Universal.Gravity    = GenerateOverride(
+    false,
+    "Gravity",
+    Workspace.Gravity,
+    nil,
+    Workspace
+)
 
 Universal.NoAcceleration = {
-    Enabled = false,
-
+    Enabled        = false,
     DefaultPhysics = nil,
 
-    Start = function(Enabled: boolean)
+    Override = function(Enabled: boolean)
         local self   = Universal.NoAcceleration
         self.Enabled = Enabled
 
         if Enabled then
-            local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
-            local RootPart  = Character:WaitForChild("HumanoidRootPart")
+            local RootPart = WaitRootPart(GetCharacter())
+            local Moded
 
-            self.DefaultPhysics = RootPart.CustomPhysicalProperties or RootPart.CurrentPhysicalProperties or PhysicalProperties.new(0.7, 0.3, 0.5, 1, 1)
+            self.DefaultPhysics = RootPart.CustomPhysicalProperties or RootPart.CurrentPhysicalProperties or PhysicalProperties_new(0.7, 0.3, 0.5, 1, 1)
 
             local function Change()
-                RootPart.CustomPhysicalProperties = PhysicalProperties.new(
+                Moded = PhysicalProperties_new(
                     100,
                     self.DefaultPhysics.Friction,
                     self.DefaultPhysics.Elasticity,
                     self.DefaultPhysics.FrictionWeight,
                     self.DefaultPhysics.ElasticityWeight
                 )
+                return Moded
             end
-            Change()
 
-            shared.Connect:GiveSignal("NoAcceleration", RootPart:GetPropertyChangedSignal("CustomPhysicalProperties"):Connect(Change))
+            GiveSignal(_Connect, "NoAcceleration", Connect(GetPropertyChangedSignal(RootPart, "CustomPhysicalProperties"), function()
+                local CurrentValue = RootPart.CustomPhysicalProperties
+                if CurrentValue ~= Moded then
+                    self.DefaultPhysics = CurrentValue
+                end
+
+                RootPart.CustomPhysicalProperties = Change()
+            end))
+
+            RootPart.CustomPhysicalProperties = Change()
         else
-            shared.Connect:DisconnectSignal("NoAcceleration")
+            DisconnectSignal(_Connect, "NoAcceleration")
             pcall(function()
                 shared.Speaker.Character.HumanoidRootPart.CustomPhysicalProperties = self.DefaultPhysics
             end)
@@ -183,47 +247,51 @@ Universal.NoAcceleration = {
     end
 }
 
-Universal.AntiVoid = {
+Universal.AntiVoidFall = {
     Enabled = false,
+    Default = Workspace.FallenPartsDestroyHeight,
 
-    DefaultDestroyHeight = shared.Workspace.FallenPartsDestroyHeight,
-
-    Start = function(Enabled: boolean)
-        local self   = Universal.AntiVoid
+    Override = function(Enabled: boolean)
+        local self   = Universal.AntiVoidFall
         self.Enabled = Enabled
 
         if Enabled then
-            self.DefaultDestroyHeight = shared.Workspace.FallenPartsDestroyHeight
-            shared.Workspace.FallenPartsDestroyHeight = (0 / 0)
+            GiveSignal(_Connect, "AntiVoidFall", Connect(GetPropertyChangedSignal(Workspace, "FallenPartsDestroyHeight"), function()
+                local CurrentValue = Workspace.FallenPartsDestroyHeight
+                --// NaN check
+                if CurrentValue ~= CurrentValue then return end
 
-            shared.Connect:GiveSignal("AntiVoid", shared.Workspace:GetPropertyChangedSignal("FallenPartsDestroyHeight"):Connect(function()
-                shared.Workspace.FallenPartsDestroyHeight = (0 / 0)
+                self.Default = CurrentValue
+                Workspace.FallenPartsDestroyHeight = Nan
             end))
+
+            self.Default = Workspace.FallenPartsDestroyHeight
+            Workspace.FallenPartsDestroyHeight = Nan
         else
-            shared.Connect:DisconnectSignal("AntiVoid")
-            shared.Workspace.FallenPartsDestroyHeight = self.DefaultDestroyHeight
+            DisconnectSignal(_Connect, "AntiVoidFall")
+            Workspace.FallenPartsDestroyHeight = self.Default
         end
     end
 }
 
 Universal.SpeedBoost = {
-    Enabled = false,
-    Speed   = 0,
+    Enabled    = false,
+    BoostSpeed = 0,
 
-    Start = function(Enabled: boolean)
+    Override = function(Enabled: boolean)
         local self   = Universal.SpeedBoost
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connect:GiveSignal("SpeedBoost", shared.RunService.Heartbeat:Connect(function(DeltaTime)
+            GiveSignal(_Connect, "SpeedBoost", Connect(shared.RunService.Heartbeat, function(DeltaTime)
                 local Character = shared.Speaker.Character
-                local Humanoid  = Character and Character:FindFirstChildOfClass("Humanoid")
+                local Humanoid  = GetHumanoid(Character)
                 if not Humanoid then return end
 
-                Character:TranslateBy(Humanoid.MoveDirection * self.Speed * DeltaTime)
+                TranslateBy(Character, Humanoid.MoveDirection * self.BoostSpeed * DeltaTime)
             end))
         else
-            shared.Connect:DisconnectSignal("SpeedBoost")
+            DisconnectSignal(_Connect, "SpeedBoost")
         end
     end
 }
@@ -231,8 +299,6 @@ Universal.SpeedBoost = {
 Universal.Noclip = {
     CharacterEnabled = false,
     VehicleEnabled   = false,
-
-    CharacterIgnoredParts = {},
 
     CharacterNoclipedParts = {},
     VehicleNoclipedParts   = {},
@@ -242,59 +308,58 @@ Universal.Noclip = {
         self.CharacterEnabled = Enabled
 
         if Enabled then
-            shared.Connect:GiveSignal("NoclipPreSimulation", shared.RunService.PreSimulation:Connect(function()
-                if not shared.Speaker.Character then return end
+            return GiveSignal(_Connect, "NoclipPreSimulation", Connect(shared.RunService.PreSimulation, function()
+                local Character = shared.Speaker.Character
+                if not Character then return end
 
-                for _, Part in shared.Speaker.Character:GetDescendants() do
-                    if self.CharacterIgnoredParts[Part] then
-                        if self.CharacterNoclipedParts[Part] then
-                            Part.CanCollide = true
-                            self.CharacterNoclipedParts[Part] = nil
-                        end
-
-                        continue
-                    end
-
-                    if not (Part:IsA("BasePart") and Part.CanCollide) then continue end
+                for _, Part: BasePart in GetDescendants(Character) do
+                    if not (IsA(Part, "BasePart") and Part.CanCollide) then continue end
 
                     Part.CanCollide = false
                     self.CharacterNoclipedParts[Part] = true
                 end
             end))
         else
-            shared.Connect:DisconnectSignal("NoclipPreSimulation")
+            DisconnectSignal(_Connect, "NoclipPreSimulation")
 
-            local Character = shared.Speaker.Character
-            local RootPart  = Character and Character:FindFirstChild("HumanoidRootPart")
-
-            if not RootPart then
-                for Part in self.CharacterNoclipedParts do
-                    if not Part:IsA("BasePart") then continue end
+            local function Clip()
+                for Part: BasePart in self.CharacterNoclipedParts do
+                    if not IsA(Part, "BasePart") then continue end
                     Part.CanCollide = true
                 end
-                return
+
+                table_clear(self.CharacterNoclipedParts)
             end
 
-            --// Inside wall check
-            local LastPosition    = RootPart.Position
-            local CurrentPosition = task.wait() and not self.CharacterEnabled and RootPart.Position or LastPosition
-            local Direction       = LastPosition - CurrentPosition
+            local Character = shared.Speaker.Character
+            local RootPart  = Character and FindFirstChild(Character, "HumanoidRootPart")
+            if not RootPart then return Clip() end
 
-            if (Direction).Magnitude <= 1e-3 then return end
-
-            local RaycastParams      = RaycastParams.new()
-            RaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            local RaycastParams = RaycastParams_new()
             RaycastParams.FilterDescendantsInstances = {Character}
 
-            local Result = shared.Workspace:Raycast(LastPosition, Direction, RaycastParams)
-            if not Result then return end
+            local RootSize = (RootPart :: Part).Size / 2
 
-            if Result.Instance.CanCollide then
-                table.clear(self.CharacterNoclipedParts)
-                return
+            local Directions = {
+                Vector3_new( RootSize.X, 0, 0),
+                Vector3_new(-RootSize.X, 0, 0),
+                Vector3_new(0,  RootSize.Y, 0),
+                Vector3_new(0, -RootSize.Y, 0),
+                Vector3_new(0, 0,  RootSize.Z),
+                Vector3_new(0, 0, -RootSize.Z)
+            }
+
+            for _, Direction in Directions do
+                local RaycastResult = Raycast(Workspace, RootPart.Position, Direction, RaycastParams)
+                if not RaycastResult then continue end
+
+                local HitPart = RaycastResult.Instance
+                if HitPart and HitPart.CanCollide then
+                    return table_clear(self.CharacterNoclipedParts)
+                end
             end
 
-            table.clear(self.CharacterNoclipedParts)
+            return Clip()
         end
     end,
 
@@ -303,35 +368,34 @@ Universal.Noclip = {
         self.VehicleEnabled = Enabled
 
         if Enabled then
-            shared.Connect:GiveSignal("VehicleNoclipPreSimulation", shared.RunService.PreSimulation:Connect(function()
-                local Character = shared.Speaker.Character
-                local Humanoid  = Character and Character:FindFirstChildOfClass("Humanoid")
+            GiveSignal(_Connect, "VehicleNoclipPreSimulation", Connect(shared.RunService.PreSimulation, function()
+                local Humanoid = GetHumanoid(shared.Speaker.Character)
                 if not Humanoid then return end
 
                 local VehicleSeat = Humanoid.SeatPart
-                if not (VehicleSeat and VehicleSeat:IsA("VehicleSeat")) then return end
+                if not (VehicleSeat and IsA(VehicleSeat, "VehicleSeat")) then return end
 
                 local VehicleModel = VehicleSeat.Parent
-                while not VehicleModel:IsA("Model") do
+                while not IsA(VehicleModel, "Model") do
                     VehicleModel = VehicleModel.Parent
                 end
 
-                for _, Part in VehicleModel:GetDescendants() do
-                    if not (Part:IsA("BasePart") and Part.CanCollide) then continue end
+                for _, Part in GetDescendants(VehicleModel) do
+                    if not (IsA(Part, "BasePart") and Part.CanCollide) then continue end
 
                     Part.CanCollide = false
                     self.VehicleNoclipedParts[Part] = true
                 end
             end))
         else
-            shared.Connect:DisconnectSignal("VehicleNoclipPreSimulation")
+            DisconnectSignal(_Connect, "VehicleNoclipPreSimulation")
 
             for Part in self.VehicleNoclipedParts do
-                if not Part:IsA("BasePart") then continue end
+                if not IsA(Part, "BasePart") then continue end
                 Part.CanCollide = true
             end
 
-            table.clear(self.VehicleNoclipedParts)
+            table_clear(self.VehicleNoclipedParts)
         end
     end
 }
@@ -340,8 +404,7 @@ Universal.NoTouch = {
     --// No touch can prevent 99% of touch damage/detection.
     --// Such as obby lava blocks, trap hitboxes...
     --// But it broke some game mechanics like door opening, etc.
-    Enabled = false,
-
+    Enabled        = false,
     NoTouchedParts = {},
 
     Start = function(Enabled: boolean)
@@ -349,49 +412,50 @@ Universal.NoTouch = {
         self.Enabled = Enabled
 
         if Enabled then
-            shared.Connect:GiveSignal("NoTouchStepped", shared.RunService.PreSimulation:Connect(function()
-                if not shared.Speaker.Character then return end
+            GiveSignal(_Connect, "NoTouchPreSimulation", Connect(shared.RunService.PreSimulation, function()
+                local Character = shared.Speaker.Character
+                if not Character then return end
 
-                for _, Part in shared.Speaker.Character:GetDescendants() do
-                    if not (Part:IsA("BasePart") and Part.CanTouch) then continue end
+                for _, Part in GetDescendants(Character) do
+                    if not (IsA(Part, "BasePart") and Part.CanTouch) then continue end
+                    if self.NoTouchedParts[Part] then continue end
 
-                    if not self.NoTouchedParts[Part] then
-                        Part.CanTouch = false
-                        self.NoTouchedParts[Part] = true
-                    end
+                    Part.CanTouch = false
+                    self.NoTouchedParts[Part] = true
                 end
             end))
         else
-            shared.Connect:DisconnectSignal("NoTouchStepped")
+            DisconnectSignal(_Connect, "NoTouchPreSimulation")
 
             for Part in self.NoTouchedParts do
-                if not Part:IsA("BasePart") then continue end
+                if not IsA(Part, "BasePart") then continue end
                 Part.CanTouch = true
             end
 
-            table.clear(self.NoTouchedParts)
+            table_clear(self.NoTouchedParts)
         end
     end
 }
 
 Universal.Fly = {
-    Enabled = false,
+    Enabled = false :: boolean,
 
-    StopFlyOnDied = false,
+    StopFlyOnDied = false :: boolean,
 
-    UseGyro      = true,
-    UseUpVector  = true,
-    LookToCamera = true,
+    UseGyro      = true  :: boolean,
+    UseUpVector  = true  :: boolean,
+    LookToCamera = true  :: boolean,
+    FixCamera    = false :: boolean,
 
-    FlySpeed        = 32,
-    GyroSensitivity = 500,
+    FlySpeed        = 32  :: number,
+    GyroSensitivity = 500 :: number,
 
-    ConstraintsAcceleration   = 9.375,
-    ConstraintsMaxSpeed       = 32,
-    ConstraintsTurnSpeed      = 7.5,
-    ConstraintsResponsiveness = 100,
+    ConstraintsAcceleration   = 9.375 :: number,
+    ConstraintsMaxSpeed       = 32    :: number,
+    ConstraintsTurnSpeed      = 7.5   :: number,
+    ConstraintsResponsiveness = 100   :: number,
 
-    PreCameraType = shared.Camera.CameraType,
+    PreCameraType = shared.Camera.CameraType :: Enum.CameraType,
 
     FlyMode   = "SmartFly" :: "SmartFly" | "StandFly" | "SitFly" | "VehicleFly",
     FlyMethod = "Constraints" :: "Constraints" | "BodyMovers",
@@ -399,11 +463,11 @@ Universal.Fly = {
     UpKeyBinding   = Enum.KeyCode.E :: Enum.KeyCode | Enum.UserInputType,
     DownKeyBinding = Enum.KeyCode.Q :: Enum.KeyCode | Enum.UserInputType,
 
-    IsUp   = false,
-    IsDown = false,
+    IsUp   = false :: boolean,
+    IsDown = false :: boolean,
 
     HandleHumanoidState = function(self, Humanoid: Humanoid)
-        if self.FlyMode == "SmartFly" then
+        if     self.FlyMode == "SmartFly" then
             Humanoid.PlatformStand = not Humanoid.Sit
         elseif self.FlyMode == "StandFly" then
             Humanoid.PlatformStand = true
@@ -417,20 +481,22 @@ Universal.Fly = {
 
     EndProgress = function(self)
         pcall(function()
-            local Humanoid = shared.Speaker.Character.Humanoid
+            local Humanoid: Humanoid = shared.Speaker.Character.Humanoid
             Humanoid.PlatformStand = false
             Humanoid.Sit = Humanoid.SeatPart ~= nil
         end)
 
         pcall(function()
-            shared.Camera.CameraType = self.PreCameraType or Enum.CameraType.Custom
+            shared.Camera.CameraType = (self.PreCameraType or Custom) :: Enum.CameraType
         end)
     end,
 
     HandleCamera = function(self)
         pcall(function()
-            if self.PreCameraType ~= Enum.CameraType.Scriptable then
-                shared.Camera.CameraType = Enum.CameraType.Track
+            if not self.FixCamera and self.PreCameraType ~= Scriptable then
+                shared.Camera.CameraType = Track
+            elseif self.FixCamera then
+                shared.Camera.CameraType = self.PreCameraType
             end
         end)
     end,
@@ -440,7 +506,7 @@ Universal.Fly = {
             Toggles.Fly:SetValue(false)
         else
             self[Method].Start(self, false)
-            shared.Speaker.CharacterAdded:Once(function()
+            Once(CharacterAdded, function()
                 self[Method].Start(self, true)
             end)
         end
@@ -457,69 +523,70 @@ Universal.Fly = {
 
             if self.Constraints.Enabled and Enabled then
                 self.Constraints.Start(self, false)
-                task.wait()
+                task_wait()
             end
-            self.PreCameraType = shared.Camera.CameraType
 
             if Enabled then
-                local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
-                local Humanoid  = Character:WaitForChild("Humanoid")
+                local Character = GetCharacter()
+                local Humanoid  = WaitHumanoid(Character)
                 local RootPart  = Humanoid.RootPart
                 if not RootPart then
-                    RootPart = Character:WaitForChild("HumanoidRootPart")
+                    RootPart = WaitRootPart(Character)
                 end
 
                 if not (self.Enabled or self.BodyMovers.Enabled) then return end
 
-                self.BodyMovers.BodyVelocity          = Instance.new("BodyVelocity")
+                self.BodyMovers.BodyVelocity          = Instance_new("BodyVelocity")
                 self.BodyMovers.BodyVelocity.Name     = "EPIc_VELOCITY"
-                self.BodyMovers.BodyVelocity.MaxForce = Vector3.new(Inf, Inf, Inf)
-                self.BodyMovers.BodyVelocity.Velocity = Vector3.new()
+                self.BodyMovers.BodyVelocity.MaxForce = Vector3_new(Inf, Inf, Inf)
+                self.BodyMovers.BodyVelocity.Velocity = Vector3_new()
                 self.BodyMovers.BodyVelocity.Parent   = RootPart
 
                 if self.UseGyro then
-                    self.BodyMovers.BodyGyro           = Instance.new("BodyGyro")
+                    self.BodyMovers.BodyGyro           = Instance_new("BodyGyro")
                     self.BodyMovers.BodyGyro.Name      = "EPIc_VELOCITY"
                     self.BodyMovers.BodyGyro.P         = 9e4
-                    self.BodyMovers.BodyGyro.MaxTorque = Vector3.new(Inf, Inf, Inf)
+                    self.BodyMovers.BodyGyro.MaxTorque = Vector3_new(Inf, Inf, Inf)
                     self.BodyMovers.BodyGyro.CFrame    = shared.Camera.CFrame
                     self.BodyMovers.BodyGyro.Parent    = RootPart
                 end
 
-                shared.Connect:GiveSignal("BodyMoversFly", shared.RunService.PreSimulation:Connect(function()
+                self.PreCameraType = shared.Camera.CameraType
+
+                GiveSignal(_Connect, "BodyMoversFly", Connect(shared.RunService.PreSimulation, function()
                     if not Humanoid or Humanoid.Health <= 0 then return end
                     if not (self.Enabled or self.BodyMovers.Enabled) then return end
 
                     self:HandleHumanoidState(Humanoid)
 
-                    local MoveVector = ControlModule:GetMoveVector()
+                    local MoveVector = GetMoveVector(ControlModule)
                     local Velocity   = -((shared.Camera.CFrame.LookVector * MoveVector.Z) - (shared.Camera.CFrame.RightVector * MoveVector.X))
 
-                    local UpVector = self.UseUpVector and shared.Camera.CFrame.UpVector or Vector3.new(0, 1, 0)
+                    local UpVector = self.UseUpVector and shared.Camera.CFrame.UpVector or Vector3_new(0, 1, 0)
 
                     if self.IsUp   then Velocity += UpVector end
                     if self.IsDown then Velocity -= UpVector end
 
                     self.BodyMovers.BodyVelocity.Velocity = Velocity * self.FlySpeed
 
+                    self:HandleCamera()
+
                     if self.UseGyro then
                         self.BodyMovers.BodyGyro.D      = self.GyroSensitivity
                         self.BodyMovers.BodyGyro.CFrame = shared.Camera.CFrame
                     end
-
-                    self:HandleCamera()
                 end))
 
-                shared.Connect:GiveSignal("BodyMoversFlyDied", Humanoid.Died:Once(function()
+                GiveSignal(_Connect, "BodyMoversFlyDied", Humanoid.Died:Once(function()
                     self:OnDied("BodyMovers")
                 end))
             else
-                shared.Connect:DisconnectSignal("BodyMoversFly")
-                shared.Connect:DisconnectSignal("BodyMoversFlyDied")
+                DisconnectSignal(_Connect, "BodyMoversFly")
+                DisconnectSignal(_Connect, "BodyMoversFlyDied")
 
                 pcall(function()
-                    self.BodyMovers.BodyVelocity:Destroy()
-                    self.BodyMovers.BodyGyro:Destroy()
+                    Destroy(self.BodyMovers.BodyVelocity)
+                    Destroy(self.BodyMovers.BodyGyro)
                 end)
 
                 self:EndProgress()
@@ -530,47 +597,46 @@ Universal.Fly = {
     Constraints = {
         Enabled = false,
 
-        LinearVelocity        = nil,
-        AlignOrientation      = nil,
-        AttachmentVelocity    = nil,
-        AttachmentOrientation = nil,
-        AttachmentWorld       = nil,
+        LinearVelocity        = nil :: Instance?,
+        AlignOrientation      = nil :: Instance?,
+        AttachmentVelocity    = nil :: Instance?,
+        AttachmentOrientation = nil :: Instance?,
+        AttachmentWorld       = nil :: Instance?,
 
-        TargetVelocity = Vector3.new(),
-        TargetCFrame   = nil,
+        TargetVelocity = Vector3_new(),
+        TargetCFrame   = nil  :: CFrame?,
 
         Start = function(self, Enabled: boolean)
             self.Constraints.Enabled = Enabled
 
             if self.BodyMovers.Enabled and Enabled then
                 self.BodyMovers.Start(self, false)
-                task.wait()
+                task_wait()
             end
-            self.PreCameraType = shared.Camera.CameraType
 
             if Enabled then
-                local Character = shared.Speaker.Character or shared.Speaker.CharacterAdded:Wait()
-                local Humanoid  = Character:WaitForChild("Humanoid")
+                local Character = GetCharacter()
+                local Humanoid  = WaitHumanoid(Character)
                 local RootPart  = Humanoid.RootPart
                 if not RootPart then
-                    RootPart = Character:WaitForChild("HumanoidRootPart")
+                    RootPart = WaitRootPart(Character)
                 end
 
                 if not (self.Enabled or self.Constraints.Enabled) then return end
 
-                self.Constraints.TargetVelocity = Vector3.new()
-                self.Constraints.TargetCFrame   = RootPart.CFrame
+                self.Constraints.TargetVelocity = Vector3_new()
+                self.Constraints.TargetCFrame   = RootPart.CFrame :: CFrame
 
-                self.Constraints.LinearVelocity        = Instance.new("LinearVelocity", RootPart)
-                self.Constraints.AlignOrientation      = Instance.new("AlignOrientation", RootPart)
-                self.Constraints.AttachmentVelocity    = Instance.new("Attachment", RootPart)
-                self.Constraints.AttachmentOrientation = Instance.new("Attachment", RootPart)
-                self.Constraints.AttachmentWorld       = Instance.new("Attachment", shared.Workspace.Terrain)
+                self.Constraints.LinearVelocity        = Instance_new("LinearVelocity", RootPart)
+                self.Constraints.AlignOrientation      = Instance_new("AlignOrientation", RootPart)
+                self.Constraints.AttachmentVelocity    = Instance_new("Attachment", RootPart)
+                self.Constraints.AttachmentOrientation = Instance_new("Attachment", RootPart)
+                self.Constraints.AttachmentWorld       = Instance_new("Attachment", Workspace.Terrain)
 
                 self.Constraints.LinearVelocity.MaxForce               = Inf
                 self.Constraints.LinearVelocity.VectorVelocity         = self.Constraints.TargetVelocity
-                self.Constraints.LinearVelocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-                self.Constraints.LinearVelocity.RelativeTo             = Enum.ActuatorRelativeTo.World
+                self.Constraints.LinearVelocity.VelocityConstraintMode = Vector
+                self.Constraints.LinearVelocity.RelativeTo             = World
                 self.Constraints.LinearVelocity.Attachment0            = self.Constraints.AttachmentVelocity
 
                 self.Constraints.AlignOrientation.MaxTorque      = Inf
@@ -578,27 +644,29 @@ Universal.Fly = {
                 self.Constraints.AlignOrientation.Attachment0    = self.Constraints.AttachmentOrientation
                 self.Constraints.AlignOrientation.Attachment1    = self.Constraints.AttachmentWorld
 
-                shared.Connect:GiveSignal("ConstraintsFly", shared.RunService.Heartbeat:Connect(function(DeltaTime)
+                self.PreCameraType = shared.Camera.CameraType
+
+                GiveSignal(_Connect, "ConstraintsFly", Connect(shared.RunService.Heartbeat, function(DeltaTime: number)
                     if not Humanoid or Humanoid.Health <= 0 then return end
                     if not (self.Enabled or self.Constraints.Enabled) then return end
 
-                    local MoveVector    = ControlModule:GetMoveVector()
-                    local MoveDirection = Vector3.new()
+                    local MoveVector    = GetMoveVector(ControlModule) :: Vector3
+                    local MoveDirection = Vector3_new()
 
                     self:HandleHumanoidState(Humanoid)
 
-                    local LookVector  = shared.Camera.CFrame.LookVector
-                    local RightVector = shared.Camera.CFrame.RightVector
-                    local UpVector    = self.UseUpVector and shared.Camera.CFrame.UpVector or Vector3.new(0, 1, 0)
+                    local LookVector  = shared.Camera.CFrame.LookVector  :: Vector3
+                    local RightVector = shared.Camera.CFrame.RightVector :: Vector3
+                    local UpVector    = (self.UseUpVector and shared.Camera.CFrame.UpVector or Vector3_new(0, 1, 0)) :: Vector3
 
-                    local Forward = LookVector - UpVector * LookVector:Dot(UpVector)
+                    local Forward = LookVector - UpVector * Dot(LookVector, UpVector)
                     if Forward.Magnitude > 1e-3 then
                         Forward = Forward.Unit
                     else
-                        Forward = (LookVector - Vector3.new(0, 1, 0) * LookVector.Y).Unit
+                        Forward = (LookVector - Vector3_new(0, 1, 0) * LookVector.Y).Unit
                     end
 
-                    local Right = RightVector - UpVector * RightVector:Dot(UpVector)
+                    local Right = RightVector - UpVector * Dot(RightVector, UpVector)
                     if Right.Magnitude > 1e-3 then
                         Right = Right.Unit
                     end
@@ -612,39 +680,40 @@ Universal.Fly = {
                         MoveDirection = MoveDirection.Unit
                     end
 
-                    self.Constraints.TargetVelocity = self.Constraints.TargetVelocity:Lerp(MoveDirection * self.ConstraintsMaxSpeed, DeltaTime * self.ConstraintsAcceleration)
+                    self.Constraints.TargetVelocity = VectorLerp(self.Constraints.TargetVelocity, MoveDirection * self.ConstraintsMaxSpeed, DeltaTime * self.ConstraintsAcceleration)
 
-                    self.Constraints.LinearVelocity.VectorVelocity   = self.Constraints.TargetVelocity
+                    self.Constraints.LinearVelocity  .VectorVelocity = self.Constraints.TargetVelocity
                     self.Constraints.AlignOrientation.Responsiveness = self.ConstraintsResponsiveness
+
+                    self:HandleCamera()
 
                     if self.LookToCamera then
                         self.Constraints.AttachmentWorld.CFrame = shared.Camera.CFrame
-                        self:HandleCamera()
                     elseif self.Constraints.TargetVelocity.Magnitude > 1 then
-                        local FlatVelocity = Vector3.new(self.Constraints.TargetVelocity.X, 0, self.Constraints.TargetVelocity.Z)
+                        local FlatVelocity = Vector3_new(self.Constraints.TargetVelocity.X, 0, self.Constraints.TargetVelocity.Z)
 
                         if FlatVelocity.Magnitude > 1 then
-                            local TargetLook = CFrame.lookAt(RootPart.Position, RootPart.Position + FlatVelocity)
-                            self.Constraints.TargetCFrame = self.Constraints.TargetCFrame:Lerp(TargetLook, DeltaTime * self.ConstraintsTurnSpeed)
+                            local TargetLook = CFrame_lookAt(RootPart.Position, RootPart.Position + FlatVelocity)
+                            self.Constraints.TargetCFrame = CFrameLerp(self.Constraints.TargetCFrame, TargetLook, DeltaTime * self.ConstraintsTurnSpeed)
 
                             self.Constraints.AttachmentWorld.CFrame = self.Constraints.TargetCFrame
                         end
                     end
                 end))
 
-                shared.Connect:GiveSignal("ConstraintsFlyDied", Humanoid.Died:Once(function()
+                GiveSignal(_Connect, "ConstraintsFlyDied", Humanoid.Died:Once(function()
                     self:OnDied("Constraints")
                 end))
             else
-                shared.Connect:DisconnectSignal("ConstraintsFly")
-                shared.Connect:DisconnectSignal("ConstraintsFlyDied")
+                DisconnectSignal(_Connect, "ConstraintsFly")
+                DisconnectSignal(_Connect, "ConstraintsFlyDied")
 
                 pcall(function()
-                    self.Constraints.LinearVelocity:Destroy()
-                    self.Constraints.AlignOrientation:Destroy()
-                    self.Constraints.AttachmentVelocity:Destroy()
-                    self.Constraints.AttachmentOrientation:Destroy()
-                    self.Constraints.AttachmentWorld:Destroy()
+                    Destroy(self.Constraints.LinearVelocity)
+                    Destroy(self.Constraints.AlignOrientation)
+                    Destroy(self.Constraints.AttachmentVelocity)
+                    Destroy(self.Constraints.AttachmentOrientation)
+                    Destroy(self.Constraints.AttachmentWorld)
                 end)
 
                 self:EndProgress()
@@ -653,7 +722,7 @@ Universal.Fly = {
     },
 
     StartFly = function(Enabled: boolean)
-        local self = Universal.Fly
+        local self   = Universal.Fly
         self.Enabled = Enabled
 
         self[self.FlyMethod].Start(self, Enabled)
@@ -672,25 +741,25 @@ Universal.Fly = {
     end
 }
 
-shared.Connect:GiveSignal("InputBeganFly", shared.UserInputService.InputBegan:Connect(function(Input, Processed)
+do
     local self = Universal.Fly
 
-    if Processed then
-    elseif self.UpKeyBinding   == Input.UserInputType or self.UpKeyBinding   == Input.KeyCode then
-           self.IsUp   = true
-    elseif self.DownKeyBinding == Input.UserInputType or self.DownKeyBinding == Input.KeyCode then
-           self.IsDown = true
-    end
-end))
+    GiveSignal(_Connect, "InputBeganFly", Connect(shared.UserInputService.InputBegan, function(Input, Processed)
+        if Processed then
+        elseif self.UpKeyBinding   == Input.UserInputType or self.UpKeyBinding   == Input.KeyCode then
+            self.IsUp   = true
+        elseif self.DownKeyBinding == Input.UserInputType or self.DownKeyBinding == Input.KeyCode then
+            self.IsDown = true
+        end
+    end))
 
-shared.Connect:GiveSignal("InputEndedFly", shared.UserInputService.InputEnded:Connect(function(Input)
-    local self  = Universal.Fly
-
-    if     self.UpKeyBinding   == Input.UserInputType or self.UpKeyBinding   == Input.KeyCode then
-           self.IsUp   = false
-    elseif self.DownKeyBinding == Input.UserInputType or self.DownKeyBinding == Input.KeyCode then
-           self.IsDown = false
-    end
-end))
+    GiveSignal(_Connect, "InputEndedFly", Connect(shared.UserInputService.InputEnded, function(Input)
+        if     self.UpKeyBinding   == Input.UserInputType or self.UpKeyBinding   == Input.KeyCode then
+            self.IsUp   = false
+        elseif self.DownKeyBinding == Input.UserInputType or self.DownKeyBinding == Input.KeyCode then
+            self.IsDown = false
+        end
+    end))
+end
 
 return Universal
