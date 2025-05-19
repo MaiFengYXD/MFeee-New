@@ -33,57 +33,45 @@
 <br>
 
 ### 🔪MURDER MYSTERY 2 (WIP🔥)
-- **1. Auto collect coins**
-- **2. Aimbot/silent aim (knife, gun)**
-- **3. Kill all**
-- **4. Hostage**
-- **5. Second life (sheriff, innocent)**
-- **6. Trolls**
-- **7. Auto pickup gun**
-- **8. ESP for *players*, *innocent*, *sheriff*, *murderer*, *gun*, *coins*, *interactive***
-- **9. Autoplay (unstable)**
-- **10. Universal features available...**
-- **Event: auto collect rare eggs**
+>- Auto collect coins
+>- Aimbot/silent aim (knife, gun)
+>- Kill all
+>- Hostage
+>- Second life (sheriff, innocent)
+>- Trolls
+>- Auto pickup gun
+>- ESP for *players*, *innocent*, *sheriff*, *murderer*, *gun*, *coins*, *interactive*
+>- Autoplay (unstable)
+>- Universal features available...
+>- Event: auto collect rare eggs
 <br>
 
 ### 👁️THE FOUNDATION (WIP🔥)
-- **1. Skip Seek (client-side)**
-- **2. Auto cage minigames**
-- **3. Autoplay/skip breaker minigames**
-- **4. Lader speed boost**
-- **5. Anti Decoy (lockers)**
-- **6. Get free badges**
-- **7. Anti void**
-- **8. Anti Dark**
-- **9. Door reach**
-- **10. Anti Screech**
-- **11. Anti death pit**
-- **12. Show monster's node**
-- **13. Cage minigames no damage**
-- **14. Anti Stare (the red eye)**
-- **15. Anti Eyes**
-- **16. Skip terminal minigames**
-- **17. Seek no damage (client-side)**
-- **18. ESP for *entities*, *players*, *interactive***
-- **19. Universal features available...**
+>- Skip Seek (client-side)
+>- Auto cage minigames
+>- Autoplay/skip breaker minigames
+>- Lader speed boost
+>- Anti Decoy (lockers)
+>- Get free badges
+>- Anti void
+>- Anti Dark
+>- Door reach
+>- Anti Screech
+>- Anti death pit
+>- Show monster's node
+>- Cage minigames no damage
+>- Anti Stare (the red eye)
+>- Anti Eyes
+>- Skip terminal minigames
+>- Seek no damage (client-side)
+>- ESP for *entities*, *players*, *interactive*
+>- Universal features available...
 <br>
 
 ### 🔫WEAPONRY (WIP🔥)
-- **1. Hitbox extender**
-- **2. ESP for *players*, *guns***
-- **3. Bullet breadcrumbs**
-- **4. Universal features available...**
+>- Hitbox extender
+>- ESP for *players*, *guns*
+>- Bullet breadcrumbs
+>- Universal features available...
 - ***(server validation makes exploits hard, and blatant cheating is detectable)***
-<br>
-
-### 🧱BLOCK TYCOON (WIP🔥)
-- **1. Collecting aura**
-- **2. Underworld Trophy farm**
-- **3. Extra reach**
-- **4. Instant break**
-- **5. Heavy drops**
-- **6. ESP for *players*, *drops***
-- **7. *Physgun* for drops**
-- **8. Universal features available...**
-- **Event: collect all eggs in 1 second**
 <br>
