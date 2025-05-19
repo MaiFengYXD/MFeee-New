@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 ColorReset=$'\033[0m'
 ColorBlue=$'\033[34m'
@@ -13,9 +13,31 @@ echo -e "$Info Starting bundle script..."
 if ! command -v rokit &> /dev/null; then
     echo -e "$Info Rokit not found. Preparing installation..."
 
+    # Detect OS and CPU architecture to set appropriate download URL
+    case $(uname -s) in
+        Linux) OS="linux";;
+        Darwin) OS="macos";;
+    *)
+        echo -e "$Error Unsupported OS: $(uname -s)"
+        exit 1;;
+    esac
+
+    case $(uname -m) in
+        x86_64) Arch="x86_64";;
+        aarch64|arm64) Arch="aarch64";;
+    *)
+        echo -e "$Error Unsupported CPU architecture: $(uname -m)"
+        exit 1;;
+    esac
+
+    if [ "$OS" = "linux" ] && [ "$Arch" = "aarch64" ]; then
+        echo -e "$Error Unsupported CPU architecture: $Arch on $OS"
+        exit 1
+    fi
+
     # Set version and download URL
     RokitVersion="v1.0.0"
-    RokitZipName="rokit-${RokitVersion}-linux-x86_64.zip"
+    RokitZipName="rokit-${RokitVersion}-${OS}-${Arch}.zip"
     RokitDownloadUrl="https://github.com/rojo-rbx/rokit/releases/download/${RokitVersion}/${RokitZipName}"
     CacheZipPath="${TMPDIR:-/tmp}/${RokitZipName}"
     ExtractDirectory="${TMPDIR:-/tmp}/RokitTemp"
@@ -72,8 +94,6 @@ echo -e "      * darklua-config-path[=(\".darklua.json\", \".darklua.json5\")]"
 echo -e "           Custom Darklua config path"
 echo -e "      * temp-dir-base[=\"{output-dir}\"]"
 echo -e "           Temp directory for Rojo/Darklua processing"
-echo -e "      * extra-offset-lines[=0]"
-echo -e "           Line offset for debugging info"
 echo -e "      * ci-mode[=true]"
 echo -e "           CI mode (non-interactive, errors exit with code 1)"
 echo -e "      * verbose[=true]"
@@ -81,7 +101,7 @@ echo -e "           Verbose logging"
 echo -e "\n$Info Example input: minify=true input=default.project.json output=Distribution/Script.luau\n"
 
 # Step 4 - Ask for user input
-read -p "Enter your bundle options: " UserOptions
+read -rp "Enter your bundle options: " UserOptions
 
 # Step 5 - Run lune with user options
 echo -e "\n$Info Running: lune run Build bundle $UserOptions"
@@ -93,3 +113,5 @@ if [ $? -ne 0 ]; then
 else
     echo -e "$Info Bundle completed successfully."
 fi
+
+read -rp "Press Enter to continue...:"
