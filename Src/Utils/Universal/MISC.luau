@@ -1,69 +1,108 @@
 local Universal = {}
 
-local Support = wax.shared.ExecutorSupport
+do
+    local pcall, getconnections
+        = pcall, getconnections
 
-Universal.AntiAFK = {
-    Enabled = false,
-    
-    Start = function(Enabled: boolean)
-        local self = Universal.AntiAFK
-        self.Enabled = Enabled
+    Universal.AntiAFK = {
+        Enabled = false,
+        Support = wax.shared.ExecutorSupport.getconnections :: boolean,
 
-        if not Support.getconnections then return end
+        Idled   = shared.Speaker.Idled :: RBXScriptSignal,
 
-        for _, Connection in shared.GetConnections(shared.Speaker.Idled) do
-            pcall(Connection[Enabled and "Enable" or "Disable"], Connection)
-        end
-    end
-}
+        Start = function(Enabled: boolean)
+            local self   = Universal.AntiAFK
+            self.Enabled = Enabled
 
-Universal.AntiKick = {
-    Enabled = false,
-    
-    OldFunction = nil,
-    OldIndex = nil,
-    OldNameCall = nil,
+            if not self.Support then return end
 
-    Start = function(Enabled: boolean)
-        local self = Universal.AntiKick
-        self.Enabled = Enabled
+            local Connections = getconnections(self.Idled)
+            local CallValue   = Enabled and "Disable" or "Enable"
 
-        if Enabled then
-            if Support.hookfunction then
-                self.OldFunction = hookfunction(shared.Speaker.Kick, function(...) end)
+            for _, Connection: any in Connections do
+                pcall(Connection[CallValue], Connection)
             end
+        end
+    }
+end
 
-            if Support.hookmetamethod then
-                self.OldIndex = hookmetamethod(game, "__index", function(self, Key)
-                    if self ~= shared.Speaker and Key:lower() ~= "kick" then
-                        return self.OldIndex(self, Key)
-                    end
-                    return
-                end)
+do
+    local      GetFullName, checkcaller, getcallingscript, getnamecallmethod, hookfunction, hookmetamethod, warn
+        = game.GetFullName, checkcaller, getcallingscript, getnamecallmethod, hookfunction, hookmetamethod, warn
 
-                if Support.getnamecallmethod then
-                    self.OldNameCall = hookmetamethod(game, "__namecall", function(self, ...)
-                        if getnamecallmethod():lower() ~= "kick" then
-                            return self.OldNameCall(self, ...)
+    local ExecutorName = identifyexecutor()
+
+    local function FormatCaller(Calling: (Instance | string)?, IsExecutor: boolean, Message: string?): string
+        if typeof(Calling) ~= "Instance" then
+            Calling = if IsExecutor then `{ExecutorName} LocalScript` else "Unknown"
+        else
+            Calling = if not Calling.Parent then `[nil].{Calling.Name}` else GetFullName(Calling)
+        end
+
+        return `[MFeee~ New] Prevented a kick! Calling script: "{Calling}", Message: "{Message}"`
+    end
+
+    Universal.AntiKick = {
+        Enabled  = false,
+        Support1 = wax.shared.ExecutorSupport.hookfunction      :: boolean,
+        Support2 = wax.shared.ExecutorSupport.hookmetamethod    :: boolean,
+        Support3 = wax.shared.ExecutorSupport.checkcaller       :: boolean,
+        Support4 = wax.shared.ExecutorSupport.getcallingscript  :: boolean,
+        Support5 = wax.shared.ExecutorSupport.getnamecallmethod :: boolean,
+
+        Kick = shared.Speaker.Kick :: (self: any, Message: string) -> nil,
+
+        OldFunction = nil :: ((self: any, Message: string?) -> any) | nil,
+        OldNameCall = nil :: ((self: any, any) -> (...any)) | nil,
+
+        Start = function(Enabled: boolean)
+            local self   = Universal.AntiKick
+            self.Enabled = Enabled
+
+            local CanFormat = self.Support3 and self.Support4
+
+            if self.Support1 then
+                if Enabled then
+                    self.OldFunction = hookfunction(self.Kick, function(self: any, Message: string?)
+                        if CanFormat then
+                            local IsExecutor = checkcaller()
+                            local Calling    = getcallingscript()
+
+                            warn(FormatCaller(Calling, IsExecutor, Message))
                         end
-                        return
-                    end)
+                    end) :: ((self: any, Message: string?) -> any) | nil
+                elseif self.OldFunction then
+                    hookfunction(self.Kick, self.OldFunction)
+                    self.OldFunction = nil
                 end
             end
-        else
-            if self.OldFunction then
-                hookfunction(shared.Speaker.Kick, self.OldFunction)
-            end
 
-            if self.OldIndex then
-                hookmetamethod(shared.Speaker, "__index", self.OldIndex)
-            end
+            if self.Support2 and self.Support5 then
+                if Enabled then
+                    local Speaker = shared.Speaker
+                    local OldNameCall: typeof(self.OldNameCall)
 
-            if self.OldNameCall then
-                hookmetamethod(shared.Speaker, "__namecall", self.OldNameCall)
+                    self.OldNameCall = hookmetamethod(game, "__namecall", function(self: any, ...: any)
+                        if self ~= Speaker or getnamecallmethod() ~= "Kick" then
+                            return (OldNameCall or self.OldNameCall)(self, ...)
+                        end
+
+                        if CanFormat then
+                            local IsExecutor = checkcaller()
+                            local Calling = getcallingscript()
+
+                            warn(FormatCaller(Calling, IsExecutor, ...))
+                        end
+                    end) :: ((self: any, any) -> (...any)) | nil
+
+                    OldNameCall = self.OldNameCall
+                elseif self.OldNameCall then
+                    hookmetamethod(game, "__namecall", self.OldNameCall)
+                    self.OldNameCall = nil
+                end
             end
         end
-    end
-}
+    }
+end
 
 return Universal
