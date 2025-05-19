@@ -1,4 +1,5 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
+--!nonstrict
 
 if string.sub(_VERSION, 1, 4) ~= "Lune" then
     print("!! Wax doesn't appear to be running on Lune (https://lune-org.github.io/docs), which this script requires, exitting..")
@@ -143,6 +144,10 @@ elseif Subcommand == "version" then
     print(`Wax v{Version}`)
     return
 elseif Subcommand == "bundle" then
+    local BundleStart = os.clock()
+    print("Bundle started!")
+    print("----------------------------------------\n")
+
     -- Below is our user-proofing hell!
     -- "An idiot admires complexity, a genius admires simplicity" - Terry A Davis
 
@@ -459,7 +464,7 @@ elseif Subcommand == "bundle" then
     end
 
     if Header then
-        fs.writeFile(Output, `{Header}\n\n{fs.readFile(Output)}`)
+        fs.writeFile(Output, `{Header}\n{fs.readFile(Output)}`)
     end
 
     -- We're now completely finished!
@@ -474,6 +479,10 @@ elseif Subcommand == "bundle" then
 
         process.exit(1)
     end
+
+    print("")
+    print("----------------------------------------")
+    print(`Bundling complete! Time taken: {os.clock() - BundleStart} seconds\n`)
 else
     Log.Error(`Subcommand "{Subcommand}" invalid, see usage for all valid subcommands:\n`)
     print(UsageMessage)
