@@ -5,9 +5,9 @@
 
 ---
 
-**🚀*A Free Open-Source Roblox Script Hub***
+**🚀*A Free Open-source and Fastest Roblox Script Hub***
 
-**🌍*Supports 24 Languages***
+**🌍*Translated 24 Languages*** *(not finished lol)*
 
 <br>
 
@@ -32,7 +32,7 @@
 
 <br>
 
-### 🔪MURDER MYSTERY 2 (WIP🔥)
+### ~~🔪MURDER MYSTERY 2 (WIP🔥)~~
 >- Auto collect coins
 >- Aimbot/silent aim (knife, gun)
 >- Kill all
@@ -68,7 +68,7 @@
 >- Universal features available...
 <br>
 
-### 🔫WEAPONRY (WIP🔥)
+### ~~🔫WEAPONRY (WIP🔥)~~
 >- Hitbox extender
 >- ESP for *players*, *guns*
 >- Bullet breadcrumbs
