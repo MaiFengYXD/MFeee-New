@@ -1,13 +1,15 @@
 # MFeee~ New
 
->[!NOTE]
->### 🛠️Work In Progress, Many Features are Buggy!
+>[!CAUTION]
+>### ⚠️The Current Release Has Not Been Tested!
 
 ---
 
 **🚀*A Free Open-source and Fastest Roblox Script Hub***
 
 **🌍*Translated 24 Languages*** *(not finished lol)*
+
+**🛠️*Work In Progress, Many Features are Buggy!***
 
 <br>
 
