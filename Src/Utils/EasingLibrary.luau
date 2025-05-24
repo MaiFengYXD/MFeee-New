@@ -16,34 +16,37 @@ local Play, Cancel;do
     Destroy(Tween)
 end
 
+local EasingStyle     = Enum.EasingStyle
+local EasingDirection = Enum.EasingDirection
+
 local EasingLibrary = {
     RunningTween = {},
 
     EasingModes = {
         --// Polynomial
-        ["Linear"   ] = Enum.EasingStyle.Linear,
-        ["Quadratic"] = Enum.EasingStyle.Quad,
-        ["Cubic"    ] = Enum.EasingStyle.Cubic,
-        ["Quartic"  ] = Enum.EasingStyle.Quart,
-        ["Quintic"  ] = Enum.EasingStyle.Quint,
+        ["Linear"   ] = EasingStyle.Linear,
+        ["Quadratic"] = EasingStyle.Quad,
+        ["Cubic"    ] = EasingStyle.Cubic,
+        ["Quartic"  ] = EasingStyle.Quart,
+        ["Quintic"  ] = EasingStyle.Quint,
 
         --// Trigonometric
-        ["Circular"] = Enum.EasingStyle.Circular,
-        ["Sine"    ] = Enum.EasingStyle.Sine,
+        ["Circular"] = EasingStyle.Circular,
+        ["Sine"    ] = EasingStyle.Sine,
 
         --// Exponential
-        ["Exponential"] = Enum.EasingStyle.Exponential,
+        ["Exponential"] = EasingStyle.Exponential,
 
         --// Special
-        ["Back"   ] = Enum.EasingStyle.Back,
-        ["Elastic"] = Enum.EasingStyle.Elastic,
-        ["Bounce" ] = Enum.EasingStyle.Bounce
+        ["Back"   ] = EasingStyle.Back,
+        ["Elastic"] = EasingStyle.Elastic,
+        ["Bounce" ] = EasingStyle.Bounce
     },
 
     EasingDirections = {
-        ["In"   ] = Enum.EasingDirection.In,
-        ["Out"  ] = Enum.EasingDirection.Out,
-        ["InOut"] = Enum.EasingDirection.InOut
+        ["In"   ] = EasingDirection.In,
+        ["Out"  ] = EasingDirection.Out,
+        ["InOut"] = EasingDirection.InOut
     },
 
     EasingMode      = "Quartic" :: "None" | string,
@@ -51,8 +54,8 @@ local EasingLibrary = {
     EasingDuration  = 1,
 }
 
-local Quart = Enum.EasingStyle.Quart
-local Out   = Enum.EasingDirection.Out
+local Quart = EasingStyle.Quart
+local Out   = EasingDirection.Out
 
 type StoredTween = {
     Tween:       Tween | TweenBase,
@@ -83,7 +86,7 @@ end
 
 function EasingLibrary:Ease(
     Target:    Instance & any,
-    Property:  string | {[number]: string},
+    Property:  string | {[string]: any},
     EndValue:  any,
     Index:     string?,
     Duration:  number | nil,
