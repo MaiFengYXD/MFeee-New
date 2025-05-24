@@ -210,17 +210,74 @@ do
     end
 
     --// Distance Checker
-    local Vector2_new
-        = Vector2.new
+    local Vector2_new, math_pi, math_cos, math_sin
+        = Vector2.new, math.pi, math.cos, math.sin
 
     local function Vector3ToVector2(Vector3: Vector3): Vector2
         return Vector2_new(Vector3.X, Vector3.Y)
     end
 
+    local function CrossProduct2D(Position1: Vector2, Position2: Vector2, Position3: Vector2): number
+        return (Position2.X - Position1.X) * (Position3.Y - Position1.Y) - (Position2.Y - Position1.Y) * (Position3.X - Position1.X)
+    end
+
+    local function IsPointInRegularPolygon(
+        Point:    Vector2,
+        Center:   Vector2,
+        Radius:   number,
+        NumSides: number
+    ): boolean
+        if NumSides < 3 then return false end
+
+        local Vertices       = {}
+        local AngleIncrement = (2 * math_pi) / NumSides
+        local StartAngle     = math_pi / 2
+
+        for Index = 0, NumSides - 1 do
+            local Angle = StartAngle + (Index * AngleIncrement)
+
+            Vertices[Index + 1] = Vector2_new(
+                Center.X + Radius * math_cos(Angle),
+                Center.Y + Radius * math_sin(Angle)
+            )
+        end
+
+        local FirstCrossProductSign: number?
+
+        for Index = 1, NumSides do
+            local Position1 = Vertices[Index]
+            local Position2 = Vertices[(Index % NumSides) + 1]
+
+            local CrossProduct = CrossProduct2D(Position1, Position2, Point)
+
+            if not FirstCrossProductSign then
+                FirstCrossProductSign = CrossProduct > 0 and 1 or (CrossProduct < 0 and -1 or 0)
+            else
+                local CurrentSign = CrossProduct > 0 and 1 or (CrossProduct < 0 and -1 or 0)
+                if CurrentSign ~= 0 and FirstCrossProductSign ~= 0 and CurrentSign ~= FirstCrossProductSign then
+                    return false
+                end
+            end
+        end
+
+        return true
+    end
+
     function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean
         if Fov.Enabled then
             local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
-            return not IsOnScreen or (Vector3ToVector2(ScreenPosition) - Fov.Position).Magnitude > Fov.Radius
+            if not IsOnScreen then return true end
+
+            local Position2D = Vector3ToVector2(ScreenPosition)
+            local NumSides   = Fov.NumSides
+
+            if Fov.PRPCheck then
+                return if NumSides > 30 then
+                    (Position2D - Fov.Position).Magnitude > Fov.Radius
+                else not IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, Fov.NumSides)
+            else
+                return (Position2D - Fov.Position).Magnitude > Fov.Radius
+            end
         end
 
         local Distance = (Original or SpeakerPosition - Target).Magnitude
@@ -311,6 +368,8 @@ Fov = {
 
     Enabled  = false :: boolean,
     Visible  = true  :: boolean,
+
+    PRPCheck = true :: boolean,
 
     Filled   = false :: boolean,
     Radius   = 150   :: number,
