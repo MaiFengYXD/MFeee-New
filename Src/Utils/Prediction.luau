@@ -1,13 +1,11 @@
 --[[
 Source: https://devforum.roblox.com/t/predict-projectile-ballistics-including-gravity-and-motion/1842434
-Thank you NOVEIGMA, I successfully used it on Aimbot! ^^
+Credit: 7GrandDadPGN
+||Thank you NOVEIGMA, I successfully used it on Aimbot! ^^||
 --]]
 
-local math_pow, math_abs, math_sqrt, math_acos, math_cos, math_pi
-    = math.pow, math.abs, math.sqrt, math.acos, math.cos, math.pi
-
-local unpack, Vector3_new, table_insert
-    = unpack, Vector3.new, table.insert
+local math_pow, math_abs, math_sqrt, math_acos, math_cos, math_pi, Vector3_new, table_insert, table_sort
+    = math.pow, math.abs, math.sqrt, math.acos, math.cos, math.pi, Vector3.new, table.insert, table.sort
 
 local Workspace = shared.Workspace
 local Raycast   = Workspace.Raycast
@@ -94,7 +92,7 @@ local function SolveCubic(Coeff0: number, Coeff1: number, Coeff2: number, Coeff3
     return Root1, Root2, Root3
 end
 
-function Prediction.SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number, Coeff3: number, Coeff4: number)
+local function SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number, Coeff3: number, Coeff4: number)
     local Roots, Coefficients = {} :: any, {}
     local IntermediateZ, SqrtU, SqrtV, Adjustment, RootCount
 
@@ -174,46 +172,49 @@ function Prediction.SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number,
 end
 
 function Prediction.SolveTrajectory(
-    Origin         : Vector3, ProjectileSpeed : number, Gravity        : number,
-    TargetPosition : Vector3, TargetVelocity  : Vector3,
-    PlayerGravity  : number?, PlayerHeight    : number?, RaycastParams : RaycastParams?
+    Original:        Vector3,
+    ProjectileSpeed: number,
+    Gravity:         number?,
+    PickLongest:     boolean,
+    TargetPosition:  Vector3,
+    TargetVelocity:  Vector3,
+    PlayerGravity:   number?,
+    PlayerHeight:    number?,
+    RaycastParams:   RaycastParams?
 ): Vector3?
-    local Displacement = TargetPosition - Origin
+    local Displacement = TargetPosition - Original
     local TargetVelX, TargetVelY, TargetVelZ = TargetVelocity.X, TargetVelocity.Y, TargetVelocity.Z
     local DispX, DispY, DispZ = Displacement.X, Displacement.Y, Displacement.Z
-    local GravityFactor = -0.5 * Gravity
+    local GravityFactor = -0.5 * (Gravity or Workspace.Gravity)
 
     --/ Attempt gravity calculation, may return to it in the future.
     if math_abs(TargetVelY) > 0.01 and PlayerGravity and PlayerGravity > 0 and PlayerHeight then
         local EstimatedTime = Displacement.Magnitude / ProjectileSpeed
         TargetVelY -= 0.5 * PlayerGravity * EstimatedTime
 
-        local VelocityStep = TargetVelocity * 0.016
-        local RayResult = Raycast(Workspace, TargetPosition, Vector3_new(
+        local VelocityStep  = TargetVelocity * 0.016
+        local RaycastResult = Raycast(Workspace, TargetPosition, Vector3_new(
             VelocityStep.X,
-            (TargetVelY * EstimatedTime) - PlayerHeight, VelocityStep.Z),
-            RaycastParams
-        )
+            (TargetVelY * EstimatedTime) - PlayerHeight, VelocityStep.Z
+        ), RaycastParams)
 
-        if RayResult then
-            local NewTarget = RayResult.Position + Vector3_new(0, PlayerHeight, 0)
+        if RaycastResult then
+            local NewTarget = RaycastResult.Position + Vector3_new(0, PlayerHeight, 0)
 
             EstimatedTime -= math_sqrt(((TargetPosition - NewTarget).Magnitude * 2) / PlayerGravity)
             TargetPosition = NewTarget
-            DispY = (TargetPosition - Origin).Y
+            DispY = (TargetPosition - Original).Y
             TargetVelY = 0
         end
     end
 
-    local QuarticCoeffs = {
+    local SolutionRoots = SolveQuartic(
         GravityFactor * GravityFactor,
         -2 * TargetVelY * GravityFactor,
         TargetVelY^2 - 2 * DispY * GravityFactor - ProjectileSpeed^2 + TargetVelX^2 + TargetVelZ^2,
         2 * DispY * TargetVelY + 2 * DispX * TargetVelX + 2 * DispZ * TargetVelZ,
         DispY^2 + DispX^2 + DispZ^2
-    }
-
-    local SolutionRoots = Prediction.SolveQuartic(unpack(QuarticCoeffs))
+    )
 
     if SolutionRoots then
         local PositiveRoots = {}
@@ -223,13 +224,15 @@ function Prediction.SolveTrajectory(
         end
 
         if #PositiveRoots > 0 then
-            local Time = PositiveRoots[1]
+            table_sort(PositiveRoots)
+
+            local Time = PositiveRoots[if PickLongest then #PositiveRoots else 1]
 
             local DeltaX = (DispX + TargetVelX * Time) / Time
             local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
             local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-            return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
+            return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
         end
     elseif Gravity == 0 then
         local Time = Displacement.Magnitude / ProjectileSpeed
@@ -238,7 +241,7 @@ function Prediction.SolveTrajectory(
         local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
         local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-        return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
+        return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
     end
     return nil
 end
