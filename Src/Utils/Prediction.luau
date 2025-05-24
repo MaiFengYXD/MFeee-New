@@ -10,8 +10,6 @@ local math_pow, math_abs, math_sqrt, math_acos, math_cos, math_pi, Vector3_new, 
 local Workspace = shared.Workspace
 local Raycast   = Workspace.Raycast
 
-local Prediction = {}
-
 local function IsZero(Value)
     return (Value > -1e-9) and (Value < 1e-9)
 end
@@ -171,7 +169,7 @@ local function SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number, Coef
     return Roots
 end
 
-function Prediction.SolveTrajectory(
+local function SolveTrajectory(
     Original:        Vector3,
     ProjectileSpeed: number,
     Gravity:         number?,
@@ -246,4 +244,4 @@ function Prediction.SolveTrajectory(
     return nil
 end
 
-return Prediction
+return {SolveTrajectory = SolveTrajectory}
