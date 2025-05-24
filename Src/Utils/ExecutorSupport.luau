@@ -430,6 +430,10 @@ Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "
     --/ nope cause it involves managing the user's clipboard (it may be impolite and cannot verify if it works)
 end, nil, true, "This test cannot be tested, only checking the existence")
 
+Test("mousemoverel", {}, {}, function()
+    --/ idk
+end, nil, true, "idk")
+
 Test("Drawing", {}, {}, function()
     local typeof
         = typeof
