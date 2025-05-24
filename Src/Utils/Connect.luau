@@ -114,7 +114,7 @@ function Connect:UnbindAction(Index: string?)
     ActionConnections[Index] = nil
 end
 
-wax.shared.AddOnUnload(function()
+wax.AddOnUnload(function()
     local Connect
         = Connect
 

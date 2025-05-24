@@ -1082,6 +1082,6 @@ UiManager.SaveManager:SetSubFolder(wax.shared.ScriptFolder)
 UiManager.ThemeManager:SetLibrary (UiManager.Library)
 UiManager.ThemeManager:SetFolder  ("MFeee-New")
 
-wax.shared.AddOnUnload(UiManager.Library.Unload, UiManager.Library)
+wax.AddOnUnload(UiManager.Library.Unload, UiManager.Library)
 
 return UiManager

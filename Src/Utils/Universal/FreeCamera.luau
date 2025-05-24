@@ -93,9 +93,9 @@ local ModalElement, RootPart, LinearVelocity, WorldAttachment;do
         Attachment1 = WorldAttachment
     })
 
-    wax.shared.AddOnUnload(ScreenGui.Destroy, ScreenGui)
-    wax.shared.AddOnUnload(RootPart.Destroy, RootPart)
-    wax.shared.AddOnUnload(WorldAttachment.Destroy, WorldAttachment)
+    wax.AddOnUnload(ScreenGui.Destroy, ScreenGui)
+    wax.AddOnUnload(RootPart.Destroy, RootPart)
+    wax.AddOnUnload(WorldAttachment.Destroy, WorldAttachment)
 end
 
 --// Player Variables //
@@ -114,7 +114,7 @@ local PlayerVariables = {};do
             end
         end)
 
-        wax.shared.AddOnUnload(Connections[ConnectId].Disconnect, Connections[ConnectId])
+        wax.AddOnUnload(Connections[ConnectId].Disconnect, Connections[ConnectId])
     end
 
     BindVariableMonitor("CameraMaxZoomDistance", shared.Speaker, 0.5)
