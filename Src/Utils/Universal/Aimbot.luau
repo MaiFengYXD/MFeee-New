@@ -102,6 +102,8 @@ local Raycast = Workspace.Raycast
 local Prediction = require("../Prediction")
 local Entities   = require("../Entities")
 
+local Fov
+
 --// Helper Functions //
 local GetMousePosition: () -> Vector2,
 
@@ -208,7 +210,19 @@ do
     end
 
     --// Distance Checker
+    local Vector2_new
+        = Vector2.new
+
+    local function Vector3ToVector2(Vector3: Vector3): Vector2
+        return Vector2_new(Vector3.X, Vector3.Y)
+    end
+
     function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean
+        if Fov.Enabled then
+            local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
+            return not IsOnScreen or (Vector3ToVector2(ScreenPosition) - Fov.Position).Magnitude > Fov.Radius
+        end
+
         local Distance = (Original or SpeakerPosition - Target).Magnitude
         return not (Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance)
     end
@@ -292,7 +306,7 @@ do
 end
 
 --// Fov //
-local Fov = {
+Fov = {
     Replaced = not wax.shared.ExecutorSupport.Drawing :: boolean,
 
     Enabled  = false :: boolean,
