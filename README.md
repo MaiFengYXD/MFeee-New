@@ -9,9 +9,49 @@
 
 **🌍*Translated 24 Languages*** *(not finished lol)*
 
-**🛠️*Work In Progress, Many Features are Buggy!***
+**😭*Work In Progress, Many Features are Buggy!***
 
-<br>
+---
+
+## 💾Load:
+```luau
+((loadstring or load) :: (string, any) -> ((...any) -> any))
+(game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))()
+```
+### 👾Or:
+**[View Main.luau](./Main.luau)** | **[View Distributions](./Distribution)** | **[View Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**
+
+---
+
+## 🛠️Build:
+To begin, clone this repository or download and extract [main.zip](https://github.com/MaiFengYXD/MFeee-New/archive/refs/heads/main.zip).
+
+Then, you can directly execute [Build.bat](./Build.bat) (for Windows) or [Build.sh](./Build.sh) (for macOS and Linux) to build the script. You can also follow the steps below to build manually:
+
+1. Download and extract [Rokit](https://github.com/rojo-rbx/rokit/releases) appropriate for your OS
+2. Navigate to the extracted folder and run:
+    ```
+    rokit self-install
+    ```
+3. Install tools:
+    ```
+    rokit trust rojo-rbx/rojo
+    rokit trust seaofvoices/darklua
+    rokit trust lune-org/lune
+
+    rokit add rojo-rbx/rojo@7.5.1
+    rokit add seaofvoices/darklua@0.16.0
+    rokit add lune-org/lune@0.8.9
+
+    rokit list
+    ```
+4. Go to the repository folder you just downloaded (or cloned). Then, run:
+    ```
+    lune run Build bundle
+    ```
+5. Check the `Distribution` folder for the build output.
+
+---
 
 ## 📊Supported Games:
 ### 🧩UNIVERSAL
