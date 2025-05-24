@@ -627,12 +627,10 @@ local Aimbot = {
                         OnScreenChecker(_Target.Position) or
                         WallChecker(_Target.Position, SpeakerPosition - _Target.Position, _Target)
                     ) then
-                        CancelLock()
-                        return
+                        return CancelLock()
                     end
 
-                    Move(Predict(_Target.Position, _Target, Humanoid))
-                    return
+                    return Move(Predict(_Target.Position, _Target, Humanoid))
                 end
 
                 CancelLock()
