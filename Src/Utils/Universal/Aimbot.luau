@@ -221,6 +221,7 @@ do
         return (Position2.X - Position1.X) * (Position3.Y - Position1.Y) - (Position2.Y - Position1.Y) * (Position3.X - Position1.X)
     end
 
+    --/ Helper function, make DistanceChecker more accurate in "triangle" fov
     local function IsPointInRegularPolygon(
         Point:    Vector2,
         Center:   Vector2,
