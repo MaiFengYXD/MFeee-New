@@ -112,7 +112,7 @@ local GetMousePosition: () -> Vector2,
       CommonChecker:     (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
       OnScreenChecker:   (Target:   Vector3) -> boolean,
-      WallChecker:       (Original: Vector3,       Direction: Vector3) -> boolean,
+      WallChecker:       (Original: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
       DistanceChecker:   (Original: Vector3 | nil, Target:    Vector3) -> boolean,
 
       GetPriorities:     () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
@@ -254,7 +254,7 @@ do
         local Position = HitPart.Position
         if DistanceChecker(nil, Position) then return end
         if OnScreenChecker(Position) then return end
-        if WallChecker(Position, SpeakerPosition - Position) then return end
+        if WallChecker(Position, SpeakerPosition - Position, HitPart) then return end
 
         return HitPart 
     end
@@ -527,9 +527,10 @@ local Aimbot = {
         return Vector2.X, Vector2.Y
     end
 
+    local Humanoid: Humanoid?
+
     local function GetTarget(): (BasePart?, Humanoid?)
         local Target:   BasePart?
-        local Humanoid: Humanoid?
 
         local CommonChecker = CommonChecker
         local First, Second = GetPriorities()
@@ -608,25 +609,38 @@ local Aimbot = {
         _Target = CancelTween(EasingLibrary, "Aimbot")
     end
 
-    local function StepAimbot()
-        CancelLock()
-        StepThread = task_spawn(function()
-            if not (Shared.Enabled and AimbotEnabled) then return end
-
-            local Humanoid
-            _Target, Humanoid = GetTarget()
-            if not _Target then return end
-
-            Move(Predict(_Target.Position, _Target, Humanoid))
-        end)
-    end
-
     Aimbot.Start = function(Enabled: boolean)
         AimbotEnabled = Enabled
 
         Connect[`{Enabled and "B" or "Unb"}indRenderStep`](Connect, "StepAimbot", 200, function()
-            if not GetState(AimbotKey) then return end
-            StepAimbot()
+            if not GetState(AimbotKey) then
+                CancelLock()
+                return
+            end
+
+            StepThread = task_spawn(function()
+                if not (Shared.Enabled and AimbotEnabled) then return end
+
+                if _Target then
+                    if (
+                        DistanceChecker(nil, _Target.Position) or
+                        OnScreenChecker(_Target.Position) or
+                        WallChecker(_Target.Position, SpeakerPosition - _Target.Position, _Target)
+                    ) then
+                        CancelLock()
+                        return
+                    end
+
+                    Move(Predict(_Target.Position, _Target, Humanoid))
+                    return
+                end
+
+                CancelLock()
+                _Target, Humanoid = GetTarget()
+                if not _Target then return end
+
+                Move(Predict(_Target.Position, _Target, Humanoid))
+            end)
         end)
     end
 end
