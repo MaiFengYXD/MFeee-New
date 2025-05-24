@@ -22,7 +22,8 @@ local function Notify(Title: string, Text: string)
     game.Destroy(Sound)
 end
 
-game:GetService("ContentProvider"):PreloadAsync({"rbxassetid://4590662766"})
+local ContentProvider = game:GetService("ContentProvider")
+task.spawn(ContentProvider.PreloadAsync, ContentProvider, {"rbxassetid://4590662766"})
 
 local loadstring = loadstring or load
 local HttpGet    = HttpGet or HttpGetAsync :: any
