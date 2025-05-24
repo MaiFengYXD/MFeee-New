@@ -1,6 +1,8 @@
 local pcall
     = pcall
 
+wax.Unloaded = false
+
 --// Pre-Checks //
 require("Utils/Services"):GetServices({
     "ContextActionService",
@@ -64,31 +66,32 @@ shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (functio
     until IsA(PlayerGui, "PlayerGui")
 
     return PlayerGui
-end)(game.IsA, game.Close.Wait, shared.Player.ChildAdded)
+end)(game.IsA, game.Close.Wait, shared.Speaker.ChildAdded)
 
 do
     local table_insert, unpack
         = table.insert, unpack
 
-    local OnUnloadFunctions = {} :: {
-        [number]: {
-            [number]: any,
-        }
-    }
+    local OnUnloadFunctions = {} :: {{any}}
 
-    function wax.shared.Unload()
+    function wax.Unload()
+        if wax.Unloaded then return end
+
         local pcall, task_defer
             = pcall, task.defer
 
         for _, Bundled in OnUnloadFunctions do
             task_defer(pcall, Bundled[1], unpack(Bundled[2]))
         end
+        OnUnloadFunctions = table.clear(OnUnloadFunctions)
 
         Global.MFeeeLoaded  = false
         Global.MFeeeLoading = false
+
+        wax.Unloaded = true
     end
 
-    function wax.shared.AddOnUnload(Callback: () -> (), ...: any)
+    function wax.AddOnUnload(Callback: () -> (), ...: any)
         table_insert(OnUnloadFunctions, {(Callback :: any), {...}})
     end
 end
