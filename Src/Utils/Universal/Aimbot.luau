@@ -99,21 +99,22 @@ local Fov
 --// Helper Functions //
 local GetMousePosition: () -> Vector2,
 
-      TeamChecker:       (Player: Player) -> boolean,
-      AliveChecker:      (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
-      FilterChecker:     (Player: Player) -> boolean,
-      ForceFieldChecker: (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
-      CommonChecker:     (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
+      IsTeammate:     (Player: Player) -> boolean,
+      IsDead:         (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
+      IsFiltered:     (Player: Player) -> boolean,
+      NotVulnerable:  (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
-      OnScreenChecker:   (Target:   Vector3) -> boolean,
-      WallChecker:       (Original: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
-      DistanceChecker:   (Original: Vector3 | nil, Target:    Vector3) -> boolean | number,
+      CommonChecks:   (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
-      GetPriorities:     () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
-      GetHitPart:        (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
-      EasyGetHitPart:    (Head: BasePart?, RootPart: BasePart?, Original: Vector3?)  -> nil | BasePart,
+      IsOffScreen:    (Target:   Vector3) -> boolean,
+      IsObscured:     (Original: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
+      IsOutOfRange:   (Original: Vector3 | nil, Target:    Vector3) -> boolean,
 
-      Predict:           (
+      GetPriorities:  () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
+      GetHitPart:     (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
+      EasyGetHitPart: (Head: BasePart?, RootPart: BasePart?, Original: Vector3?)  -> nil | BasePart,
+
+      Predict: (
           Original: Vector3,
           Target:   BasePart,
           Humanoid: Humanoid?,
@@ -123,11 +124,11 @@ local GetMousePosition: () -> Vector2,
       ) -> Vector3
 
 do
-    --// Team Checker
+    --// Is Teammate
     local Teams    = shared.Teams :: Teams
     local GetTeams = Teams.GetTeams
 
-    function TeamChecker(Player: Player): boolean
+    function IsTeammate(Player: Player): boolean
         if not Shared.TeamCheck then return false end
         if #GetTeams(Teams) < 2 then return false end
 
@@ -135,11 +136,11 @@ do
         return (Player :: any)[Key] == (Speaker :: any)[Key]
     end
 
-    --// Alive Checker
+    --// Is Dead
     local Players_ = Entities.Players
     local Npcs_    = Entities.Npcs
 
-    function AliveChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+    function IsDead(Player: Player | Model, IsNpc: boolean | nil): boolean
         if not Shared.AliveCheck then return false end
 
         if IsNpc then
@@ -148,18 +149,18 @@ do
         return if Players_[Player :: Player] then not Players_[Player :: Player].Alive else true
     end
 
-    --// Filter Checker
+    --// Is Filtered
     local table_find
         = table.find
 
     local FilteredPlayers = Shared.FilteredPlayers
 
-    function FilterChecker(Player: Player): boolean
+    function IsFiltered(Player: Player): boolean
         return Shared.FilterCheck and (Shared.PlayerFilterMode == "Blacklist") == (table_find(FilteredPlayers, Player) ~= nil)
     end
 
-    --// ForceField Checker
-    function ForceFieldChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+    --// Not Vulnerable
+    function NotVulnerable(Player: Player | Model, IsNpc: boolean | nil): boolean
         if not Shared.ForceFieldCheck then return false end
 
         if IsNpc then
@@ -168,34 +169,35 @@ do
         return if Players_[Player :: Player] then Players_[Player :: Player].ForceField ~= nil else false
     end
 
-    --// Common Checker
-    function CommonChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+    --// Common Checks
+    function CommonChecks(Player: Player | Model, IsNpc: boolean | nil): boolean
         return (
-            (not IsNpc and TeamChecker(Player :: Player)) or
-            AliveChecker(Player, IsNpc) or
-            (not IsNpc and ForceFieldChecker(Player :: Player)) or
-            ForceFieldChecker(Player, IsNpc)
+            (not IsNpc and IsTeammate(Player :: Player)) or
+            IsDead(Player, IsNpc) or
+            (not IsNpc and NotVulnerable(Player :: Player)) or
+            NotVulnerable(Player, IsNpc) or
+            (not IsNpc and IsFiltered(Player :: Player))
         )
     end
 
-    --// On Screen Checker
+    --// Is Off Screen
     local WorldToViewportPoint = Camera.WorldToViewportPoint
 
-    function OnScreenChecker(Target: Vector3): boolean
+    function IsOffScreen(Target: Vector3): boolean
         if not Shared.OnScreenCheck then return false end
 
         local _, IsOnScreen = WorldToViewportPoint(Camera, Target)
         return IsOnScreen
     end
 
-    --// Wall Checker
+    --// Is Obscured
     local      IsA, RaycastParams_new
         = game.IsA, RaycastParams.new
 
     local Exclude = Enum.RaycastFilterType.Exclude
     local Raycast = Workspace.Raycast
 
-    function WallChecker(Original: Vector3, Direction: Vector3, ...: any): boolean
+    function IsObscured(Original: Vector3, Direction: Vector3, ...: any): boolean
         if not Shared.WallCheck then return false end
 
         local RaycastParam = RaycastParams_new()
@@ -209,7 +211,7 @@ do
         return if Shared.WallCheckMethod == "CheckCanCollide" and IsA(HitPart, "BasePart") then (HitPart :: BasePart).CanCollide else false
     end
 
-    --// Distance Checker
+    --// Is Out of Range
     local Vector2_new, math_pi, math_cos, math_sin
         = Vector2.new, math.pi, math.cos, math.sin
 
@@ -221,7 +223,7 @@ do
         return (Position2.X - Position1.X) * (Position3.Y - Position1.Y) - (Position2.Y - Position1.Y) * (Position3.X - Position1.X)
     end
 
-    --/ Helper function, make DistanceChecker more accurate in polygon fov
+    --/ Helper function, make IsOutOfRange more accurate in polygon fov
     local function IsPointInRegularPolygon(
         Point:    Vector2,
         Center:   Vector2,
@@ -264,28 +266,30 @@ do
         return true
     end
 
-    function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean | number
+    function IsOutOfRange(Original: Vector3 | nil, Target: Vector3): boolean
+        local IsWithinFov = true
+
         if Fov.Enabled then
+            IsWithinFov = false
+
             local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
-            if not IsOnScreen then return true end
+            if IsOnScreen then
+                local Position2D = Vector3ToVector2(ScreenPosition)
+                local NumSides   = Fov.NumSides
+                local Magnitude  = (Position2D - Fov.Position).Magnitude
 
-            local Position2D = Vector3ToVector2(ScreenPosition)
-            local NumSides   = Fov.NumSides
-            local Magnitude  = (Position2D - Fov.Position).Magnitude
-
-            if Fov.Polygon then
-                if NumSides > 30 then
-                    return (Magnitude > Fov.Radius) or Magnitude
+                if Fov.Polygon and NumSides < 30 then
+                    IsWithinFov = IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, NumSides)
+                else
+                    IsWithinFov = Magnitude < Fov.Radius
                 end
-
-                return not IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, Fov.NumSides) or Magnitude
-            else
-                return ((Position2D - Fov.Position).Magnitude > Fov.Radius) or Magnitude
             end
         end
 
-        local Distance = (Original or SpeakerPosition - Target).Magnitude
-        return (not (Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance)) or Distance
+        local Distance      = (Original or SpeakerPosition - Target).Magnitude
+        local IsWithinRange = Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance
+
+        return not (IsWithinFov and IsWithinRange)
     end
 
     --// Get Priority
@@ -336,9 +340,9 @@ do
         if not HitPart then return end
 
         local Position = HitPart.Position
-        if DistanceChecker(Original, Position) then return end
-        if OnScreenChecker(Position) then return end
-        if WallChecker(
+        if IsOutOfRange(Original, Position) then return end
+        if IsOffScreen(Position) then return end
+        if IsObscured(
             Position,
             (Original or SpeakerPosition) - Position,
             HitPart,
@@ -636,17 +640,17 @@ local Aimbot = {
         local Target: BasePart?
 
         --/ Upvalues -> local values
-        local CommonChecker  = CommonChecker
+        local CommonChecks   = CommonChecks
         local EasyGetHitPart = EasyGetHitPart
         local First, Second  = GetPriorities()
 
         local function FromPlayers(
             --/ Local values -> upvalues -> params
-            CommonChecker:  (Player) -> boolean,
+            CommonChecks:  (Player) -> boolean,
             EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
         )
             for Player, PlayerStore in Players_ do
-                if CommonChecker(Player) then continue end
+                if CommonChecks(Player) then continue end
 
                 local RootPart_ = PlayerStore.RootPart
                 local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_)
@@ -663,11 +667,11 @@ local Aimbot = {
         end
 
         local function FromNpcs(
-            CommonChecker:  (Model, boolean) -> boolean,
+            CommonChecks:  (Model, boolean) -> boolean,
             EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
         )
             for Npc, NpcStore in Npcs_ do
-                if CommonChecker(Npc, true) then continue end
+                if CommonChecks(Npc, true) then continue end
 
                 local RootPart_ = NpcStore.RootPart
                 local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_)
@@ -684,16 +688,16 @@ local Aimbot = {
         end
 
         if First == "Players" then
-            FromPlayers(CommonChecker, EasyGetHitPart)
+            FromPlayers(CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Npcs" then
-                FromNpcs(CommonChecker, EasyGetHitPart)
+                FromNpcs(CommonChecks, EasyGetHitPart)
             end
         elseif First == "Npcs" then
-            FromNpcs(CommonChecker, EasyGetHitPart)
+            FromNpcs(CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Players" then
-                FromPlayers(CommonChecker, EasyGetHitPart)
+                FromPlayers(CommonChecks, EasyGetHitPart)
             end
         end
 
@@ -747,9 +751,9 @@ local Aimbot = {
 
                 if _Target then
                     if (
-                        DistanceChecker(nil, _Target.Position) or
-                        OnScreenChecker(_Target.Position) or
-                        WallChecker(_Target.Position, SpeakerPosition - _Target.Position, _Target)
+                        IsOutOfRange(nil, _Target.Position) or
+                        IsOffScreen(_Target.Position) or
+                        IsObscured(_Target.Position, SpeakerPosition - _Target.Position, _Target)
                     ) then
                         return task_defer(CancelLock)
                     end
@@ -806,7 +810,7 @@ local SilentAim = {
     local function GetTarget(Original: Vector3, WallCheckExclude: {BasePart}?): (BasePart | nil, Vector3)
         local Target: BasePart?
 
-        local CommonChecker  = CommonChecker
+        local CommonChecks   = CommonChecks
         local EasyGetHitPart = EasyGetHitPart
         local First, Second  = GetPriorities()
 
@@ -814,7 +818,7 @@ local SilentAim = {
             --/ Local values -> upvalues -> params | upvalues -> params
             Original:         Vector3,
             WallCheckExclude: {BasePart}?,
-            CommonChecker:    (Player) -> boolean,
+            CommonChecks:    (Player) -> boolean,
             EasyGetHitPart:   (
                 BasePart?,
                 BasePart?,
@@ -823,7 +827,7 @@ local SilentAim = {
             ) -> nil | BasePart
         )
             for Player, PlayerStore in Players_ do
-                if CommonChecker(Player) then continue end
+                if CommonChecks(Player) then continue end
 
                 local RootPart_ = PlayerStore.RootPart
                 local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_, Original, WallCheckExclude)
@@ -845,7 +849,7 @@ local SilentAim = {
         local function FromNpcs(
             Original:         Vector3,
             WallCheckExclude: {BasePart}?,
-            CommonChecker:    (Model, boolean) -> boolean,
+            CommonChecks:    (Model, boolean) -> boolean,
             EasyGetHitPart:   (
                 BasePart?,
                 BasePart?,
@@ -854,7 +858,7 @@ local SilentAim = {
             ) -> nil | BasePart
         )
             for Npc, NpcStore in Npcs_ do
-                if CommonChecker(Npc, true) then continue end
+                if CommonChecks(Npc, true) then continue end
 
                 local RootPart_ = NpcStore.RootPart
                 local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_, Original, WallCheckExclude)
@@ -872,16 +876,16 @@ local SilentAim = {
         end
 
         if First == "Players" then
-            FromPlayers(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+            FromPlayers(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Npcs" then
-                FromNpcs(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+                FromNpcs(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
             end
         elseif First == "Npcs" then
-            FromNpcs(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+            FromNpcs(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Players" then
-                FromPlayers(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+                FromPlayers(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
             end
         end
 
