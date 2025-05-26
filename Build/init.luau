@@ -96,13 +96,6 @@ SUBCOMMANDS:
             a temporary directory is created inside of this directory path, and is removed
             by the time Wax has completed processing
 
-      * extra-offset-lines[=0]
-            (Only applicable to when `minify` is set to false) Internally acknowledges
-            any extra lines offset from the top of the script (like if you're adding a
-            header of sorts to the codegen) for line debugging info. Ths MUST be exactly
-            accurate to its name (*extra* lines, so you may want to do something like
-            `#ExtraHeader - 1` if you're using this option)
-
       * ci-mode[=true]
             (*Primarily* for automated CI pipelines or deployment systems) Never gives
             any user input prompts, and will *always* exit with a `1` status code upon an
@@ -123,8 +116,8 @@ local function EncodeShellData(shellData: string): string
     else '"' .. StringUtils.SerializeStringData(shellData) .. '"'
 end
 
-if not fs.isDir("Distribution") then
-    fs.writeDir("Distribution")
+if not fs.isDir("Tests") then
+    fs.writeDir("Tests")
 end
 
 local CommandArgs = table.clone(process.args)
@@ -155,12 +148,11 @@ elseif Subcommand == "bundle" then
     local Options = ParseArgs(CommandArgs, {
         -- Option = {Type, DefaultValue, IsRequired?}
         ["input"] = {"string", "default.project.json"},
-        ["output"] = {"string", "Distribution/Script.luau"},
+        ["output"] = {"string", "Tests/Script.luau"},
         ["minify"] = {"boolean", false},
         ["env-name"] = {"string", "MFeee~ New"},
         ["darklua-config-path"] = {"string", "Build/Darklua.json"},
-        ["temp-dir-base"] = {"string", "Distribution"},
-        ["extra-offset-lines"] = {"number", 0},
+        ["temp-dir-base"] = {"string", "Tests"},
         ["ci-mode"] = {"boolean", true},
         ["verbose"] = {"boolean", true},
         ["header"] = {"string", "Build/Header.luau"},
@@ -339,16 +331,6 @@ elseif Subcommand == "bundle" then
         fs.removeDir(TempDir)
     end
 
-    ExtraOffsetLines = Options["extra-offset-lines"]
-    if ExtraOffsetLines < 0 then
-        Log.Error(`Option \`extra-offset-lines\` ({ExtraOffsetLines}) cannot be less than 0\n`)
-        print(DirectionToHelp)
-        process.exit(1)
-    end
-    if not Minify and ExtraOffsetLines > 0 then
-        RunIfVerbose(Log.Info, `(Note) Runtime line debugging *will* display with the assumption that \`{ExtraOffsetLines}\` lines will be added to the output by you manually; make sure this is EXACT, as debugging info could be inaccurate otherwise`)
-    end
-
     -- Now we'll start non-option processing
 
     -- Now, we may need to eventually worry about exitting upon random unhandled errors
@@ -419,7 +401,7 @@ elseif Subcommand == "bundle" then
         RemoveFile(ModelOutputFileName) -- Remove temporary rbxm
     end
 
-    local BundleSuccess, CodegenOutputOrError, FailedCompilations = pcall(BundleModel, ModelRoot, EnvName, Minify, ExtraOffsetLines, Verbose)
+    local BundleSuccess, CodegenOutputOrError, FailedCompilations = pcall(BundleModel, ModelRoot, EnvName, Minify, 0, Verbose)
 
     if not BundleSuccess then
         BadExit(`Error during BundleModel() process: {CodegenOutputOrError}`)
