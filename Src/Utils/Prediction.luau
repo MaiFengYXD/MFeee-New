@@ -170,7 +170,7 @@ local function SolveQuartic(Coeff0: number, Coeff1: number, Coeff2: number, Coef
 end
 
 local function SolveTrajectory(
-    Original:        Vector3,
+    Origin:          Vector3,
     ProjectileSpeed: number,
     Gravity:         number?,
     PickLongest:     boolean,
@@ -180,7 +180,7 @@ local function SolveTrajectory(
     PlayerHeight:    number?,
     RaycastParams:   RaycastParams?
 ): Vector3?
-    local Displacement = TargetPosition - Original
+    local Displacement = TargetPosition - Origin
     local TargetVelX, TargetVelY, TargetVelZ = TargetVelocity.X, TargetVelocity.Y, TargetVelocity.Z
     local DispX, DispY, DispZ = Displacement.X, Displacement.Y, Displacement.Z
     local GravityFactor = -0.5 * (Gravity or Workspace.Gravity)
@@ -201,7 +201,7 @@ local function SolveTrajectory(
 
             EstimatedTime -= math_sqrt(((TargetPosition - NewTarget).Magnitude * 2) / PlayerGravity)
             TargetPosition = NewTarget
-            DispY = (TargetPosition - Original).Y
+            DispY = (TargetPosition - Origin).Y
             TargetVelY = 0
         end
     end
@@ -230,7 +230,7 @@ local function SolveTrajectory(
             local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
             local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-            return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
+            return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
         end
     elseif Gravity == 0 then
         local Time = Displacement.Magnitude / ProjectileSpeed
@@ -239,7 +239,7 @@ local function SolveTrajectory(
         local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
         local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-        return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
+        return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
     end
     return nil
 end
