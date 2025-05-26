@@ -1,11 +1,7 @@
 local table_insert, table_find, task_spawn, string_format, string_match, tostring, tonumber, select, pcall
     = table.insert, table.find, task.spawn, string.format, string.match, tostring, tonumber, select, pcall
 
-local UiManager = {
-    Library      = nil,
-    ThemeManager = nil,
-    SaveManager  = nil
-}
+local UiManager = {}
 
 local ExecutorSupport = wax.shared.ExecutorSupport
 local FileHelper      = wax.shared.FileHelper
@@ -21,35 +17,32 @@ local DefaultSoundID
 local UpdateSettings
 
 UiManager.shared = {
-    WindowStyle = "Obsidian",
-    NotifySound = "Obsidian",
-    NotifySide  = "TopRight",
-    EasingMode  = "Quartic",
+    WindowStyle     = "Obsidian" :: "Obsidian" | "Linoria",
+    NotifySound     = "Obsidian",
+    NotifySide      = "TopRight",
+    EasingMode      = "Quartic",
     EasingDirection = "Out",
     ToggleKeybind1  = "KeyCode",
     ToggleKeybind2  = "RightControl",
-    ForceCheckbox = false,
-    CustomCursor  = false,
-    KeybindFrame  = false,
-    AlwaysOnTop   = false,
-    DisableNotify = false,
-    UiActivated   = true,
-    UiCorner = 5,
-    DPIScale = 100,
-    Skipped  = 0,
-    NotifyVolume   = 200,
-    NotifySoundId  = nil,
-    EasingDuration = 1
+    ForceCheckbox   = false,
+    CustomCursor    = false,
+    KeybindFrame    = false,
+    AlwaysOnTop     = false,
+    DisableNotify   = false,
+    UiActivated     = true,
+    UiCorner        = 5,
+    DPIScale        = 100,
+    Skipped         = 0,
+    NotifyVolume    = 200,
+    EasingDuration  = 1
 };do
-    local self = UiManager
-
     local HttpService = shared.HttpService
     local JSONDecode  = HttpService.JSONDecode
     local JSONEncode  = HttpService.JSONEncode
 
     local WriteFile = FileHelper.WriteFile
 
-    local _Success, PreData = pcall(JSONEncode, HttpService, self.shared)
+    local _Success, PreData = pcall(JSONEncode, HttpService, UiManager.shared)
 
     local SettingsJson = FileHelper:CheckFile("MFeee-New/ui.settings.json", _Success and PreData or "{}")
     local _, Data = xpcall(JSONDecode, function()
@@ -57,28 +50,28 @@ UiManager.shared = {
     end, HttpService, SettingsJson)
 
     for Key, Value in Data do
-        if self.shared[Key] == nil then continue end
-        self.shared[Key] = Value
+        if UiManager.shared[Key] == nil then continue end
+        UiManager.shared[Key] = Value
     end
 
     function UpdateSettings()
-        local Success, NewData = pcall(JSONEncode, HttpService, self.shared)
+        local Success, NewData = pcall(JSONEncode, HttpService, UiManager.shared)
         if Success then WriteFile(FileHelper, "MFeee-New/ui.settings.json", NewData) end
     end
 
-    self.Library      = require(`{self.shared.WindowStyle}/Library`)
-    self.SaveManager  = require(`{self.shared.WindowStyle}/SaveManager`)
-    self.ThemeManager = require(`{self.shared.WindowStyle}/ThemeManager`)
+    UiManager.Library      = require(`{UiManager.shared.WindowStyle}/Library`)
+    UiManager.SaveManager  = require(`{UiManager.shared.WindowStyle}/SaveManager`)
+    UiManager.ThemeManager = require(`{UiManager.shared.WindowStyle}/ThemeManager`)
 
-    self.Toggles = self.Library.Toggles
-    self.Options = self.Library.Options
-    self.Buttons = self.Library.Buttons
-    self.Labels  = self.Library.Labels
+    UiManager.Toggles = UiManager.Library.Toggles
+    UiManager.Options = UiManager.Library.Options
+    UiManager.Buttons = UiManager.Library.Buttons
+    UiManager.Labels  = UiManager.Library.Labels
 
-    self.Library.ForceCheckbox = self.shared.ForceCheckbox
+    UiManager.Library.ForceCheckbox = UiManager.shared.ForceCheckbox
 
-    DefaultSoundID     = self.shared.NotifySound == "Obsidian" and 4590662766 or 4590657391
-    self.shared.NotifySoundId = self.shared.NotifySoundId or DefaultSoundID
+    DefaultSoundID = UiManager.shared.NotifySound == "Obsidian" and 4590662766 or 4590657391
+    UiManager.shared.NotifySoundId = UiManager.shared.NotifySoundId or DefaultSoundID
 end
 
 do
@@ -90,41 +83,41 @@ do
 
     local SoundService = shared.SoundService
 
-    local function Alert(self)
+    local function Alert()
         local Sound = Instance_new("Sound", SoundService);do
-            Sound.SoundId = `rbxassetid://{self.shared.NotifySoundId}`
-            Sound.Volume  = self.shared.NotifyVolume / 100
+            Sound.SoundId = `rbxassetid://{UiManager.shared.NotifySoundId}`
+            Sound.Volume  = UiManager.shared.NotifyVolume / 100
             Sound.PlayOnRemove = true
             Destroy(Sound)
         end
     end
 
     function UiManager:Notify(...)
-        if self.shared.DisableNotify then return end
+        if UiManager.shared.DisableNotify then return end
 
-        task_spawn(Alert, self)
+        task_spawn(Alert)
         return Notify(Library, ...)
     end
 end
 
 function UiManager:CreateWindow()
-    self.Window = self.Library:CreateWindow({
+    UiManager.Window = UiManager.Library:CreateWindow({
         Font  = Enum.Font.BuilderSans,
         Icon  = 77335290652571,
         Title = `MFeee~ New {wax.shared.Emoji}`,
         Footer = `{wax.shared.ScriptDisplay} | {wax.shared.ScriptVersion}`,
         Center = true,
         AutoShow = true,
-        AlwaysOnTop  = self.shared.AlwaysOnTop,
-        CornerRadius = self.shared.UiCorner,
-        NotifySide   = self.shared.NotifySide,
-        ShowCustomCursor = self.shared.CustomCursor
+        AlwaysOnTop  = UiManager.shared.AlwaysOnTop,
+        CornerRadius = UiManager.shared.UiCorner,
+        NotifySide   = UiManager.shared.NotifySide,
+        ShowCustomCursor = UiManager.shared.CustomCursor
     })
 
-    self.Library.KeybindFrame.Visible = self.shared.KeybindFrame
+    UiManager.Library.KeybindFrame.Visible = UiManager.shared.KeybindFrame
 
-    return self.Window, (function()
-        self.CreateWindow = function() end
+    return UiManager.Window, (function()
+        UiManager.CreateWindow = function() end
         return nil
     end)()
 end
@@ -133,66 +126,66 @@ function UiManager:CreateMainTab()
     local UniversalMISC = require("../Universal/MISC")
 
     --// Main Tab //
-    self.MainTab = self.Window:AddTab(GetTranslation(Translations, "Main"), "house")
+    UiManager.MainTab = UiManager.Window:AddTab(GetTranslation(Translations, "Main"), "house")
 
     --// General Groupbox (Left)
-    self.MainTabGeneralGroup = self.MainTab:AddLeftGroupbox(GetTranslation(Translations, "General"))
+    UiManager.MainTabGeneralGroup = UiManager.MainTab:AddLeftGroupbox(GetTranslation(Translations, "General"))
 
-    self.MainTabGeneralGroup:AddToggle("AntiAFK", {
+    UiManager.MainTabGeneralGroup:AddToggle("AntiAFK", {
         Text = GetTranslation(Translations, "Anti AFK"),
         Disabled = not ExecutorSupport.getconnections,
         DisabledTooltip = string_format(DoesntSupport, "getconnections")
     })
 
-    self.MainTabGeneralGroup:AddToggle("AntiKick", {
+    UiManager.MainTabGeneralGroup:AddToggle("AntiKick", {
         Text = GetTranslation(Translations, "Anti Kick (Client)"),
         Disabled = not (ExecutorSupport.hookfunction and ExecutorSupport.hookmetamethod),
         DisabledTooltip = string_format(DoesntSupport, "hookfunction/hookmetamethod")
     })
 
     --// General Groupbox OnChanged
-    self.Toggles.AntiAFK :OnChanged(UniversalMISC.AntiAFK .Start)
-    self.Toggles.AntiKick:OnChanged(UniversalMISC.AntiKick.Start)
+    UiManager.Toggles.AntiAFK :OnChanged(UniversalMISC.AntiAFK .Start)
+    UiManager.Toggles.AntiKick:OnChanged(UniversalMISC.AntiKick.Start)
 
     --// Other Groupbox (Right)
-    self.MainTabOtherGroup = self.MainTab:AddRightGroupbox(GetTranslation(Translations, "Other"))
+    UiManager.MainTabOtherGroup = UiManager.MainTab:AddRightGroupbox(GetTranslation(Translations, "Other"))
 
     do
-        self.ClickTimesLabel = self.MainTabOtherGroup:AddLabel(string_format(GetTranslation(Translations, "You clicked %d times"), self.shared.Skipped))
+        UiManager.ClickTimesLabel = UiManager.MainTabOtherGroup:AddLabel(string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
 
-        local SetText = self.ClickTimesLabel.SetText
+        local SetText = UiManager.ClickTimesLabel.SetText
         local ClickMultiplier = 1
 
-        self.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
-            self.shared.Skipped += ClickMultiplier
-            SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), self.shared.Skipped))
+        UiManager.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
+            UiManager.shared.Skipped += ClickMultiplier
+            SetText(UiManager.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
             UpdateSettings()
         end)
 
-        self.MainTabOtherGroup:AddInput("ClickMultiplier", {
+        UiManager.MainTabOtherGroup:AddInput("ClickMultiplier", {
             Text = GetTranslation(Translations, "Click Multiplier"),
             Default = ClickMultiplier,
             Numeric = true,
             AllowEmpty = false
-        })
+        });
 
-        self.MainTabOtherGroup:AddButton({
+        (UiManager.MainTabOtherGroup :: any):AddButton({
             Text = GetTranslation(Translations, "Reset Clicks"),
             DoubleClick = true,
             Func = function()
-                self:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), self.shared.Skipped))
-                self.shared.Skipped = 0
-                SetText(self.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), self.shared.Skipped))
+                UiManager:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), UiManager.shared.Skipped))
+                UiManager.shared.Skipped = 0
+                SetText(UiManager.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
                 UpdateSettings()
             end
         })
 
-        self.Options.ClickMultiplier:OnChanged(function(Multiplier)
+        UiManager.Options.ClickMultiplier:OnChanged(function(Multiplier)
             ClickMultiplier = Multiplier
         end)
     end
 
-    self.MainTabOtherGroup:AddDivider()
+    UiManager.MainTabOtherGroup:AddDivider()
 
     do
         local EasingModes = {}
@@ -201,12 +194,12 @@ function UiManager:CreateMainTab()
             table_insert(EasingModes, Mode)
         end
 
-        self.MainTabOtherGroup:AddDropdown("EasingMode", {
+        UiManager.MainTabOtherGroup:AddDropdown("EasingMode", {
             Text   = GetTranslation(Translations, "Easing Mode"),
             Values = EasingModes
         })
 
-        self.MainTabOtherGroup:AddDropdown("EasingDirection", {
+        UiManager.MainTabOtherGroup:AddDropdown("EasingDirection", {
             Text = GetTranslation(Translations, "Easing Direction"),
             Values = {
                 "In",
@@ -215,7 +208,7 @@ function UiManager:CreateMainTab()
             }
         })
 
-        self.MainTabOtherGroup:AddSlider("EasingDuration", {
+        UiManager.MainTabOtherGroup:AddSlider("EasingDuration", {
             Text = GetTranslation(Translations, "Easing Duration"),
             Min = 0.1,
             Max = 3,
@@ -224,36 +217,36 @@ function UiManager:CreateMainTab()
     end
 
     --// Other Groupbox OnChanged
-    self.Options.EasingMode:OnChanged(function(Mode)
+    UiManager.Options.EasingMode:OnChanged(function(Mode)
         EasingLibrary.EasingMode = Mode
     end)
 
-    self.Options.EasingDirection:OnChanged(function(Direction)
+    UiManager.Options.EasingDirection:OnChanged(function(Direction)
         EasingLibrary.EasingDirection = Direction
     end)
 
-    self.Options.EasingDuration:OnChanged(function(Duration)
+    UiManager.Options.EasingDuration:OnChanged(function(Duration)
         EasingLibrary.EasingDuration = Duration
     end)
 
-    self.Options.EasingMode:SetValue(self.shared.EasingMode)
-    self.Options.EasingDirection:SetValue(self.shared.EasingDirection)
-    self.Options.EasingDuration:SetValue(self.shared.EasingDuration)
+    UiManager.Options.EasingMode:SetValue(UiManager.shared.EasingMode)
+    UiManager.Options.EasingDirection:SetValue(UiManager.shared.EasingDirection)
+    UiManager.Options.EasingDuration:SetValue(UiManager.shared.EasingDuration)
 
-    return self.MainTab
+    return UiManager.MainTab
 end
 
 function UiManager:CreatePlayerTab()
     local UniversalPlayer = require("../Universal/Player")
 
     --// Player Tab //
-    self.PlayerTab = self.Window:AddTab(GetTranslation(Translations, "Player"), "user")
+    UiManager.PlayerTab = UiManager.Window:AddTab(GetTranslation(Translations, "Player"), "user")
 
     --// Left Tab Box
-    self.PlayerLeftTabBox = self.PlayerTab:AddLeftTabbox()
+    UiManager.PlayerLeftTabBox = UiManager.PlayerTab:AddLeftTabbox()
 
     --// Player Overrides Tab
-    self.PlayerLeftTabBoxOverridesTab = self.PlayerLeftTabBox:AddTab(GetTranslation(Translations, "Overrides"))
+    UiManager.PlayerLeftTabBoxOverridesTab = UiManager.PlayerLeftTabBox:AddTab(GetTranslation(Translations, "Overrides"))
 
     local function Round(Number: number | nil)
         return Number and math.round(Number * 10) / 10
@@ -271,11 +264,11 @@ function UiManager:CreatePlayerTab()
         local TempJumpHeight = Round(tonumber(TempHumanoid.JumpHeight)) or 7.2
         local TempJumpPower  = Round(tonumber(TempHumanoid.JumpPower))  or 50
 
-        self.PlayerLeftTabBoxOverridesTab:AddToggle("WalkSpeedOverride", {
+        UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("WalkSpeedOverride", {
             Text = GetTranslation(Translations, "WalkSpeed Override")
         })
 
-        self.PlayerLeftTabBoxOverridesTab:AddSlider("WalkSpeed", {
+        UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("WalkSpeed", {
             Text = GetTranslation(Translations, "WalkSpeed"),
             Default = TempWalkSpeed,
             Min = 0,
@@ -285,11 +278,11 @@ function UiManager:CreatePlayerTab()
             HideMax = true
         })
 
-        self.PlayerLeftTabBoxOverridesTab:AddToggle("JumpHeightOverride", {
+        UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("JumpHeightOverride", {
             Text = GetTranslation(Translations, "JumpHeight Override")
         })
 
-        self.PlayerLeftTabBoxOverridesTab:AddSlider("JumpHeight", {
+        UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("JumpHeight", {
             Text = GetTranslation(Translations, "JumpHeight"),
             Default = TempJumpHeight,
             Min = 0,
@@ -300,11 +293,11 @@ function UiManager:CreatePlayerTab()
             HideMax = true
         })
 
-        self.PlayerLeftTabBoxOverridesTab:AddToggle("JumpPowerOverride", {
+        UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("JumpPowerOverride", {
             Text = GetTranslation(Translations, "JumpPower Override")
-        })
+        });
 
-        self.PlayerLeftTabBoxOverridesTab:AddSlider("JumpPower", {
+        (UiManager.PlayerLeftTabBoxOverridesTab :: any):AddSlider("JumpPower", {
             Text = GetTranslation(Translations, "JumpPower"),
             Default = TempJumpPower,
             Min = 0,
@@ -314,11 +307,11 @@ function UiManager:CreatePlayerTab()
         })
     end
 
-    self.PlayerLeftTabBoxOverridesTab:AddToggle("GravityOverride", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("GravityOverride", {
         Text = GetTranslation(Translations, "Gravity Override")
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddSlider("Gravity", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("Gravity", {
         Text = GetTranslation(Translations, "Gravity"),
         Default = math.floor(shared.Workspace.Gravity),
         Min = 0,
@@ -328,21 +321,21 @@ function UiManager:CreatePlayerTab()
         HideMax = true
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddDivider()
+    UiManager.PlayerLeftTabBoxOverridesTab:AddDivider()
 
-    self.PlayerLeftTabBoxOverridesTab:AddToggle("NoAcceleration", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("NoAcceleration", {
         Text = GetTranslation(Translations, "No Acceleration")
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddToggle("AntiVoidFall", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("AntiVoidFall", {
         Text = GetTranslation(Translations, "Anti Void Fall")
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddToggle("SpeedBoost", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("SpeedBoost", {
         Text = GetTranslation(Translations, "Speed Boost")
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddSlider("BoostSpeed", {
+    UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("BoostSpeed", {
         Text = GetTranslation(Translations, "Boost Speed"),
         Default = UniversalPlayer.SpeedBoost.BoostSpeed,
         Min = 0,
@@ -352,9 +345,9 @@ function UiManager:CreatePlayerTab()
         HideMax = true
     })
 
-    self.PlayerLeftTabBoxOverridesTab:AddDivider()
+    UiManager.PlayerLeftTabBoxOverridesTab:AddDivider()
 
-    self.PlayerLeftTabBoxOverridesTab
+    UiManager.PlayerLeftTabBoxOverridesTab
     :AddToggle("Noclip", {
         Text = GetTranslation(Translations, "Noclip")
     })
@@ -365,7 +358,7 @@ function UiManager:CreatePlayerTab()
         SyncToggleState = true
     })
 
-    self.PlayerLeftTabBoxOverridesTab
+    UiManager.PlayerLeftTabBoxOverridesTab
     :AddToggle("VehicleNoclip", {
         Text = GetTranslation(Translations, "Vehicle Noclip")
     })
@@ -377,37 +370,37 @@ function UiManager:CreatePlayerTab()
     })
 
     --// Player Groupbox OnChanged
-    self.Toggles.WalkSpeedOverride :OnChanged(UniversalPlayer.WalkSpeed.Override)
-    self.Toggles.JumpHeightOverride:OnChanged(UniversalPlayer.JumpHeight.Override)
-    self.Toggles.JumpPowerOverride :OnChanged(UniversalPlayer.JumpPower.Override)
-    self.Toggles.GravityOverride   :OnChanged(UniversalPlayer.Gravity.Override)
+    UiManager.Toggles.WalkSpeedOverride :OnChanged(UniversalPlayer.WalkSpeed.Override)
+    UiManager.Toggles.JumpHeightOverride:OnChanged(UniversalPlayer.JumpHeight.Override)
+    UiManager.Toggles.JumpPowerOverride :OnChanged(UniversalPlayer.JumpPower.Override)
+    UiManager.Toggles.GravityOverride   :OnChanged(UniversalPlayer.Gravity.Override)
 
-    self.Toggles.NoAcceleration:OnChanged(UniversalPlayer.NoAcceleration.Override)
-    self.Toggles.AntiVoidFall  :OnChanged(UniversalPlayer.AntiVoidFall.Override)
-    self.Toggles.SpeedBoost    :OnChanged(UniversalPlayer.SpeedBoost.Override)
+    UiManager.Toggles.NoAcceleration:OnChanged(UniversalPlayer.NoAcceleration.Override)
+    UiManager.Toggles.AntiVoidFall  :OnChanged(UniversalPlayer.AntiVoidFall.Override)
+    UiManager.Toggles.SpeedBoost    :OnChanged(UniversalPlayer.SpeedBoost.Override)
 
-    self.Toggles.Noclip       :OnChanged(UniversalPlayer.Noclip.CharacterNoclip)
-    self.Toggles.VehicleNoclip:OnChanged(UniversalPlayer.Noclip.VehicleNoclip)
+    UiManager.Toggles.Noclip       :OnChanged(UniversalPlayer.Noclip.CharacterNoclip)
+    UiManager.Toggles.VehicleNoclip:OnChanged(UniversalPlayer.Noclip.VehicleNoclip)
 
-    self.Options.WalkSpeed :OnChanged(UniversalPlayer.WalkSpeed.SetValue)
-    self.Options.JumpHeight:OnChanged(UniversalPlayer.JumpHeight.SetValue)
-    self.Options.JumpPower :OnChanged(UniversalPlayer.JumpPower.SetValue)
-    self.Options.Gravity   :OnChanged(UniversalPlayer.Gravity.SetValue)
+    UiManager.Options.WalkSpeed :OnChanged(UniversalPlayer.WalkSpeed.SetValue)
+    UiManager.Options.JumpHeight:OnChanged(UniversalPlayer.JumpHeight.SetValue)
+    UiManager.Options.JumpPower :OnChanged(UniversalPlayer.JumpPower.SetValue)
+    UiManager.Options.Gravity   :OnChanged(UniversalPlayer.Gravity.SetValue)
 
-    self.Options.BoostSpeed:OnChanged(function(BoostSpeed)
+    UiManager.Options.BoostSpeed:OnChanged(function(BoostSpeed)
         UniversalPlayer.SpeedBoost.BoostSpeed = BoostSpeed
     end)
 
     --// Fly Groupbox (Right)
-    return self.PlayerTab
+    return UiManager.PlayerTab
 end
 
 function UiManager:CreateUniversalTabs()
     --// MISC Tab //
-    self.MiscTab = self.Window:AddTab(GetTranslation(Translations, "Misc"), "boxes")
+    UiManager.MiscTab = UiManager.Window:AddTab(GetTranslation(Translations, "Misc"), "boxes")
 
     --// Roblox Groupbox (Left)
-    self.MiscTabRobloxGroup = self.MiscTab:AddLeftGroupbox("Roblox")
+    UiManager.MiscTabRobloxGroup = UiManager.MiscTab:AddLeftGroupbox("Roblox")
 
     do
         local StarterGui = shared.StarterGui
@@ -418,50 +411,50 @@ function UiManager:CreateUniversalTabs()
 
         local Toggles = {}
 
-        Toggles.EnableReset = self.MiscTabRobloxGroup:AddToggle("EnableReset", {
+        Toggles.EnableReset = UiManager.MiscTabRobloxGroup:AddToggle("EnableReset", {
             Text = GetTranslation(Translations, "Enable Reset"),
             Default = GetCore(StarterGui, "ResetButtonCallback")
         })
 
-        Toggles.EnablePlayerList = self.MiscTabRobloxGroup:AddToggle("EnablePlayerList", {
+        Toggles.EnablePlayerList = UiManager.MiscTabRobloxGroup:AddToggle("EnablePlayerList", {
             Text = GetTranslation(Translations, "Enable Player List"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.PlayerList)
         })
 
-        Toggles.EnableHealth = self.MiscTabRobloxGroup:AddToggle("EnableHealth", {
+        Toggles.EnableHealth = UiManager.MiscTabRobloxGroup:AddToggle("EnableHealth", {
             Text = GetTranslation(Translations, "Enable Health Bar"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Health)
         })
 
-        Toggles.EnableBackpack = self.MiscTabRobloxGroup:AddToggle("EnableBackpack", {
+        Toggles.EnableBackpack = UiManager.MiscTabRobloxGroup:AddToggle("EnableBackpack", {
             Text = GetTranslation(Translations, "Enable Backpack"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Backpack)
         })
 
-        Toggles.EnableChat = self.MiscTabRobloxGroup:AddToggle("EnableChat", {
+        Toggles.EnableChat = UiManager.MiscTabRobloxGroup:AddToggle("EnableChat", {
             Text = GetTranslation(Translations, "Enable Chat"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Chat)
         })
 
-        Toggles.EnableEmotesMenu = self.MiscTabRobloxGroup:AddToggle("EnableEmotesMenu", {
+        Toggles.EnableEmotesMenu = UiManager.MiscTabRobloxGroup:AddToggle("EnableEmotesMenu", {
             Text = GetTranslation(Translations, "Enable Emotes Menu"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.EmotesMenu)
         })
 
-        Toggles.EnableSelfView = self.MiscTabRobloxGroup:AddToggle("EnableSelfView", {
+        Toggles.EnableSelfView = UiManager.MiscTabRobloxGroup:AddToggle("EnableSelfView", {
             Text = GetTranslation(Translations, "Enable Self View"),
             Tooltip = GetTranslation(Translations, "Avatar \"selfie\" (with facial capture enabled)"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.SelfView)
         })
 
-        self.MiscTabRobloxGroup:AddDivider()
+        UiManager.MiscTabRobloxGroup:AddDivider()
 
-        self.MiscTabRobloxGroup:AddToggle("DevConsoleVisible", {
+        UiManager.MiscTabRobloxGroup:AddToggle("DevConsoleVisible", {
             Text = GetTranslation(Translations, "Dev Console Visible"),
             Default = GetCore(StarterGui, "DevConsoleVisible")
         })
 
-        Toggles.AvatarContextMenu = self.MiscTabRobloxGroup:AddToggle("AvatarContextMenu", {
+        Toggles.AvatarContextMenu = UiManager.MiscTabRobloxGroup:AddToggle("AvatarContextMenu", {
             Text = GetTranslation(Translations, "Avatar Context Menu"),
             Tooltip = GetTranslation(Translations, "Left-clicking on a player's avatar will pop up a context menu, and stop you from moving\n(which players who enjoy Natural Disaster Survival should be very familiar with)"),
             Default = GetCore(StarterGui, "AvatarContextMenuEnabled")
@@ -470,7 +463,7 @@ function UiManager:CreateUniversalTabs()
         --// Roblox Groupbox OnChanged/Connection
         local ChangedToggles = {}
 
-        for Key, Toggle in Toggles do
+        for Key, Toggle: any in Toggles do
             task_spawn(Toggle.OnChanged, Toggle, function()
                 ChangedToggles[Key] = true
             end)
@@ -479,19 +472,19 @@ function UiManager:CreateUniversalTabs()
         local SetCore = StarterGui.SetCore
         local SetCoreGuiEnabled = StarterGui.SetCoreGuiEnabled
 
-        local DevConsoleVisible = self.Toggles.DevConsoleVisible
+        local DevConsoleVisible = UiManager.Toggles.DevConsoleVisible
         local SetValue = DevConsoleVisible.SetValue
 
         local function SetCoreGui(Type)
             local Key = `Enable{Type}`
             if not ChangedToggles[Key] then return end
 
-            SetCoreGuiEnabled(StarterGui, CoreGuiType[Type], self.Toggles[Key].Value)
+            SetCoreGuiEnabled(StarterGui, (CoreGuiType :: any)[Type], UiManager.Toggles[Key].Value)
         end
 
         shared.Connect:GiveSignal("RobloxGuiLoop", shared.RunService.PreRender:Connect(function()
-            if ChangedToggles.EnableReset       then SetCore(StarterGui, "ResetButtonCallback",      self.Toggles.EnableReset.Value      ) end
-            if ChangedToggles.AvatarContextMenu then SetCore(StarterGui, "AvatarContextMenuEnabled", self.Toggles.AvatarContextMenu.Value) end
+            if ChangedToggles.EnableReset       then SetCore(StarterGui, "ResetButtonCallback",      UiManager.Toggles.EnableReset.Value      ) end
+            if ChangedToggles.AvatarContextMenu then SetCore(StarterGui, "AvatarContextMenuEnabled", UiManager.Toggles.AvatarContextMenu.Value) end
 
             SetCoreGui("PlayerList")
             SetCoreGui("Health")
@@ -503,31 +496,31 @@ function UiManager:CreateUniversalTabs()
             SetValue(DevConsoleVisible, GetCore(StarterGui, "DevConsoleVisible"))
         end))
 
-        self.Toggles.DevConsoleVisible:OnChanged(function(Enabled)
+        UiManager.Toggles.DevConsoleVisible:OnChanged(function(Enabled)
             SetCore(StarterGui, "DevConsoleVisible", Enabled)
         end)
     end
 
     --// Settings Tab //
-    self.SettingsTab = self.Window:AddTab(GetTranslation(Translations, "Settings"), "settings")
+    UiManager.SettingsTab = UiManager.Window:AddTab(GetTranslation(Translations, "Settings"), "settings")
 
     --// Menu Groupbox (Left)
-    self.SettingsTabMenuGroup = self.SettingsTab:AddLeftGroupbox(GetTranslation(Translations, "Menu"))
+    UiManager.SettingsTabMenuGroup = UiManager.SettingsTab:AddLeftGroupbox(GetTranslation(Translations, "Menu"))
 
-    self.SettingsTabMenuGroup:AddToggle("OpenKeybindMenu", {
+    UiManager.SettingsTabMenuGroup:AddToggle("OpenKeybindMenu", {
         Text = GetTranslation(Translations, "Open Keybind Menu")
     })
 
-    self.SettingsTabMenuGroup:AddToggle("ShowCustomCursor", {
+    UiManager.SettingsTabMenuGroup:AddToggle("ShowCustomCursor", {
         Text = GetTranslation(Translations, "Show Custom Cursor")
     })
 
-    self.SettingsTabMenuGroup:AddToggle("ForceCheckbox", {
+    UiManager.SettingsTabMenuGroup:AddToggle("ForceCheckbox", {
         Text = GetTranslation(Translations, "Force Checkbox"),
-        Default = self.shared.ForceCheckbox
+        Default = UiManager.shared.ForceCheckbox
     })
 
-    self.SettingsTabMenuGroup
+    UiManager.SettingsTabMenuGroup
     :AddLabel(GetTranslation(Translations, "Menu Keybind"))
     :AddKeyPicker("MenuKeybind", {
         Default = "RightControl",
@@ -536,35 +529,35 @@ function UiManager:CreateUniversalTabs()
         IsMenuKeyPicker = true
     })
 
-    self.SettingsTabMenuGroup:AddDivider()
+    UiManager.SettingsTabMenuGroup:AddDivider()
 
-    self.SettingsTabMenuGroup:AddButton({
+    UiManager.SettingsTabMenuGroup:AddButton({
         Text = GetTranslation(Translations, "Unload"),
         DoubleClick = true,
         Func = wax.shared.OnUnload
     })
 
     --// Theme Groupbox
-    self.ThemeManager:ApplyToTab(self.SettingsTab)
+    UiManager.ThemeManager:ApplyToTab(UiManager.SettingsTab)
 
     --// Menu Groupbox OnChanged
-    self.Toggles.OpenKeybindMenu:OnChanged(function(Enabled)
-        self.shared.KeybindFrame = Enabled
-        self.Library.KeybindFrame.Visible = Enabled
+    UiManager.Toggles.OpenKeybindMenu:OnChanged(function(Enabled)
+        UiManager.shared.KeybindFrame = Enabled
+        UiManager.Library.KeybindFrame.Visible = Enabled
 
         UpdateSettings()
     end)
 
-    self.Toggles.ShowCustomCursor:OnChanged(function(Enabled)
-        self.shared.CustomCursor = Enabled
-        self.Library.ShowCustomCursor = Enabled
+    UiManager.Toggles.ShowCustomCursor:OnChanged(function(Enabled)
+        UiManager.shared.CustomCursor = Enabled
+        UiManager.Library.ShowCustomCursor = Enabled
 
         UpdateSettings()
     end)
 
-    self.Toggles.ForceCheckbox:OnChanged(function(Enabled)
-        self.shared.ForceCheckbox = Enabled
-        self.Library.ForceCheckbox = Enabled
+    UiManager.Toggles.ForceCheckbox:OnChanged(function(Enabled)
+        UiManager.shared.ForceCheckbox = Enabled
+        UiManager.Library.ForceCheckbox = Enabled
 
         UpdateSettings()
     end)
@@ -577,12 +570,12 @@ function UiManager:CreateUniversalTabs()
             function Bindable.OnInvoke(Choice)
                 if Choice ~= "Yes" then return end
 
-                self.Library.RebindMenuKey(Enum.KeyCode.RightControl)
+                UiManager.Library.RebindMenuKey(Enum.KeyCode.RightControl)
 
-                self.shared.ToggleKeybind1 = "KeyCode"
-                self.shared.ToggleKeybind2 = "RightControl"
+                UiManager.shared.ToggleKeybind1 = "KeyCode"
+                UiManager.shared.ToggleKeybind2 = "RightControl"
 
-                self.Options.MenuKeybind:SetValue({"RightControl"})
+                UiManager.Options.MenuKeybind:SetValue({"RightControl"})
 
                 UpdateSettings()
             end
@@ -597,24 +590,24 @@ function UiManager:CreateUniversalTabs()
             })
         end
 
-        self.Options.MenuKeybind:OnChanged(function(Keybind)
+        UiManager.Options.MenuKeybind:OnChanged(function(Keybind)
             CheckStupidMenuKeybind(Keybind)
-            self.Library.RebindMenuKey(Keybind)
+            UiManager.Library.RebindMenuKey(Keybind)
 
-            Keybind = tostring(Keybind)
-            local Keybind1, Keybind2 = string_match(Keybind, "Enum%.(.-)%.(.*)")
+            Keybind = tostring(Keybind) :: any
+            local Keybind1, Keybind2 = string_match(Keybind :: any, "Enum%.(.-)%.(.*)")
             if not (Keybind1 and Keybind2) then return end
 
-            self.shared.ToggleKeybind1 = Keybind1
-            self.shared.ToggleKeybind2 = Keybind2
+            UiManager.shared.ToggleKeybind1 = Keybind1
+            UiManager.shared.ToggleKeybind2 = Keybind2
 
             UpdateSettings()
         end)
 
         local Key
 
-        local Bind1: string = self.shared.ToggleKeybind1
-        local Bind2: string = self.shared.ToggleKeybind2
+        local Bind1: string = UiManager.shared.ToggleKeybind1
+        local Bind2: string = UiManager.shared.ToggleKeybind2
 
         local Keybind = Enum[Bind1][Bind2]
 
@@ -627,27 +620,27 @@ function UiManager:CreateUniversalTabs()
                 Bind2
             )
         else
-            Key = Enum.KeyCode[Bind2] :: Enum.KeyCode
+            Key = (Enum.KeyCode :: any)[Bind2] :: Enum.KeyCode
             Key = Key.Name
         end
 
-        self.Options.MenuKeybind:SetValue({Key})
-        self.Library.RebindMenuKey(Keybind)
+        UiManager.Options.MenuKeybind:SetValue({Key})
+        UiManager.Library.RebindMenuKey(Keybind)
 
         CheckStupidMenuKeybind(Keybind)
     end
 
     --// UI Groupbox (Right)
-    self.SettingsTabUiGroup = self.SettingsTab:AddRightGroupbox(GetTranslation(Translations, "UI"))
+    UiManager.SettingsTabUiGroup = UiManager.SettingsTab:AddRightGroupbox(GetTranslation(Translations, "UI"))
 
-    self.SettingsTabUiGroup:AddToggle("AlwaysOnTop", {
+    UiManager.SettingsTabUiGroup:AddToggle("AlwaysOnTop", {
         Text = GetTranslation(Translations, "Always On Top"),
         Disabled = not pcall(function()
             Instance.new("ScreenGui").OnTopOfCoreBlur = true
         end)
-    })
+    });
 
-    self.SettingsTabUiGroup:AddToggle("UiActivated", {
+    (UiManager.SettingsTabUiGroup :: any):AddToggle("UiActivated", {
         Text = GetTranslation(Translations, "UI Activated")
     })
 
@@ -664,40 +657,40 @@ function UiManager:CreateUniversalTabs()
             table_insert(NativeLanguage.Name, Name)
         end
 
-        self.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
+        UiManager.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
             Text    = GetTranslation(Translations, "Change Language"),
             Values  = NativeLanguage.Name,
             Default = wax.shared.AllowedLanguages[wax.shared.Language]
         })
 
-        self.Options.ChangeLanguage:OnChanged(function(Language)
+        UiManager.Options.ChangeLanguage:OnChanged(function(Language)
             local Index = table_find(NativeLanguage.Name, Language)
             if not Index then return end
 
             local Tag = NativeLanguage.Tag[Index]
             WriteFile(FileHelper, "MFeee-New/Language.txt", Tag)
 
-            self:Notify(GetTranslation(Translations, "Restart to Apply"))
+            UiManager:Notify(GetTranslation(Translations, "Restart to Apply"))
         end)
     end
 
-    self.SettingsTabUiGroup:AddDropdown("WindowStyle", {
+    UiManager.SettingsTabUiGroup:AddDropdown("WindowStyle", {
         Text = GetTranslation(Translations, "Window Style"),
         Values = {
             "Obsidian",
             "Linoria"
         },
-        Default = GetTranslation(Translations, self.shared.WindowStyle)
+        Default = GetTranslation(Translations, UiManager.shared.WindowStyle)
     })
 
-    self.SettingsTabUiGroup:AddSlider("DPIScale", {
+    UiManager.SettingsTabUiGroup:AddSlider("DPIScale", {
         Text = GetTranslation(Translations, "DPI Scale"),
         Min = 50,
         Max = 200,
         Suffix = "%"
     })
 
-    self.SettingsTabUiGroup:AddSlider("UICorner", {
+    UiManager.SettingsTabUiGroup:AddSlider("UICorner", {
         Text = GetTranslation(Translations, "UI Corner"),
         Tooltip = GetTranslation(Translations, "Some elements require restarting to apply"),
         Min = 0,
@@ -705,14 +698,14 @@ function UiManager:CreateUniversalTabs()
         Suffix = "px"
     })
 
-    self.SettingsTabUiGroup:AddDivider()
+    UiManager.SettingsTabUiGroup:AddDivider();
 
-    self.SettingsTabUiGroup:AddToggle("DisableNotify", {
+    (UiManager.SettingsTabUiGroup :: any):AddToggle("DisableNotify", {
         Text = GetTranslation(Translations, "Disable Notify"),
-        Default = self.shared.DisableNotify
+        Default = UiManager.shared.DisableNotify
     })
 
-    self.SettingsTabUiGroup:AddDropdown("NotifySide", {
+    UiManager.SettingsTabUiGroup:AddDropdown("NotifySide", {
         Text = GetTranslation(Translations, "Notify Side"),
         Values = {
             GetTranslation(Translations, "TopLeft"),
@@ -720,19 +713,19 @@ function UiManager:CreateUniversalTabs()
             GetTranslation(Translations, "BottomLeft"),
             GetTranslation(Translations, "BottomRight")
         },
-        Default = GetTranslation(Translations, self.shared.NotifySide)
+        Default = GetTranslation(Translations, UiManager.shared.NotifySide)
     })
 
-    self.SettingsTabUiGroup:AddDropdown("NotifySound", {
+    UiManager.SettingsTabUiGroup:AddDropdown("NotifySound", {
         Text = GetTranslation(Translations, "Notify Sound"),
         Values = {
             "Obsidian",
             "Linoria"
         },
-        Default = GetTranslation(Translations, self.shared.NotifySound)
+        Default = GetTranslation(Translations, UiManager.shared.NotifySound)
     })
 
-    self.SettingsTabUiGroup:AddInput("NotifySoundId", {
+    UiManager.SettingsTabUiGroup:AddInput("NotifySoundId", {
         Text = GetTranslation(Translations, "Notify Sound ID"),
         Default = "",
         EmptyReset = "",
@@ -740,7 +733,7 @@ function UiManager:CreateUniversalTabs()
         ClearTextOnFocus = false
     })
 
-    self.SettingsTabUiGroup:AddSlider("NotifyVolume", {
+    UiManager.SettingsTabUiGroup:AddSlider("NotifyVolume", {
         Text = GetTranslation(Translations, "Notify Volume"),
         Min = 0,
         Max = 1000,
@@ -751,8 +744,8 @@ function UiManager:CreateUniversalTabs()
         local TestNotify  = GetTranslation(Translations, "Test Notify")
         local TestNotify2 = GetTranslation(Translations, "This is a test notification")
 
-        self.SettingsTabUiGroup:AddButton(TestNotify, function()
-            self:Notify({
+        UiManager.SettingsTabUiGroup:AddButton(TestNotify, function()
+            UiManager:Notify({
                 Title = TestNotify,
                 Description = TestNotify2
             })
@@ -760,29 +753,29 @@ function UiManager:CreateUniversalTabs()
     end
 
     --// Config Groupbox
-    self.SaveManager:BuildConfigSection(self.SettingsTab)
+    UiManager.SaveManager:BuildConfigSection(UiManager.SettingsTab)
 
     --// UI Groupbox OnChanged
-    self.Toggles.AlwaysOnTop:OnChanged(function(Enabled)
-        self.shared.AlwaysOnTop = Enabled
-        self.Library.ScreenGui.OnTopOfCoreBlur = Enabled
+    UiManager.Toggles.AlwaysOnTop:OnChanged(function(Enabled)
+        UiManager.shared.AlwaysOnTop = Enabled
+        UiManager.Library.ScreenGui.OnTopOfCoreBlur = Enabled
 
         UpdateSettings()
     end)
 
-    self.Toggles.UiActivated:OnChanged(function(Enabled)
-        self.shared.UiActivated = Enabled
+    UiManager.Toggles.UiActivated:OnChanged(function(Enabled)
+        UiManager.shared.UiActivated = Enabled
 
-        for _, Frame: Frame in self.Library.WindowFrames do
+        for _, Frame in UiManager.Library.WindowFrames do
             Frame.Active = Enabled
         end
 
         UpdateSettings()
     end)
 
-    self.Options.WindowStyle:OnChanged(function(Style)
-        self.shared.WindowStyle = Style
-        self:Notify(GetTranslation(Translations, "Restart to Apply"))
+    UiManager.Options.WindowStyle:OnChanged(function(Style)
+        UiManager.shared.WindowStyle = Style
+        UiManager:Notify(GetTranslation(Translations, "Restart to Apply"))
         UpdateSettings()
     end)
 
@@ -793,142 +786,142 @@ function UiManager:CreateUniversalTabs()
                 InputObject.UserInputType ~= Enum.UserInputType.Touch
             ) then return end
 
-            self.Library:SetDPIScale(self.shared.DPIScale)
+            UiManager.Library:SetDPIScale(UiManager.shared.DPIScale)
         end))
 
-        self.Options.DPIScale:OnChanged(function(Scale)
-            self.shared.DPIScale = Scale
+        UiManager.Options.DPIScale:OnChanged(function(Scale)
+            UiManager.shared.DPIScale = Scale
             UpdateSettings()
         end)
 
-        self.Library:SetDPIScale(self.shared.DPIScale)
+        UiManager.Library:SetDPIScale(UiManager.shared.DPIScale)
     end
 
-    self.Options.UICorner:OnChanged(function(Corner)
-        self.shared.UiCorner = Corner
-        self.Library.CornerRadius = Corner
+    UiManager.Options.UICorner:OnChanged(function(Corner)
+        UiManager.shared.UiCorner = Corner
+        UiManager.Library.CornerRadius = Corner
 
         UpdateSettings()
     end)
 
-    self.Toggles.DisableNotify:OnChanged(function(Enabled)
-        self.shared.DisableNotify = Enabled
+    UiManager.Toggles.DisableNotify:OnChanged(function(Enabled)
+        UiManager.shared.DisableNotify = Enabled
         UpdateSettings()
     end)
 
-    self.Options.NotifySide:OnChanged(function(Side)
+    UiManager.Options.NotifySide:OnChanged(function(Side)
         Side = FromTranslation(Translations, Side)
         if not Side then return end
 
-        self.shared.NotifySide = Side
-        self.Library:SetNotifySide(Side)
+        UiManager.shared.NotifySide = Side
+        UiManager.Library:SetNotifySide(Side)
         UpdateSettings()
     end)
 
-    self.Options.NotifySound:OnChanged(function(Sound)
-        self.shared.NotifySoundId = Sound == "Obsidian" and 4590662766 or 4590657391
+    UiManager.Options.NotifySound:OnChanged(function(Sound)
+        UiManager.shared.NotifySoundId = Sound == "Obsidian" and 4590662766 or 4590657391
         UpdateSettings()
     end)
 
-    self.Options.NotifySoundId:OnChanged(function(SoundID)
+    UiManager.Options.NotifySoundId:OnChanged(function(SoundID)
         if SoundID == "" or type(select(2, pcall(tonumber, SoundID))) ~= "number" then return end
 
-        self.shared.NotifySoundId = SoundID
+        UiManager.shared.NotifySoundId = SoundID
         UpdateSettings()
         task_spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {SoundID})
     end)
 
-    self.Options.NotifyVolume:OnChanged(function(Volume)
-        self.shared.NotifyVolume = Volume
+    UiManager.Options.NotifyVolume:OnChanged(function(Volume)
+        UiManager.shared.NotifyVolume = Volume
         UpdateSettings()
     end)
 
-    self.Toggles.OpenKeybindMenu:SetValue(self.shared.KeybindFrame)
-    self.Toggles.ShowCustomCursor:SetValue(self.shared.CustomCursor)
-    self.Toggles.AlwaysOnTop:SetValue(self.shared.AlwaysOnTop)
-    self.Toggles.UiActivated:SetValue(self.shared.UiActivated)
-    self.Options.DPIScale:SetValue(self.shared.DPIScale)
-    self.Options.UICorner:SetValue(self.shared.UiCorner)
-    self.Options.NotifyVolume:SetValue(self.shared.NotifyVolume)
-    self.Options.NotifySoundId:SetValue(self.shared.NotifySoundId)
+    UiManager.Toggles.OpenKeybindMenu:SetValue(UiManager.shared.KeybindFrame)
+    UiManager.Toggles.ShowCustomCursor:SetValue(UiManager.shared.CustomCursor)
+    UiManager.Toggles.AlwaysOnTop:SetValue(UiManager.shared.AlwaysOnTop)
+    UiManager.Toggles.UiActivated:SetValue(UiManager.shared.UiActivated)
+    UiManager.Options.DPIScale:SetValue(UiManager.shared.DPIScale)
+    UiManager.Options.UICorner:SetValue(UiManager.shared.UiCorner)
+    UiManager.Options.NotifyVolume:SetValue(UiManager.shared.NotifyVolume)
+    UiManager.Options.NotifySoundId:SetValue(UiManager.shared.NotifySoundId)
 
     --// Info Tab //
-    self.InfoTab = self.Window:AddTab(GetTranslation(Translations, "Info"), "info")
+    UiManager.InfoTab = UiManager.Window:AddTab(GetTranslation(Translations, "Info"), "info")
 
     --// Developers Groupbox (Left)
-    self.InfoTabDevelopersGroup = self.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Developers"))
+    UiManager.InfoTabDevelopersGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Developers"))
 
     local function ApplyColor(Text: string | number, NoFrame: any | nil)
         return `{NoFrame and "" or "["}<font color="#1f6feb">{Text}</font>{NoFrame and "" or "]"}`
     end
 
-    self.InfoTabDevelopersGroup:AddLabel({
+    UiManager.InfoTabDevelopersGroup:AddLabel({
         Text = `{ApplyColor("MaiFengYXD")} {GetTranslation(Translations, "Owner, developer")}`,
         DoesWrap = true
     })
 
     --// Credits Groupbox (Left)
-    self.InfoTabCreditsGroup = self.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Credits"))
+    UiManager.InfoTabCreditsGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Credits"))
 
-    self.InfoTabCreditsGroup:AddLabel({
+    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor("upio")} {GetTranslation(Translations, "Teaches me how to use wax")}`,
         DoesWrap = true
     })
 
-    self.InfoTabCreditsGroup:AddLabel({
+    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor("mspaint")} {GetTranslation(Translations, "Gives me inspiration")}`,
         DoesWrap = true
     })
 
-    self.InfoTabCreditsGroup:AddLabel({
+    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor("GitHub Copilot")} {GetTranslation(Translations, "Helps complete code")}`,
         DoesWrap = true
     })
 
-    self.InfoTabCreditsGroup:AddLabel({
+    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor("Google Gemini")} {GetTranslation(Translations, "Helps translate")}`,
         DoesWrap = true
     })
 
-    self.InfoTabCreditsGroup:AddLabel({
+    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor(GetTranslation(Translations, "And you!"))} {GetTranslation(Translations, "For using my script!")}`,
         DoesWrap = true
     })
 
     --// Special Thanks Groupbox (Left)
-    self.InfoTabThanksGroup = self.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Special Thanks"))
+    UiManager.InfoTabThanksGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Special Thanks"))
 
-    self.InfoTabThanksGroup:AddLabel({
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("latte-soft")} {GetTranslation(Translations, "Wax bundler")}`,
         DoesWrap = true
     })
 
-    self.InfoTabThanksGroup:AddLabel({
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("deividcomsono")} {GetTranslation(Translations, "Obsidian UI")}`,
         DoesWrap = true
     })
 
-    self.InfoTabThanksGroup:AddLabel({
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("mstudio45")} {GetTranslation(Translations, "Linoria UI and ESP")}`,
         DoesWrap = true
     })
 
-    self.InfoTabThanksGroup:AddLabel({
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("Exunys")} {GetTranslation(Translations, "Aimbot Inspiration")}`,
         DoesWrap = true
     })
 
-    self.InfoTabThanksGroup:AddLabel({
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("7GrandDadPGN")} {GetTranslation(Translations, "SilentAim Inspiration")}`,
         DoesWrap = true
     })
 
     --// About Game Groupbox (Right)
-    self.InfoTabAboutGameGroup = self.InfoTab:AddRightGroupbox(GetTranslation(Translations, "About Game"))
+    UiManager.InfoTabAboutGameGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation(Translations, "About Game"))
 
-    local PlayedLabel      = self.InfoTabAboutGameGroup:AddLabel()
-    local TimeRunningLabel = self.InfoTabAboutGameGroup:AddLabel()
-    local GameNameLabel    = self.InfoTabAboutGameGroup:AddLabel("Game Name: grabbing...")
+    local PlayedLabel      = UiManager.InfoTabAboutGameGroup:AddLabel()
+    local TimeRunningLabel = UiManager.InfoTabAboutGameGroup:AddLabel()
+    local GameNameLabel    = (UiManager.InfoTabAboutGameGroup :: any):AddLabel("Game Name: grabbing...")
 
     --// About Game Group Update
     do
@@ -938,7 +931,7 @@ function UiManager:CreateUniversalTabs()
         local Workspace = shared.Workspace
 
         local function ConvertTime(Time: number): string
-            Time = tonumber(Time)
+            Time = tonumber(Time) :: number
 
             local Hour   = string_format("%02d", Time / 3600)
             local Minute = string_format("%02d", (Time % 3600) / 60)
@@ -974,37 +967,37 @@ function UiManager:CreateUniversalTabs()
         local toclipboard
             = toclipboard
 
-        local PlaceId = tostring(game.PlaceId)
+        local PlaceId = tostring(game.PlaceId);
 
-        self.InfoTabAboutGameGroup:AddButton({
+        (UiManager.InfoTabAboutGameGroup :: any):AddButton({
             Text = string_format(GetTranslation(Translations, "Place Id: %s"), PlaceId),
             Func = function()
                 toclipboard(PlaceId)
-                self:Notify(GetTranslation(Translations, "Place Id Copied"))
+                UiManager:Notify(GetTranslation(Translations, "Place Id Copied"))
             end
         })
 
         --// Links Groupbox (Right)
-        self.InfoTabLinksGroup = self.InfoTab:AddRightGroupbox(GetTranslation(Translations, "Links"))
+        UiManager.InfoTabLinksGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation(Translations, "Links"));
 
-        self.InfoTabLinksGroup
+        (UiManager.InfoTabLinksGroup :: any)
         :AddButton({
             Text = GetTranslation(Translations, "Discord"),
             Func = function()
                 toclipboard("https://discord.gg/YBQUd8X8PK")
-                self:Notify(GetTranslation(Translations, "Discord Server Link Copied"))
+                UiManager:Notify(GetTranslation(Translations, "Discord Server Link Copied"))
             end
         })
         :AddButton({
             Text = GetTranslation(Translations, "GitHub"),
             Func = function()
                 toclipboard("https://github.com/MaiFengYXD")
-                self:Notify(GetTranslation(Translations, "GitHub Link Copied"))
+                UiManager:Notify(GetTranslation(Translations, "GitHub Link Copied"))
             end
         })
     end
 
-    self.InfoTabLinksGroup:AddDivider()
+    UiManager.InfoTabLinksGroup:AddDivider()
 
     do
         local Random  = Random.new()
@@ -1020,7 +1013,9 @@ function UiManager:CreateUniversalTabs()
             "Calculating:",
             "Did you know?",
             "Error:",
-            "@fr:"
+            "@fr:",
+            "upio:",
+            "upio:"
         }
 
         local TipContents = {
@@ -1034,7 +1029,9 @@ function UiManager:CreateUniversalTabs()
             "Determining the precise gravitational pull exerted by this tip on your mouse cursor... (requires planetary alignment)",
             "Are you reading this tip, or is this tip reading you?🤫🧏",
             "Failed to load tips: Server error, firefighters are putting out the fire on our server",
-            ""
+            "",
+            "if no bypass is detected we detect one",
+            "If no executor is detected, we default to a generic bypass"
         }
 
         for Index, Content in TipTitles do
@@ -1056,10 +1053,10 @@ function UiManager:CreateUniversalTabs()
 
         AllTips += 1
 
-        table_insert(TipTitles  , GetTranslation(Translations, "A trivia:"))
+        table_insert(TipTitles  , GetTranslation(Translations, "Funny trivia:"))
         table_insert(TipContents, string_format(GetTranslation(Translations, "You had %f%% chance to roll this tip"), 1 / AllTips * 100))
 
-        local Label = self.InfoTabLinksGroup:AddLabel({
+        local Label = (UiManager.InfoTabLinksGroup :: any):AddLabel({
             Text = CurrentTip,
             DoesWrap = true
         })
@@ -1072,7 +1069,7 @@ function UiManager:CreateUniversalTabs()
         end)
     end
 
-    return self.MiscTab, self.InfoTab
+    return UiManager.MiscTab, UiManager.InfoTab
 end
 
 UiManager.SaveManager:SetLibrary  (UiManager.Library)
