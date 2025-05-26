@@ -131,9 +131,13 @@ do
     local typeof,      IsDescendantOf
         = typeof, game.IsDescendantOf
 
+    local iscached = (if wax.shared.ExecutorSupport.iscached then
+        cache.iscached
+    else function(Object: Instance): boolean return true end) :: (Object: Instance) -> boolean
+
     function IsValid(Object: Instance, Parent: Instance?): false | Instance
         return if (
-            typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
+            iscached(Object) and typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
         ) then Object else false
     end
 
@@ -304,7 +308,7 @@ do
         return not (IsWithinFov and IsWithinRange)
     end
 
-    --// Get Priority
+    --// Get Priorities
     function GetPriorities(): ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil)
         local        TargetPlayers,        TargetNpcs
             = Shared.TargetPlayers, Shared.TargetNpcs
