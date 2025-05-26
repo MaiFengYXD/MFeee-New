@@ -2638,6 +2638,17 @@ local ClosureBindings = {
             assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
         end)
 
+        Test("iscached", {}, {}, function()
+            local Part = Instance.new("Part")
+            table_insert(Grabages, function()
+                Part:Destroy()
+            end)
+
+            assert(cache.iscached(Part), "Failed to check if part is cached")
+            cache.invalidate(Part)
+            assert(not cache.iscached(Part), "Failed to invalidate cache for part")
+        end)
+
         --// Instance //
         Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: (RBXScriptConnection) -> Table)
             local Returns = {
@@ -18379,8 +18390,6 @@ local ClosureBindings = {
         local Workspace = shared.Workspace
         local Raycast   = Workspace.Raycast
 
-        local Prediction = {}
-
         local function IsZero(Value)
             return (Value > -1e-9) and (Value < 1e-9)
         end
@@ -18540,8 +18549,8 @@ local ClosureBindings = {
             return Roots
         end
 
-        function Prediction.SolveTrajectory(
-            Original:        Vector3,
+        local function SolveTrajectory(
+            Origin:          Vector3,
             ProjectileSpeed: number,
             Gravity:         number?,
             PickLongest:     boolean,
@@ -18551,7 +18560,7 @@ local ClosureBindings = {
             PlayerHeight:    number?,
             RaycastParams:   RaycastParams?
         ): Vector3?
-            local Displacement = TargetPosition - Original
+            local Displacement = TargetPosition - Origin
             local TargetVelX, TargetVelY, TargetVelZ = TargetVelocity.X, TargetVelocity.Y, TargetVelocity.Z
             local DispX, DispY, DispZ = Displacement.X, Displacement.Y, Displacement.Z
             local GravityFactor = -0.5 * (Gravity or Workspace.Gravity)
@@ -18572,7 +18581,7 @@ local ClosureBindings = {
 
                     EstimatedTime -= math_sqrt(((TargetPosition - NewTarget).Magnitude * 2) / PlayerGravity)
                     TargetPosition = NewTarget
-                    DispY = (TargetPosition - Original).Y
+                    DispY = (TargetPosition - Origin).Y
                     TargetVelY = 0
                 end
             end
@@ -18601,7 +18610,7 @@ local ClosureBindings = {
                     local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
                     local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-                    return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
+                    return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
                 end
             elseif Gravity == 0 then
                 local Time = Displacement.Magnitude / ProjectileSpeed
@@ -18610,12 +18619,12 @@ local ClosureBindings = {
                 local DeltaY = (DispY + TargetVelY * Time - GravityFactor * Time^2) / Time
                 local DeltaZ = (DispZ + TargetVelZ * Time) / Time
 
-                return Original + Vector3_new(DeltaX, DeltaY, DeltaZ)
+                return Origin + Vector3_new(DeltaX, DeltaY, DeltaZ)
             end
             return nil
         end
 
-        return Prediction
+        return {SolveTrajectory = SolveTrajectory}
     end,
 
     [60] = function(shared, wax, script, require)
@@ -18647,12 +18656,6 @@ local ClosureBindings = {
         + Aimbot
         + SilentAim
         --]]
-
-        local table_find, RaycastParams_new
-            = table.find, RaycastParams.new
-
-        local      IsA
-            = game.IsA
 
         --// Setting Up //
         local Shared = {
@@ -18689,7 +18692,7 @@ local ClosureBindings = {
             PlayerFilterMode = "Blacklist" :: "Blacklist" | "Whitelist"
         }
 
-        local Workspace = shared.Workspace :: Workspace
+        local Workspace = shared.Workspace :: Workspace & WorldRoot
         local Camera    = shared.Camera    :: Camera
         local Players   = shared.Players   :: Players
         local Speaker   = shared.Speaker   :: Player
@@ -18730,7 +18733,7 @@ local ClosureBindings = {
                 end)
             end
 
-            shared.Connect:GiveSignal("AimbotCharacterChanged", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
+            shared.Connect:GiveSignal("AimbotCharacterChanged1", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
                 Character = Speaker.Character
                 SetUpPositionMonitor(Character)
             end))
@@ -18738,42 +18741,61 @@ local ClosureBindings = {
 
         local _Target: BasePart?
 
-        local Raycast = Workspace.Raycast
-
         local Prediction = require("../Prediction")
         local Entities   = require("../Entities")
+
+        local Fov
 
         --// Helper Functions //
         local GetMousePosition: () -> Vector2,
 
-              TeamChecker:       (Player: Player) -> boolean,
-              AliveChecker:      (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
-              FilterChecker:     (Player: Player) -> boolean,
-              ForceFieldChecker: (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
-              CommonChecker:     (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
+              IsValid:     <T>(Object: Instance, Parent: Instance?) -> false | (Instance),
 
-              OnScreenChecker:   (Target:   Vector3) -> boolean,
-              WallChecker:       (Original: Vector3,       Direction: Vector3) -> boolean,
-              DistanceChecker:   (Original: Vector3 | nil, Target:    Vector3) -> boolean,
+              IsTeammate:     (Player: Player) -> boolean,
+              IsDead:         (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
+              IsFiltered:     (Player: Player) -> boolean,
+              NotVulnerable:  (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
-              GetPriorities:     () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
-              GetHitPart:        (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
-              EasyGetHitPart:    (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
+              CommonChecks:   (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
-              Predict:           (
-                  Original: Vector3,
+              IsOffScreen:    (Target: Vector3) -> boolean,
+              IsObscured:     (Origin: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
+              IsOutOfRange:   (Origin: Vector3 | nil, Target:    Vector3) -> boolean,
+
+              GetPriorities:  () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
+              GetHitPart:     (Head: BasePart?, RootPart: BasePart?) -> nil | BasePart,
+              EasyGetHitPart: (Head: BasePart?, RootPart: BasePart?, Origin: Vector3?)  -> nil | BasePart,
+
+              Predict: <T>(
+                  Origin:   Vector3,
                   Target:   BasePart,
                   Humanoid: Humanoid?,
+                  RootPart: BasePart?,
 
-                  RaycastParams: RaycastParams?
+                  RaycastParams:        RaycastParams?,
+                  AlwaysReturnsVector3: boolean | nil
               ) -> Vector3
 
         do
-            --// Team Checker
+            --// Is Valid
+            local typeof,      IsDescendantOf
+                = typeof, game.IsDescendantOf
+
+            local iscached = (if wax.shared.ExecutorSupport.iscached then
+                cache.iscached
+            else function(Object: Instance): boolean return true end) :: (Object: Instance) -> boolean
+
+            function IsValid(Object: Instance, Parent: Instance?): false | Instance
+                return if (
+                    iscached(Object) and typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
+                ) then Object else false
+            end
+
+            --// Is Teammate
             local Teams    = shared.Teams :: Teams
             local GetTeams = Teams.GetTeams
 
-            function TeamChecker(Player: Player): boolean
+            function IsTeammate(Player: Player): boolean
                 if not Shared.TeamCheck then return false end
                 if #GetTeams(Teams) < 2 then return false end
 
@@ -18781,11 +18803,11 @@ local ClosureBindings = {
                 return (Player :: any)[Key] == (Speaker :: any)[Key]
             end
 
-            --// Alive Checker
+            --// Is Dead
             local Players_ = Entities.Players
             local Npcs_    = Entities.Npcs
 
-            function AliveChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+            function IsDead(Player: Player | Model, IsNpc: boolean | nil): boolean
                 if not Shared.AliveCheck then return false end
 
                 if IsNpc then
@@ -18794,15 +18816,18 @@ local ClosureBindings = {
                 return if Players_[Player :: Player] then not Players_[Player :: Player].Alive else true
             end
 
-            --// Filter Checker
+            --// Is Filtered
+            local table_find
+                = table.find
+
             local FilteredPlayers = Shared.FilteredPlayers
 
-            function FilterChecker(Player: Player): boolean
+            function IsFiltered(Player: Player): boolean
                 return Shared.FilterCheck and (Shared.PlayerFilterMode == "Blacklist") == (table_find(FilteredPlayers, Player) ~= nil)
             end
 
-            --// ForceField Checker
-            function ForceFieldChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+            --// Not Vulnerable
+            function NotVulnerable(Player: Player | Model, IsNpc: boolean | nil): boolean
                 if not Shared.ForceFieldCheck then return false end
 
                 if IsNpc then
@@ -18811,50 +18836,129 @@ local ClosureBindings = {
                 return if Players_[Player :: Player] then Players_[Player :: Player].ForceField ~= nil else false
             end
 
-            --// Common Checker
-            function CommonChecker(Player: Player | Model, IsNpc: boolean | nil): boolean
+            --// Common Checks
+            function CommonChecks(Player: Player | Model, IsNpc: boolean | nil): boolean
                 return (
-                    (not IsNpc and TeamChecker(Player :: Player)) or
-                    AliveChecker(Player, IsNpc) or
-                    (not IsNpc and ForceFieldChecker(Player :: Player)) or
-                    ForceFieldChecker(Player, IsNpc)
+                    (not IsNpc and IsFiltered(Player :: Player)) or
+                    (not IsNpc and IsTeammate(Player :: Player)) or
+                    IsDead(Player, IsNpc) or
+                    NotVulnerable(Player, IsNpc)
                 )
             end
 
-            --// On Screen Checker
+            --// Is Off Screen
             local WorldToViewportPoint = Camera.WorldToViewportPoint
 
-            function OnScreenChecker(Target: Vector3): boolean
+            function IsOffScreen(Target: Vector3): boolean
                 if not Shared.OnScreenCheck then return false end
 
                 local _, IsOnScreen = WorldToViewportPoint(Camera, Target)
-                return IsOnScreen
+                return not IsOnScreen
             end
 
-            --// Wall Checker
-            local Exclude = Enum.RaycastFilterType.Exclude
+            --// Is Obscured
+            local      IsA, RaycastParams_new
+                = game.IsA, RaycastParams.new
 
-            function WallChecker(Original: Vector3, Direction: Vector3, ...: any & Instance): boolean
+            local Exclude = Enum.RaycastFilterType.Exclude
+            local Raycast = Workspace.Raycast
+
+            function IsObscured(Origin: Vector3, Direction: Vector3, ...: any): boolean
                 if not Shared.WallCheck then return false end
 
                 local RaycastParam = RaycastParams_new()
                 RaycastParam.FilterDescendantsInstances = {..., Character :: any}
                 RaycastParam.FilterType = Exclude
 
-                local RaycastResult = Raycast(Workspace, Original, Direction, RaycastParam)
+                local RaycastResult = Raycast(Workspace, Origin, Direction, RaycastParam)
                 local HitPart = RaycastResult and RaycastResult.Instance
                 if not HitPart then return false end
 
                 return if Shared.WallCheckMethod == "CheckCanCollide" and IsA(HitPart, "BasePart") then (HitPart :: BasePart).CanCollide else false
             end
 
-            --// Distance Checker
-            function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean
-                local Distance = (Original or SpeakerPosition - Target).Magnitude
-                return not (Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance)
+            --// Is Out of Range
+            local Vector2_new, math_pi, math_cos, math_sin
+                = Vector2.new, math.pi, math.cos, math.sin
+
+            local function Vector3ToVector2(Vector3: Vector3): Vector2
+                return Vector2_new(Vector3.X, Vector3.Y)
             end
 
-            --// Get Priority
+            local function CrossProduct2D(Position1: Vector2, Position2: Vector2, Position3: Vector2): number
+                return (Position2.X - Position1.X) * (Position3.Y - Position1.Y) - (Position2.Y - Position1.Y) * (Position3.X - Position1.X)
+            end
+
+            --/ Helper function, make IsOutOfRange more accurate in polygon fov
+            local function IsPointInRegularPolygon(
+                Point:    Vector2,
+                Center:   Vector2,
+                Radius:   number,
+                NumSides: number
+            ): boolean
+                if NumSides < 3 then return false end
+
+                local Vertices       = {}
+                local AngleIncrement = (2 * math_pi) / NumSides
+                local StartAngle     = math_pi / 2
+
+                for Index = 0, NumSides - 1 do
+                    local Angle = StartAngle + (Index * AngleIncrement)
+
+                    Vertices[Index + 1] = Vector2_new(
+                        Center.X + Radius * math_cos(Angle),
+                        Center.Y + Radius * math_sin(Angle)
+                    )
+                end
+
+                local FirstCrossProductSign: number?
+
+                for Index = 1, NumSides do
+                    local Position1 = Vertices[Index]
+                    local Position2 = Vertices[(Index % NumSides) + 1]
+
+                    local CrossProduct = CrossProduct2D(Position1, Position2, Point)
+
+                    if not FirstCrossProductSign then
+                        FirstCrossProductSign = CrossProduct > 0 and 1 or (CrossProduct < 0 and -1 or 0)
+                    else
+                        local CurrentSign = CrossProduct > 0 and 1 or (CrossProduct < 0 and -1 or 0)
+                        if CurrentSign ~= 0 and FirstCrossProductSign ~= 0 and CurrentSign ~= FirstCrossProductSign then
+                            return false
+                        end
+                    end
+                end
+
+                return true
+            end
+
+            function IsOutOfRange(Origin: Vector3 | nil, Target: Vector3): boolean
+                local IsWithinFov = true
+
+                if Fov.Enabled then
+                    IsWithinFov = false
+
+                    local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
+                    if IsOnScreen then
+                        local Position2D = Vector3ToVector2(ScreenPosition)
+                        local NumSides   = Fov.NumSides
+                        local Magnitude  = (Position2D - Fov.Position).Magnitude
+
+                        if Fov.Polygon and NumSides < 30 then
+                            IsWithinFov = IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, NumSides)
+                        else
+                            IsWithinFov = Magnitude < Fov.Radius
+                        end
+                    end
+                end
+
+                local Distance      = (Origin or SpeakerPosition - Target).Magnitude
+                local IsWithinRange = Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance
+
+                return not (IsWithinFov and IsWithinRange)
+            end
+
+            --// Get Priorities
             function GetPriorities(): ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil)
                 local        TargetPlayers,        TargetNpcs
                     = Shared.TargetPlayers, Shared.TargetNpcs
@@ -18882,42 +18986,76 @@ local ClosureBindings = {
                 local HeadshotChance = Shared.HeadshotChance
 
                 return (
-                    if NextNumber(Random, 0, 100) > HitChance and HitChance < 100 then nil else
+                    if NextNumber(Random, 0, 100) > HitChance      and HitChance      < 100 then nil else
                     if NextNumber(Random, 0, 100) > HeadshotChance and HeadshotChance < 100 then RootPart else Head
                 )
             end
 
             --// Easy Get HitPart
-            function EasyGetHitPart(Head: BasePart?, RootPart: BasePart?): nil | BasePart
+            local unpack
+                = unpack
+
+            function EasyGetHitPart(
+                Head:     BasePart?,
+                RootPart: BasePart?,
+                Origin:   Vector3?,
+
+                WallCheckExclude: {BasePart}?
+            ): nil | BasePart
                 local HitPart = GetHitPart(Head, RootPart)
                 if not HitPart then return end
 
                 local Position = HitPart.Position
-                if DistanceChecker(nil, Position) then return end
-                if OnScreenChecker(Position) then return end
-                if WallChecker(Position, SpeakerPosition - Position) then return end
+                if IsOutOfRange(Origin, Position) then return end
+                if IsOffScreen(Position) then return end
+                if IsObscured(
+                    Position,
+                    (Origin or SpeakerPosition) - Position,
+                    HitPart,
+                    if WallCheckExclude then unpack(WallCheckExclude) else nil
+                ) then return end
 
-                return HitPart 
+                return HitPart
             end
 
             --// Predict
             local SolveTrajectory = Prediction.SolveTrajectory
             local UniversalPlayer = require("Player")
 
+            local R6 = Enum.HumanoidRigType.R6
+
+            local BackupRaycastParams = RaycastParams_new()
+            BackupRaycastParams.FilterType = Exclude
+            BackupRaycastParams.FilterDescendantsInstances = {Character :: any}
+
+            shared.Connect:GiveSignal("AimbotCharacterChanged2", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
+                BackupRaycastParams.FilterDescendantsInstances = {Speaker.Character :: any}
+            end))
+
             function Predict(
-                Original: Vector3,
+                Origin:   Vector3,
                 Target:   BasePart,
                 Humanoid: Humanoid?,
+                RootPart: BasePart?,
 
-                RaycastParams: RaycastParams?
-            ): Vector3
-                if not Shared.Prediction.Enabled then return Original end
+                RaycastParams:        RaycastParams?,
+                AlwaysReturnsVector3: boolean | nil
+            ): Vector3?
+                if not Shared.Prediction.Enabled then return Origin end
 
                 local DefaultGravity = UniversalPlayer.Gravity.Default
-                local PlayerHeight   = Humanoid and Humanoid.HipHeight or 2
+                local PlayerHeight   = 0
+
+                if Humanoid then
+                    PlayerHeight += Humanoid.HipHeight + (Humanoid.RigType == R6 and 2 or 0)
+                end
+
+                if RootPart then
+                    PlayerHeight += RootPart.Size.Y / 2
+                end
 
                 local Solution = SolveTrajectory(
-                    Original,
+                    Origin,
                     Shared.Prediction.Speed,
                     nil,
                     Shared.Prediction.PickLongest,
@@ -18925,19 +19063,21 @@ local ClosureBindings = {
                     Target.AssemblyLinearVelocity,
                     DefaultGravity,
                     PlayerHeight,
-                    RaycastParams
+                    RaycastParams or BackupRaycastParams
                 )
 
-                return Solution or Original
+                return Solution or if AlwaysReturnsVector3 then Origin else nil
             end
         end
 
         --// Fov //
-        local Fov = {
+        Fov = {
             Replaced = not wax.shared.ExecutorSupport.Drawing :: boolean,
 
             Enabled  = false :: boolean,
             Visible  = true  :: boolean,
+
+            Polygon  = true  :: boolean,
 
             Filled   = false :: boolean,
             Radius   = 150   :: number,
@@ -19140,8 +19280,8 @@ local ClosureBindings = {
             Method      = "Mouse" :: "Mouse" | "Camera",
             Smoothness  = 0.5     :: number
         } :: {[string]: any};do
-            local mousemoverel, Vector2_new, CFrame_lookAt, task_cancel, task_spawn
-                = mousemoverel, Vector2.new, CFrame.lookAt, task.cancel, task.spawn
+            local mousemoverel, Vector2_new, CFrame_lookAt, task_cancel, task_spawn, task_defer
+                = mousemoverel, Vector2.new, CFrame.lookAt, task.cancel, task.spawn, task.defer
 
             local AimbotEnabled = false
 
@@ -19168,50 +19308,75 @@ local ClosureBindings = {
                 return Vector2.X, Vector2.Y
             end
 
+            local Humanoid: Humanoid?
+            local RootPart: BasePart?
+
             local function GetTarget(): (BasePart?, Humanoid?)
-                local Target:   BasePart?
-                local Humanoid: Humanoid?
+                local Target: BasePart?
 
-                local CommonChecker = CommonChecker
-                local First, Second = GetPriorities()
+                --/ Upvalues -> local values
+                local CommonChecks   = CommonChecks
+                local EasyGetHitPart = EasyGetHitPart
+                local First, Second  = GetPriorities()
 
-                local function FromPlayers(CommonChecker:(Player) -> boolean): BasePart?
+                local function FromPlayers(
+                    --/ Local values -> upvalues -> params
+                    CommonChecks:  (Player) -> boolean,
+                    EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
+                )
                     for Player, PlayerStore in Players_ do
-                        if CommonChecker(Player) then continue end
+                        if CommonChecks(Player) then continue end
 
-                        local HitPart = EasyGetHitPart(PlayerStore.Head, PlayerStore.RootPart)
-                        if HitPart then return HitPart, PlayerStore.Humanoid end
+                        local RootPart_ = PlayerStore.RootPart
+                        local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_)
+
+                        if not HitPart then continue end
+
+                        Target   = HitPart
+                        Humanoid = PlayerStore.Humanoid
+                        RootPart = RootPart_
+                        break
                     end
 
                     return
                 end
 
-                local function FromNpcs(CommonChecker: (Model, boolean) -> boolean): BasePart?
+                local function FromNpcs(
+                    CommonChecks:  (Model, boolean) -> boolean,
+                    EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
+                )
                     for Npc, NpcStore in Npcs_ do
-                        if CommonChecker(Npc, true) then continue end
+                        if CommonChecks(Npc, true) then continue end
 
-                        local HitPart = EasyGetHitPart(NpcStore.Head, NpcStore.RootPart)
-                        if HitPart then return HitPart, NpcStore.Humanoid end
+                        local RootPart_ = NpcStore.RootPart
+                        local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_)
+
+                        if not HitPart then continue end
+
+                        Target   = HitPart
+                        Humanoid = NpcStore.Humanoid
+                        RootPart = RootPart_
+                        break
                     end
 
                     return
                 end
 
                 if First == "Players" then
-                    Target, Humanoid = FromPlayers(CommonChecker)
+                    FromPlayers(CommonChecks, EasyGetHitPart)
 
                     if not Target and Second == "Npcs" then
-                        Target, Humanoid = FromNpcs(CommonChecker)
+                        FromNpcs(CommonChecks, EasyGetHitPart)
                     end
                 elseif First == "Npcs" then
-                    Target, Humanoid = FromNpcs(CommonChecker)
+                    FromNpcs(CommonChecks, EasyGetHitPart)
 
                     if not Target and Second == "Players" then
-                        Target, Humanoid = FromPlayers(CommonChecker)
+                        FromPlayers(CommonChecks, EasyGetHitPart)
                     end
                 end
 
-                return Target, Humanoid
+                return Target
             end
 
             --// Main Logics //
@@ -19239,8 +19404,8 @@ local ClosureBindings = {
                 end
             end
 
-            local AimbotKey = wax.shared.UiManager.Options.AimbotKey
-            local GetState  = AimbotKey.GetState
+            local AimbotKeybind = wax.shared.UiManager.Options.AimbotKeybind
+            local GetState      = AimbotKeybind.GetState
 
             local StepThread: thread?
 
@@ -19249,44 +19414,456 @@ local ClosureBindings = {
                 _Target = CancelTween(EasingLibrary, "Aimbot")
             end
 
-            local function StepAimbot()
-                CancelLock()
-                StepThread = task_spawn(function()
-                    if not (Shared.Enabled and AimbotEnabled) then return end
-
-                    local Humanoid
-                    _Target, Humanoid = GetTarget()
-                    if not _Target then return end
-
-                    Move(Predict(_Target.Position, _Target, Humanoid))
-                end)
-            end
-
             Aimbot.Start = function(Enabled: boolean)
                 AimbotEnabled = Enabled
+                CancelLock()
 
                 Connect[`{Enabled and "B" or "Unb"}indRenderStep`](Connect, "StepAimbot", 200, function()
-                    if not GetState(AimbotKey) then return end
-                    StepAimbot()
+                    if not GetState(AimbotKeybind) then return CancelLock() end
+
+                    StepThread = task_spawn(function()
+                        if not (Shared.Enabled and AimbotEnabled) then return end
+
+                        if _Target and IsValid(_Target) then
+                            if (
+                                IsOutOfRange(nil, _Target.Position) or
+                                IsOffScreen(_Target.Position) or
+                                IsObscured(_Target.Position, SpeakerPosition - _Target.Position, _Target)
+                            ) then
+                                return task_defer(CancelLock)
+                            end
+
+                            return Move(Predict(_Target.Position, _Target, Humanoid, RootPart, nil, true))
+                        end
+
+                        CancelTween(EasingLibrary, "Aimbot")
+                        _Target = GetTarget()
+                        if not _Target then return end
+
+                        Move(Predict(_Target.Position, _Target, Humanoid, RootPart, nil, true))
+                    end)
                 end)
             end
         end
 
-        --// Finalize //
-        local AimbotModule = {}
+        --// SilentAim //
+        local SilentAim = {
+            WallBang = false :: boolean,
 
-        do  --// Bundle Table and Usage Functions
+            Hooks  = {
+                FindPartOnRay               = true :: boolean,
+                FindPartOnRayWithWhitelist  = true :: boolean,
+                FindPartOnRayWithIgnoreList = true :: boolean,
+
+                Ray     = true :: boolean,
+                Raycast = true :: boolean,
+
+                ScreenPointToRay   = true :: boolean,
+                ViewportPointToRay = true :: boolean
+            }
+        };if (
+            wax.shared.ExecutorSupport.getcallingscript and
+            wax.shared.ExecutorSupport.checkcaller and (
+                wax.shared.ExecutorSupport.hookfunction or (
+                    wax.shared.ExecutorSupport.hookmetamethod and
+                    wax.shared.ExecutorSupport.getnamecallmethod
+                )
+            )
+        ) then
+            local RaycastParams_new
+                = RaycastParams.new
+
+            local Players_ = Entities.Players
+            local Npcs_    = Entities.Npcs
+
+            local Humanoid: Humanoid?
+            local RootPart: BasePart?
+
+            local ProjectileRaycastParams = RaycastParams_new()
+
+            --// Helper Functions
+            local function GetTarget(Origin: Vector3, WallCheckExclude: {BasePart}?): (BasePart | nil, Vector3)
+                local Target: BasePart?
+
+                local CommonChecks   = CommonChecks
+                local EasyGetHitPart = EasyGetHitPart
+                local First, Second  = GetPriorities()
+
+                local function FromPlayers(
+                    --/ Local values -> upvalues -> params | upvalues -> params
+                    Origin:         Vector3,
+                    WallCheckExclude: {BasePart}?,
+                    CommonChecks:    (Player) -> boolean,
+                    EasyGetHitPart:   (
+                        BasePart?,
+                        BasePart?,
+                        Origin: Vector3?,
+                        WallCheckExclude: {BasePart}?
+                    ) -> nil | BasePart
+                )
+                    for Player, PlayerStore in Players_ do
+                        if CommonChecks(Player) then continue end
+
+                        local RootPart_ = PlayerStore.RootPart
+                        local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_, Origin, WallCheckExclude)
+
+                        if not HitPart then continue end
+
+                        Target   = HitPart
+                        Humanoid = PlayerStore.Humanoid
+                        RootPart = RootPart_
+
+                        ProjectileRaycastParams.FilterDescendantsInstances = {PlayerStore.Character :: any}
+                        ProjectileRaycastParams.CollisionGroup = HitPart.CollisionGroup
+                        break
+                    end
+
+                    return
+                end
+
+                local function FromNpcs(
+                    Origin:         Vector3,
+                    WallCheckExclude: {BasePart}?,
+                    CommonChecks:    (Model, boolean) -> boolean,
+                    EasyGetHitPart:   (
+                        BasePart?,
+                        BasePart?,
+                        Origin: Vector3?,
+                        WallCheckExclude: {BasePart}?
+                    ) -> nil | BasePart
+                )
+                    for Npc, NpcStore in Npcs_ do
+                        if CommonChecks(Npc, true) then continue end
+
+                        local RootPart_ = NpcStore.RootPart
+                        local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_, Origin, WallCheckExclude)
+
+                        if not HitPart then continue end
+
+                        Target   = HitPart
+                        Humanoid = NpcStore.Humanoid
+                        RootPart = RootPart_
+
+                        ProjectileRaycastParams.FilterDescendantsInstances = {Npc}
+                        ProjectileRaycastParams.CollisionGroup = HitPart.CollisionGroup
+                        break
+                    end
+                end
+
+                if First == "Players" then
+                    FromPlayers(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
+
+                    if not Target and Second == "Npcs" then
+                        FromNpcs(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
+                    end
+                elseif First == "Npcs" then
+                    FromNpcs(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
+
+                    if not Target and Second == "Players" then
+                        FromPlayers(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
+                    end
+                end
+
+                return Target, Origin
+            end
+
+            local Hooks = {};do --// Hooks
+                local typeof, Ray_new, CFrame_lookAt, Vector3_zero
+                    = typeof, Ray.new, CFrame.lookAt, Vector3.zero
+
+                local GetClosestPointOnSurface;do
+                    local Part = Instance.new("Part")
+                    GetClosestPointOnSurface = Part.GetClosestPointOnSurface
+                    Part:Destroy()
+                end
+
+                local Include = Enum.RaycastFilterType.Include
+
+                local function EasyPredict(Origin: Vector3, Target: BasePart)
+                    return Predict(
+                        Origin,
+                        Target,
+                        Humanoid,
+                        RootPart,
+
+                        ProjectileRaycastParams
+                    )
+                end
+
+                local function FindPartOnRay(Arguments: {any}): nil | array
+                    local Filtered = Arguments[2]
+
+                    local Target: BasePart | nil, Origin: Vector3 = GetTarget(Arguments[1], (
+                        if typeof(Filtered) == "Instance" then {Filtered}
+                        else if typeof(Filtered) == "table" then Filtered
+                        else nil
+                    ))
+
+                    if not Target then return end
+                    if SilentAim.WallBang then
+                        return {
+                            Target,
+                            Target.Position,
+                            GetClosestPointOnSurface(Target, Origin)
+                        } :: array
+                    end
+
+                    local EndPoint = CFrame_lookAt(Origin, Target.Position).LookVector * Arguments[1].Direction.Magnitude
+                    if Shared.Prediction.Enabled then
+                        EndPoint = EasyPredict(Origin, Target)
+                    end
+
+                    Arguments[1] = Ray_new(Origin, EndPoint)
+                    return
+                end
+
+                local function Ray(Arguments: {any}): nil
+                    local Target: BasePart | nil, Origin = GetTarget(Arguments[1])
+                    if not Target then return end
+
+                    local EndPoint = Target.Position
+                    if Shared.Prediction.Enabled then
+                        EndPoint = EasyPredict(Origin, Target) or EndPoint
+                    end
+
+                    Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
+                    return
+                end
+
+                local function Raycast(Arguments: {any}): nil
+                    local Target: BasePart | nil, Origin = GetTarget(Arguments[1])
+                    if not Target then return end
+
+                    local EndPoint = Target.Position
+                    if Shared.Prediction.Enabled then
+                        EndPoint = EasyPredict(Origin, Target) or EndPoint
+                    end
+
+                    if SilentAim.WallBang then
+                        local RaycastParams = RaycastParams_new()
+                        RaycastParams.FilterType = Include
+                        RaycastParams.FilterDescendantsInstances = {Target}
+
+                        Arguments[3] = RaycastParams
+                    end
+
+                    Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
+                    return
+                end
+
+                local function ScreenPointToRay(Arguments: {any}): nil | array
+                    local Target: BasePart | nil, Origin = GetTarget(Camera.CFrame.Position)
+                    if not Target then return end
+
+                    local Direction = CFrame_lookAt(Origin, Target.Position)
+                    if Shared.Prediction.Enabled then
+                        local Solution = EasyPredict(Origin, Target)
+                        Direction = Solution and CFrame_lookAt(Origin, Solution) or Direction
+                    end
+
+                    return {Ray_new(
+                        Origin + (Arguments[3] and Direction.LookVector * Arguments[3] or Vector3_zero),
+                        Direction.LookVector
+                    )}
+                end
+
+                Hooks.FindPartOnRay               = FindPartOnRay
+                Hooks.FindPartOnRayWithWhitelist  = FindPartOnRay
+                Hooks.FindPartOnRayWithIgnoreList = FindPartOnRay
+
+                Hooks.Ray     = Ray
+                Hooks.Raycast = Raycast
+
+                Hooks.ScreenPointToRay   = ScreenPointToRay
+                Hooks.ViewportPointToRay = ScreenPointToRay
+            end
+
+            --// Main Logics
+            local hookfunction, hookmetamethod, getnamecallmethod, getcallingscript, checkcaller
+                = hookfunction, hookmetamethod, getnamecallmethod, getcallingscript, checkcaller
+
+            local Old = {} :: {
+                __namecall: (self: Object, ...any) -> any,
+
+                FindPartOnRay:               (self: WorldRoot, ...any) -> any,
+                FindPartOnRayWithWhitelist:  (self: WorldRoot, ...any) -> any,
+                FindPartOnRayWithIgnoreList: (self: WorldRoot, ...any) -> any,
+
+                Ray:     (Origin: Vector3,   Direction: Vector3) -> Ray,
+                Raycast: (self:     WorldRoot, Origin:  Vector3, Direction: Vector3, RaycastParams) -> RaycastResult,
+
+                ScreenPointToRay:   (self: Camera, number, number, Depth: number) -> Ray,
+                ViewportPointToRay: (self: Camera, number, number, Depth: number) -> Ray
+            }
+
+            local Support_hookfunction = wax.shared.ExecutorSupport.hookfunction
+            local Support_hookmetamethod = (
+                wax.shared.ExecutorSupport.hookmetamethod and
+                wax.shared.ExecutorSupport.getnamecallmethod
+            )
+
+            local function GetHook(Function: Function, Method: 
+                "FindPartOnRay" |
+                "FindPartOnRayWithWhitelist" |
+                "FindPartOnRayWithIgnoreList" |
+
+                "Ray" |
+                "Raycast" |
+
+                "ScreenPointToRay" |
+                "ViewportPointToRay"
+            , Custom: Function?): Function
+                local checkcaller, getcallingscript, unpack
+                    = checkcaller, getcallingscript, unpack
+
+                local Hook  = Hooks[Method]
+                local Hooks = SilentAim.Hooks
+
+                return hookfunction(Function, Custom or function(self: Instance, ...: any): any
+                    if checkcaller() then return Old[Method](...)
+                    elseif not Hooks[Method] then return Old[Method](...) end
+
+                    local Calling = getcallingscript()
+                    if Calling then
+                        for _, Name in {
+                            "ControlModule",
+                            "ControlScript"
+                        } do
+                            if Calling.Name == Name then return Old[Method](...) end
+                        end
+                    end
+
+                    local Arguments = {...}
+                    local Result    = Hook(Arguments)
+
+                    return if Result then unpack(Result) else Old[Method](self, Arguments)
+                end)
+            end
+
+            local FunctionAndMethods = {
+                [Workspace.FindPartOnRay :: any]        = "FindPartOnRay",
+                [Workspace.FindPartOnRayWithWhitelist]  = "FindPartOnRayWithWhitelist",
+                [Workspace.FindPartOnRayWithIgnoreList] = "FindPartOnRayWithIgnoreList",
+
+                [Ray.new]           = "Ray",
+                [Workspace.Raycast] = "Raycast",
+
+                [Camera.ScreenPointToRay]   = "ScreenPointToRay",
+                [Camera.ViewportPointToRay] = "ViewportPointToRay"
+            }
+
+            SilentAim.Start = function(Enabled: boolean)
+                --// __namecall Hooking
+                if Support_hookmetamethod then
+                    if Enabled then
+                        local getnamecallmethod, getcallingscript, unpack
+                            = getnamecallmethod, getcallingscript, unpack
+
+                        local Hooks  = SilentAim.Hooks
+                        local Hooks_ = Hooks
+
+                        Old.__namecall = hookmetamethod(game, "__namecall", function(self: Object, ...: any) 
+                            local Method = getnamecallmethod()
+
+                            if not Hooks[Method] then return Old.__namecall(self, ...)
+                            elseif checkcaller() then return Old.__namecall(self, ...) end
+
+                            local Calling = getcallingscript()
+                            if Calling then
+                                for _, Name in {
+                                    "ControlModule",
+                                    "ControlScript"
+                                } do
+                                    if Calling.Name == Name then return Old.__namecall(self, ...) end
+                                end
+                            end
+
+                            local Arguments = {...}
+                            local Result    = Hooks_[Method](Arguments)
+
+                            return if Result then unpack(Result) else Old.__namecall(self, unpack(Arguments))
+                        end)
+                    else
+                        hookmetamethod(game, "__namecall", Old.__namecall)
+                        Old.__namecall = nil :: any
+                    end
+                end
+
+                --// Function Hooking
+                if Support_hookfunction then
+                    if Enabled then
+                        for Function, Method in FunctionAndMethods do
+                            if Method == "Ray" then
+                                local checkcaller, getcallingscript
+                                    = checkcaller, getcallingscript
+
+                                local Hook  = Hooks.Ray
+                                local Hooks = SilentAim.Hooks
+
+                                Old.Ray = GetHook(Function, Method, function(Origin: Vector3, Direction: Vector3): Ray
+                                    if checkcaller() then return Old.Ray(Origin, Direction)
+                                    elseif not Hooks.Ray then return Old.Ray(Origin, Direction) end
+
+                                    local Calling = getcallingscript()
+                                    if Calling then
+                                        for _, Name in {
+                                            "ControlModule",
+                                            "ControlScript"
+                                        } do
+                                            if Calling.Name == Name then return Old.Ray(Origin, Direction) end
+                                        end
+                                    end
+
+                                    local Arguments = {Origin, Direction}
+                                    Hook(Arguments)
+
+                                    return Old.Ray(unpack(Arguments))
+                                end)
+                            else
+                                Old[Method] = GetHook(Function, Method :: any)
+                            end
+                        end
+                    else
+                        for Function, Method in FunctionAndMethods do
+                            hookfunction(Function, Old[Method])
+                            Old[Method] = nil :: any
+                        end
+                    end
+                end
+            end
+        end
+
+        --// Finalize //
+        local AimbotModule = {
+            Fov       = Fov,
+            Shared    = Shared,
+            Aimbot    = Aimbot,
+            SilentAim = SilentAim
+        };do  --// Bundle Table and Usage Functions
             local Mode = "SilentAim" :: "Aimbot" | "SilentAim"
 
-            local function Toggle(Enabled: boolean)
+            local function Toggle(Enabled: boolean, LastMode: ("Aimbot" | "SilentAim")?)
                 Shared.Enabled = Enabled
+                _Target = nil
 
-                
+                if LastMode then
+                    AimbotModule[LastMode].Start(false)
+                end
+                AimbotModule[Mode].Start(Enabled)
             end
 
-            local function SetMode(Mode: "Aimbot" | "SilentAim")
-                Mode = Mode
+            local function SetMode(NewMode: "Aimbot" | "SilentAim")
+                local LastMode = Mode
+                Mode = NewMode
+
+                _Target = nil
+                Toggle(Shared.Enabled, LastMode :: "Aimbot" | "SilentAim")
             end
+
+            AimbotModule.Toggle  = Toggle
+            AimbotModule.SetMode = SetMode
+
+            return AimbotModule
         end
     end,
 
@@ -20829,285 +21406,12 @@ local ObjectTree = {
         },
         {
             {
-                39,
-                1,
-                {
-                    "Utils"
-                },
-                {
-                    {
-                        46,
-                        1,
-                        {
-                            "Gui"
-                        },
-                        {
-                            {
-                                47,
-                                1,
-                                {
-                                    "Linoria"
-                                },
-                                {
-                                    {
-                                        48,
-                                        2,
-                                        {
-                                            "Library"
-                                        }
-                                    },
-                                    {
-                                        49,
-                                        2,
-                                        {
-                                            "SaveManager"
-                                        }
-                                    },
-                                    {
-                                        50,
-                                        2,
-                                        {
-                                            "ThemeManager"
-                                        }
-                                    }
-                                }
-                            },
-                            {
-                                52,
-                                1,
-                                {
-                                    "Obsidian"
-                                },
-                                {
-                                    {
-                                        54,
-                                        2,
-                                        {
-                                            "SaveManager"
-                                        }
-                                    },
-                                    {
-                                        53,
-                                        2,
-                                        {
-                                            "Library"
-                                        }
-                                    },
-                                    {
-                                        55,
-                                        2,
-                                        {
-                                            "ThemeManager"
-                                        }
-                                    }
-                                }
-                            },
-                            {
-                                51,
-                                2,
-                                {
-                                    "Lucide"
-                                }
-                            },
-                            {
-                                56,
-                                2,
-                                {
-                                    "UIManager"
-                                }
-                            }
-                        }
-                    },
-                    {
-                        57,
-                        2,
-                        {
-                            "LiteralBlank"
-                        }
-                    },
-                    {
-                        61,
-                        1,
-                        {
-                            "Universal"
-                        },
-                        {
-                            {
-                                64,
-                                2,
-                                {
-                                    "FreeCamera"
-                                }
-                            },
-                            {
-                                68,
-                                2,
-                                {
-                                    "Visual"
-                                }
-                            },
-                            {
-                                62,
-                                2,
-                                {
-                                    "Aimbot"
-                                }
-                            },
-                            {
-                                63,
-                                2,
-                                {
-                                    "ControlModule"
-                                }
-                            },
-                            {
-                                67,
-                                2,
-                                {
-                                    "Prompt"
-                                }
-                            },
-                            {
-                                65,
-                                2,
-                                {
-                                    "MISC"
-                                }
-                            },
-                            {
-                                66,
-                                2,
-                                {
-                                    "Player"
-                                }
-                            }
-                        }
-                    },
-                    {
-                        41,
-                        2,
-                        {
-                            "Connect"
-                        }
-                    },
-                    {
-                        43,
-                        2,
-                        {
-                            "Entities"
-                        }
-                    },
-                    {
-                        58,
-                        2,
-                        {
-                            "MSESP"
-                        }
-                    },
-                    {
-                        60,
-                        2,
-                        {
-                            "Services"
-                        }
-                    },
-                    {
-                        42,
-                        2,
-                        {
-                            "EasingLibrary"
-                        }
-                    },
-                    {
-                        40,
-                        2,
-                        {
-                            "ArtEmoji"
-                        }
-                    },
-                    {
-                        45,
-                        2,
-                        {
-                            "FileHelper"
-                        }
-                    },
-                    {
-                        59,
-                        2,
-                        {
-                            "Prediction"
-                        }
-                    },
-                    {
-                        44,
-                        2,
-                        {
-                            "ExecutorSupport"
-                        }
-                    }
-                }
-            },
-            {
-                38,
-                2,
-                {
-                    "Translations"
-                }
-            },
-            {
-                2,
-                2,
-                {
-                    "Mappings"
-                }
-            },
-            {
                 3,
                 1,
                 {
                     "Places"
                 },
                 {
-                    {
-                        4,
-                        1,
-                        {
-                            "Loader"
-                        },
-                        {
-                            {
-                                5,
-                                1,
-                                {
-                                    "The Foundation"
-                                },
-                                {
-                                    {
-                                        7,
-                                        2,
-                                        {
-                                            "Lobby"
-                                        }
-                                    },
-                                    {
-                                        6,
-                                        2,
-                                        {
-                                            "Game"
-                                        }
-                                    }
-                                }
-                            },
-                            {
-                                8,
-                                2,
-                                {
-                                    "Universal"
-                                }
-                            }
-                        }
-                    },
                     {
                         32,
                         1,
@@ -21159,63 +21463,51 @@ local ObjectTree = {
                         }
                     },
                     {
+                        4,
+                        1,
+                        {
+                            "Loader"
+                        },
+                        {
+                            {
+                                5,
+                                1,
+                                {
+                                    "The Foundation"
+                                },
+                                {
+                                    {
+                                        7,
+                                        2,
+                                        {
+                                            "Lobby"
+                                        }
+                                    },
+                                    {
+                                        6,
+                                        2,
+                                        {
+                                            "Game"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                8,
+                                2,
+                                {
+                                    "Universal"
+                                }
+                            }
+                        }
+                    },
+                    {
                         9,
                         1,
                         {
                             "Tabs"
                         },
                         {
-                            {
-                                25,
-                                1,
-                                {
-                                    "Universal"
-                                },
-                                {
-                                    {
-                                        30,
-                                        2,
-                                        {
-                                            "5.Exploits"
-                                        }
-                                    },
-                                    {
-                                        26,
-                                        2,
-                                        {
-                                            "1.Main"
-                                        }
-                                    },
-                                    {
-                                        27,
-                                        2,
-                                        {
-                                            "2.Player"
-                                        }
-                                    },
-                                    {
-                                        28,
-                                        2,
-                                        {
-                                            "3.Visual"
-                                        }
-                                    },
-                                    {
-                                        31,
-                                        2,
-                                        {
-                                            "6.Trolls"
-                                        }
-                                    },
-                                    {
-                                        29,
-                                        2,
-                                        {
-                                            "4.ESP"
-                                        }
-                                    }
-                                }
-                            },
                             {
                                 10,
                                 1,
@@ -21224,57 +21516,6 @@ local ObjectTree = {
                                 },
                                 {
                                     {
-                                        18,
-                                        1,
-                                        {
-                                            "Lobby"
-                                        },
-                                        {
-                                            {
-                                                24,
-                                                2,
-                                                {
-                                                    "6.Trolls"
-                                                }
-                                            },
-                                            {
-                                                21,
-                                                2,
-                                                {
-                                                    "3.Visual"
-                                                }
-                                            },
-                                            {
-                                                22,
-                                                2,
-                                                {
-                                                    "4.ESP"
-                                                }
-                                            },
-                                            {
-                                                19,
-                                                2,
-                                                {
-                                                    "1.Main"
-                                                }
-                                            },
-                                            {
-                                                23,
-                                                2,
-                                                {
-                                                    "5.Exploits"
-                                                }
-                                            },
-                                            {
-                                                20,
-                                                2,
-                                                {
-                                                    "2.Player"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    {
                                         11,
                                         1,
                                         {
@@ -21282,17 +21523,10 @@ local ObjectTree = {
                                         },
                                         {
                                             {
-                                                13,
+                                                14,
                                                 2,
                                                 {
-                                                    "2.Player"
-                                                }
-                                            },
-                                            {
-                                                17,
-                                                2,
-                                                {
-                                                    "6.Trolls"
+                                                    "3.Visual"
                                                 }
                                             },
                                             {
@@ -21303,10 +21537,24 @@ local ObjectTree = {
                                                 }
                                             },
                                             {
+                                                17,
+                                                2,
+                                                {
+                                                    "6.Trolls"
+                                                }
+                                            },
+                                            {
                                                 12,
                                                 2,
                                                 {
                                                     "1.Main"
+                                                }
+                                            },
+                                            {
+                                                13,
+                                                2,
+                                                {
+                                                    "2.Player"
                                                 }
                                             },
                                             {
@@ -21315,20 +21563,349 @@ local ObjectTree = {
                                                 {
                                                     "4.ESP"
                                                 }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        18,
+                                        1,
+                                        {
+                                            "Lobby"
+                                        },
+                                        {
+                                            {
+                                                22,
+                                                2,
+                                                {
+                                                    "4.ESP"
+                                                }
                                             },
                                             {
-                                                14,
+                                                21,
                                                 2,
                                                 {
                                                     "3.Visual"
                                                 }
+                                            },
+                                            {
+                                                20,
+                                                2,
+                                                {
+                                                    "2.Player"
+                                                }
+                                            },
+                                            {
+                                                19,
+                                                2,
+                                                {
+                                                    "1.Main"
+                                                }
+                                            },
+                                            {
+                                                24,
+                                                2,
+                                                {
+                                                    "6.Trolls"
+                                                }
+                                            },
+                                            {
+                                                23,
+                                                2,
+                                                {
+                                                    "5.Exploits"
+                                                }
                                             }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                25,
+                                1,
+                                {
+                                    "Universal"
+                                },
+                                {
+                                    {
+                                        27,
+                                        2,
+                                        {
+                                            "2.Player"
+                                        }
+                                    },
+                                    {
+                                        26,
+                                        2,
+                                        {
+                                            "1.Main"
+                                        }
+                                    },
+                                    {
+                                        28,
+                                        2,
+                                        {
+                                            "3.Visual"
+                                        }
+                                    },
+                                    {
+                                        30,
+                                        2,
+                                        {
+                                            "5.Exploits"
+                                        }
+                                    },
+                                    {
+                                        29,
+                                        2,
+                                        {
+                                            "4.ESP"
+                                        }
+                                    },
+                                    {
+                                        31,
+                                        2,
+                                        {
+                                            "6.Trolls"
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
+            },
+            {
+                39,
+                1,
+                {
+                    "Utils"
+                },
+                {
+                    {
+                        43,
+                        2,
+                        {
+                            "Entities"
+                        }
+                    },
+                    {
+                        40,
+                        2,
+                        {
+                            "ArtEmoji"
+                        }
+                    },
+                    {
+                        58,
+                        2,
+                        {
+                            "MSESP"
+                        }
+                    },
+                    {
+                        44,
+                        2,
+                        {
+                            "ExecutorSupport"
+                        }
+                    },
+                    {
+                        42,
+                        2,
+                        {
+                            "EasingLibrary"
+                        }
+                    },
+                    {
+                        57,
+                        2,
+                        {
+                            "LiteralBlank"
+                        }
+                    },
+                    {
+                        46,
+                        1,
+                        {
+                            "Gui"
+                        },
+                        {
+                            {
+                                52,
+                                1,
+                                {
+                                    "Obsidian"
+                                },
+                                {
+                                    {
+                                        54,
+                                        2,
+                                        {
+                                            "SaveManager"
+                                        }
+                                    },
+                                    {
+                                        55,
+                                        2,
+                                        {
+                                            "ThemeManager"
+                                        }
+                                    },
+                                    {
+                                        53,
+                                        2,
+                                        {
+                                            "Library"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                56,
+                                2,
+                                {
+                                    "UIManager"
+                                }
+                            },
+                            {
+                                47,
+                                1,
+                                {
+                                    "Linoria"
+                                },
+                                {
+                                    {
+                                        48,
+                                        2,
+                                        {
+                                            "Library"
+                                        }
+                                    },
+                                    {
+                                        50,
+                                        2,
+                                        {
+                                            "ThemeManager"
+                                        }
+                                    },
+                                    {
+                                        49,
+                                        2,
+                                        {
+                                            "SaveManager"
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                51,
+                                2,
+                                {
+                                    "Lucide"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        41,
+                        2,
+                        {
+                            "Connect"
+                        }
+                    },
+                    {
+                        61,
+                        1,
+                        {
+                            "Universal"
+                        },
+                        {
+                            {
+                                65,
+                                2,
+                                {
+                                    "MISC"
+                                }
+                            },
+                            {
+                                62,
+                                2,
+                                {
+                                    "Aimbot"
+                                }
+                            },
+                            {
+                                63,
+                                2,
+                                {
+                                    "ControlModule"
+                                }
+                            },
+                            {
+                                68,
+                                2,
+                                {
+                                    "Visual"
+                                }
+                            },
+                            {
+                                67,
+                                2,
+                                {
+                                    "Prompt"
+                                }
+                            },
+                            {
+                                66,
+                                2,
+                                {
+                                    "Player"
+                                }
+                            },
+                            {
+                                64,
+                                2,
+                                {
+                                    "FreeCamera"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        60,
+                        2,
+                        {
+                            "Services"
+                        }
+                    },
+                    {
+                        59,
+                        2,
+                        {
+                            "Prediction"
+                        }
+                    },
+                    {
+                        45,
+                        2,
+                        {
+                            "FileHelper"
+                        }
+                    }
+                }
+            },
+            {
+                38,
+                2,
+                {
+                    "Translations"
+                }
+            },
+            {
+                2,
+                2,
+                {
+                    "Mappings"
                 }
             }
         }
