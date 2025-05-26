@@ -98,7 +98,7 @@ echo -e "      * ci-mode[=true]"
 echo -e "           CI mode (non-interactive, errors exit with code 1)"
 echo -e "      * verbose[=true]"
 echo -e "           Verbose logging"
-echo -e "\n$Info Example input: minify=true input=default.project.json output=Distribution/Script.luau\n"
+echo -e "\n$Info Example input: minify=false input=default.project.json output=Tests/Script.luau\n"
 
 # Step 4 - Ask for user input
 read -rp "Enter your bundle options: " UserOptions

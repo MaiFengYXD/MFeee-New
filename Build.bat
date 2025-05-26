@@ -80,7 +80,7 @@ echo           CI mode (non-interactive, errors exit with code 1)
 echo      * verbose[=true]
 echo           Verbose logging
 echo.
-echo %Info% Example input: minify=true input=default.project.json output=Distribution/Script.luau
+echo %Info% Example input: minify=true input=default.project.json output=Tests/Script-Minified.luau
 echo.
 
 :: Step 4 - Ask for user input
