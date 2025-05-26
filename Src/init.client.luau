@@ -216,9 +216,9 @@ end))
 wax.shared.ScriptVersion = "Build 1"
 
 wax.shared.UiManager = require("Utils/Gui/UIManager")
-wax.shared.Window    = wax.shared.UiManager:CreateWindow();
+wax.shared.Window    = wax.shared.UiManager:CreateWindow()
 
-(require :: Function)((`Places/Loader/{wax.shared.ScriptFolder}`) :: string)
+require(`Places/Loader/{wax.shared.ScriptFolder}`)
 
 wax.shared.UiManager:CreateUniversalTabs()
 
