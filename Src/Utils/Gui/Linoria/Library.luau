@@ -19,6 +19,7 @@ local ScreenGui = Instance.new('ScreenGui');
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.DisplayOrder = 1e7;
 ScreenGui.ResetOnSpawn = false;
+ScreenGui.IgnoreGuiInset = true;
 
 pcall(function() ScreenGui.Parent = (gethui() :: CoreGui); end);
 
@@ -55,9 +56,9 @@ local Library = {
 
     SaveManager = nil;
 
-    Window = nil;
-    KeybindContainer = nil;
-    KeybindFrame = nil;
+    Window = nil :: any;
+    KeybindContainer = nil :: any;
+    KeybindFrame = nil :: any;
 
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
@@ -83,7 +84,7 @@ local Library = {
     Signals = {};
     ScreenGui = ScreenGui;
 
-    ActiveTab = nil;
+    ActiveTab = nil :: any;
     Toggled = false;
 
     IsMobile = false;
@@ -118,11 +119,11 @@ Library.MinSize = if Library.IsMobile then Vector2.new(550, 200) else Vector2.ne
 
 local DPIScale = 1
 
-local function ApplyDPIScale(Position)
+local function ApplyDPIScale(Position: any)
     return UDim2.new(Position.X.Scale, Position.X.Offset * DPIScale, Position.Y.Scale, Position.Y.Offset * DPIScale);
 end;
 
-local function ApplyTextScale(TextSize)
+local function ApplyTextScale(TextSize: any)
     return TextSize * DPIScale;
 end;
 
@@ -181,19 +182,19 @@ local function GetTeams(ReturnInstances)
 end;
 
 function Library:SetDPIScale(value: number) 
-    assert(type(value) == "number", GetTranslation(Translations, "Expected type number for DPI scale but got ") .. typeof(value))
+    assert(type(value) == "number", GetTranslation("Expected type number for DPI scale but got ") .. typeof(value))
     
     DPIScale = value / 100;
     Library.MinSize = (if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300)) * DPIScale;
 end;
 
 -- < Create Notify UI >
-function Library:Create(Class, Properties)
+function Library:Create(Class: string | Instance, Properties: any): any
     local _Instance = Class;
 
     if typeof(Class) == "string" then
-        _Instance = Instance.new(Class);
-        _Instance.Name = randomstring();
+        _Instance = Instance.new(Class) :: any;
+        (_Instance :: any).Name = randomstring();
     end;
 
     for Property, Value in Properties do
@@ -206,13 +207,13 @@ function Library:Create(Class, Properties)
         end
 
         xpcall(function()
-            _Instance[Property] = Value;
+            (_Instance :: any)[Property] = Value;
         end, function(Error)
             warn(`Failed to create instance {Class} due to {Error}`)
         end);
     end;
 
-    return _Instance;
+    return _Instance :: any;
 end;
 
 do
@@ -393,7 +394,7 @@ function Library:Notify(...)
     local TweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
     function Data:Resize()
-        XSize, YSize = Library:GetTextBounds(NotifyLabel.Text, Library.Font, 14);
+        XSize, YSize = Library:GetTextBounds((NotifyLabel.Text :: any), Library.Font, 14);
         YSize = YSize + 7
 
         shared.TweenService:Create(NotifyOuter, TweenInfo, {
@@ -405,7 +406,7 @@ function Library:Notify(...)
         NewText = if NewText == nil then "" else tostring(NewText);
 
         Data.Title = NewText;
-        NotifyLabel.Text = (if Data.Title == "" then "" else "[" .. Data.Title .. "] ") .. tostring(Data.Description);
+        NotifyLabel.Text = (if (Data :: any).Title == "" then "" else "[" .. (Data :: any).Title .. "] ") .. tostring(Data.Description);
 
         Data:Resize();
     end
@@ -415,7 +416,7 @@ function Library:Notify(...)
         NewText = tostring(NewText);
 
         Data.Description = NewText;
-        NotifyLabel.Text = (if Data.Title == "" then "" else "[" .. Data.Title .. "] ") .. tostring(Data.Description);
+        NotifyLabel.Text = (if (Data :: any).Title == "" then "" else "[" .. (Data :: any).Title .. "] ") .. tostring(Data.Description);
 
         Data:Resize();
     end
@@ -485,16 +486,16 @@ function Library:Notify(...)
 end;
 
 function Library:SafeCallback(Func, ...)
-    if not (Func and typeof(Func) == "function") then
+    if typeof(Func) ~= "function" then
         return
     end;
 
-    local Success, Response = xpcall(Func, function(Error)
+    local Success, Response = xpcall(Func :: any, function(Error)
         local Traceback = debug.traceback():gsub("\n", " ")
         local _, i = Traceback:find(":%d+ ")
-        Traceback = Traceback:sub(i + 1):gsub(" :", ":")
+        Traceback = Traceback:sub(i or 0 + 1):gsub(" :", ":")
 
-        task.defer(error, Error .. " - " .. Traceback)
+        task.defer(error, `{Error} - {Traceback}`)
         if Library.NotifyOnError then
             Library:Notify(Error)
         end
@@ -519,7 +520,7 @@ function Library:ApplyTextStroke(Inst)
     });
 end;
 
-function Library:CreateLabel(Properties, IsHud)
+function Library:CreateLabel(Properties: any, IsHud: any)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
         Font = Library.Font;
@@ -537,7 +538,7 @@ function Library:CreateLabel(Properties, IsHud)
     return Library:Create(_Instance, Properties);
 end;
 
-function Library:MakeDraggable(Instance, Cutoff, IsMainWindow)
+function Library:MakeDraggable(Instance: any, Cutoff, IsMainWindow)
     Instance.Active = true;
 
     if Library.IsMobile == false then
@@ -591,13 +592,13 @@ function Library:MakeDraggable(Instance, Cutoff, IsMainWindow)
                 Dragging = true;
             end;
         end);
-        shared.UserInputService.TouchMoved:Connect(function(Input)
+        shared.UserInputService.TouchMoved:Connect(function(Input: InputObject)
             if IsMainWindow == true and Library.CantDragForced == true then
                 Dragging = false;
                 return;
             end
 
-            if Input == DraggingInput and Dragging and (IsMainWindow == true and (Library.CanDrag == true and Library.Window.Holder.Visible == true) or true) then
+            if Input == (DraggingInput :: any) and Dragging and (IsMainWindow == true and (Library.CanDrag == true and Library.Window.Holder.Visible == true) or true) then
                 local OffsetPos = Input.Position - DraggingStart;
 
                 Instance.Position = UDim2.new(
@@ -616,7 +617,7 @@ function Library:MakeDraggable(Instance, Cutoff, IsMainWindow)
     end;
 end;
 
-function Library:MakeDraggableUsingParent(Instance, Parent, Cutoff, IsMainWindow)
+function Library:MakeDraggableUsingParent(Instance, Parent: any, Cutoff, IsMainWindow)
     Instance.Active = true;
 
     if Library.IsMobile == false then
@@ -652,7 +653,7 @@ function Library:MakeDraggableUsingParent(Instance, Parent, Cutoff, IsMainWindow
     end;
 end;
 
-function Library:MakeResizable(Instance, MinSize)
+function Library:MakeResizable(Instance: GuiObject, MinSize)
     if Library.IsMobile then
         return;
     end;
@@ -696,7 +697,7 @@ function Library:MakeResizable(Instance, MinSize)
     Resizer.Position = UDim2.new(1, -ResizerImage_Size, 1, -ResizerImage_Size);
     MinSize = MinSize or Library.MinSize;
 
-    local OffsetPos;
+    local OffsetPos: any;
     Resizer.Parent = Instance;
 
     local function FinishResize(Transparency)
@@ -741,7 +742,7 @@ function Library:MakeResizable(Instance, MinSize)
     end);
 end;
 
-function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
+function Library:AddToolTip(InfoStr: any, DisabledInfoStr: any, HoverInstance)
     InfoStr = typeof(InfoStr) == "string" and InfoStr or nil;
     DisabledInfoStr = typeof(DisabledInfoStr) == "string" and DisabledInfoStr or nil;
 
@@ -772,7 +773,7 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
         BorderColor3 = 'OutlineColor';
     });
 
-    Library:AddToRegistry(Label, {
+    Library:AddToRegistry(Label :: any, {
         TextColor3 = 'FontColor',
     });
 
@@ -784,7 +785,7 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
     }
     local IsHovering = false
 
-    local function UpdateText(Text)
+    local function UpdateText(Text: any)
         if Text == nil then return end
 
         local X, Y = Library:GetTextBounds(Text, Library.Font, 14 * DPIScale);
@@ -796,7 +797,7 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
     UpdateText(InfoStr);
 
     table.insert(TooltipTable.Signals, HoverInstance.MouseEnter:Connect(function()
-        if Library:MouseIsOverOpenedFrame() then
+        if (Library :: any):MouseIsOverOpenedFrame() then
             Tooltip.Visible = false
             return
         end
@@ -851,7 +852,7 @@ function Library:AddToolTip(InfoStr, DisabledInfoStr, HoverInstance)
         Tooltip:Destroy();
 
         for Idx = #TooltipTable.Signals, 1, -1 do
-            local Connection = table.remove(TooltipTable.Signals, Idx);
+            local Connection = table.remove(TooltipTable.Signals, Idx) :: RBXScriptConnection;
             Connection:Disconnect();
         end
     end
@@ -901,7 +902,7 @@ function Library:MouseIsOverOpenedFrame(Input)
         Pos = Input.Position;
     end;
 
-    for Frame in Library.OpenedFrames do
+    for Frame: Frame in Library.OpenedFrames :: any do
         local AbsPos, AbsSize = Frame.AbsolutePosition, Frame.AbsoluteSize;
 
         if Pos.X >= AbsPos.X and Pos.X <= AbsPos.X + AbsSize.X
@@ -929,16 +930,16 @@ function Library:MouseIsOverFrame(Frame, Input)
 end;
 
 function Library:UpdateDependencyBoxes()
-    for _, Depbox in Library.DependencyBoxes do
+    for _, Depbox in Library.DependencyBoxes :: any do
         Depbox:Update();
     end;
 end;
 
-function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
+function Library:MapValue(Value: number, MinA: number, MaxA: number, MinB: number, MaxB: number)
     return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
-function Library:GetTextBounds(Text, Font, Size, Resolution)
+function Library:GetTextBounds(Text, Font, Size, Resolution: any)
     -- Ignores rich text formatting --
     local Bounds = shared.TextService:GetTextSize(Text:gsub("<%/?[%w:]+[^>]*>", ""), Size, Font, Resolution or Vector2.new(1920, 1080))
     return Bounds.X, Bounds.Y
@@ -950,7 +951,7 @@ function Library:GetDarkerColor(Color)
 end;
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
 
-function Library:AddToRegistry(Instance, Properties, IsHud)
+function Library:AddToRegistry(Instance: Instance, Properties: any, IsHud: any)
     local Idx = #Library.Registry + 1;
     local Data = {
         Instance = Instance;
@@ -997,7 +998,7 @@ function Library:UpdateColorsUsingRegistry()
 
     -- ~~The above would be especially efficient for a rainbow menu color or live color-changing.~~
 
-    for Idx, Object in Library.Registry do
+    for Idx, Object: any in Library.Registry do
         for Property, ColorIdx in Object.Properties do
             if typeof(ColorIdx) == "string" then
                 Object.Instance[Property] = Library[ColorIdx];
@@ -1016,12 +1017,12 @@ end
 function Library:Unload()
     -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
-        local Connection = table.remove(Library.Signals, Idx)
+        local Connection = table.remove(Library.Signals :: any, Idx) :: RBXScriptConnection
         Connection:Disconnect()
     end
 
     -- Call our unload callback, maybe to undo some hooks etc
-    for _, UnloadCallback in Library.UnloadSignals do
+    for _, UnloadCallback in Library.UnloadSignals :: any do
         Library:SafeCallback(UnloadCallback)
     end
 
@@ -1053,13 +1054,13 @@ do
         local ToggleLabel = self.TextLabel;
         --local Container = self.Container;
 
-        assert(Info.Default, GetTranslation(Translations, "AddColorPicker: Missing default value."));
+        assert(Info.Default, GetTranslation("AddColorPicker: Missing default value."));
 
         local ColorPicker = {
             Value = Info.Default;
             Transparency = Info.Transparency or 0;
             Type = 'ColorPicker';
-            Title = typeof(Info.Title) == "string" and Info.Title or GetTranslation(Translations, 'Color picker'),
+            Title = typeof(Info.Title) == "string" and Info.Title or GetTranslation('Color picker'),
             Callback = Info.Callback or function(Color) end;
             Changed = Info.Changed or function(Color) end;
         };
@@ -1231,7 +1232,7 @@ do
             Size = UDim2.new(1, -5, 1, 0);
             Font = Library.Font;
             PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
-            PlaceholderText = GetTranslation(Translations, 'Hex color'),
+            PlaceholderText = GetTranslation('Hex color'),
             Text = '#FFFFFF',
             TextColor3 = Library.FontColor;
             TextSize = 14;
@@ -1251,7 +1252,7 @@ do
 
         local RgbBox = Library:Create(RgbBoxBase.Frame:FindFirstChild('TextBox'), {
             Text = '255, 255, 255',
-            PlaceholderText = GetTranslation(Translations, 'RGB color'),
+            PlaceholderText = GetTranslation('RGB color'),
             TextColor3 = Library.FontColor
         });
 
@@ -1449,24 +1450,24 @@ do
 
             ContextMenu:AddOption('Copy color', function()
                 Library.ColorClipboard = ColorPicker.Value
-                Library:Notify(GetTranslation(Translations, 'Copied color!'), 2)
+                Library:Notify(GetTranslation('Copied color!'), 2)
             end)
 
             ContextMenu:AddOption('Paste color', function()
                 if not Library.ColorClipboard then
-                    return Library:Notify(GetTranslation(Translations, 'You have not copied a color!'), 2)
+                    return Library:Notify(GetTranslation('You have not copied a color!'), 2)
                 end
                 return ColorPicker:SetValueRGB(Library.ColorClipboard)
             end)
 
             ContextMenu:AddOption('Copy HEX', function()
                 pcall(setclipboard, ColorPicker.Value:ToHex())
-                Library:Notify(GetTranslation(Translations, 'Copied hex code to clipboard!'), 2)
+                Library:Notify(GetTranslation('Copied hex code to clipboard!'), 2)
             end)
 
             ContextMenu:AddOption('Copy RGB', function()
                 pcall(setclipboard, table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', '))
-                Library:Notify(GetTranslation(Translations, 'Copied RGB values to clipboard!'), 2)
+                Library:Notify(GetTranslation('Copied RGB values to clipboard!'), 2)
             end)
 
         end
@@ -1664,7 +1665,7 @@ do
         local ToggleLabel = self.TextLabel;
         --local Container = self.Container;
 
-        assert(Info.Default, GetTranslation(Translations, "AddKeyPicker: Missing default value."));
+        assert(Info.Default, GetTranslation("AddKeyPicker: Missing default value."));
 
         local KeyPicker = {
             Value = Info.Default;
@@ -1931,7 +1932,7 @@ do
                 KeybindsToggle:SetNormal(not ShowToggle)
 
                 KeybindsToggle:SetVisibility(true);
-                KeybindsToggle:SetText(string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, GetTranslation(Translations, KeyPicker.Mode)));
+                KeybindsToggle:SetText(string.format('[%s] %s (%s)', KeyPicker.Value, Info.Text, GetTranslation(KeyPicker.Mode)));
                 KeybindsToggle:Display(State);
             end
 
@@ -1964,15 +1965,15 @@ do
             if KeyPicker.Mode == 'Always' then
                 return true;
             elseif KeyPicker.Mode == 'Hold' then
-                if KeyPicker.Value == GetTranslation(Translations, "None") then
+                if KeyPicker.Value == GetTranslation("None") then
                     return false;
                 end
 
                 local Key = KeyPicker.Value;
 
-                if Key == GetTranslation(Translations, "MB1") then
+                if Key == GetTranslation("MB1") then
                     return shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                elseif Key == GetTranslation(Translations, "MB2") then
+                elseif Key == GetTranslation("MB2") then
                     return shared.UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2);
                 else
                     return shared.UserInputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value]) and not shared.UserInputService:GetFocusedTextBox();
@@ -2044,9 +2045,9 @@ do
                     if Input.UserInputType == Enum.UserInputType.Keyboard then
                         Key = Input.KeyCode.Name;
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        Key = GetTranslation(Translations, "MB1");
+                        Key = GetTranslation("MB1");
                     elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
-                        Key = GetTranslation(Translations, "MB2");
+                        Key = GetTranslation("MB2");
                     end;
 
                     Break = true;
@@ -2068,15 +2069,15 @@ do
         end)
 
         Library:GiveSignal(shared.UserInputService.InputBegan:Connect(function(Input)
-            if KeyPicker.Value == GetTranslation(Translations, "Unknown") then return end
+            if KeyPicker.Value == GetTranslation("Unknown") then return end
         
             if (not Picking) and (not shared.UserInputService:GetFocusedTextBox()) then
                 if KeyPicker.Mode == 'Toggle' then
                     local Key = KeyPicker.Value;
 
-                    if Key == GetTranslation(Translations, "MB1") or Key == GetTranslation(Translations, "MB2") then
-                        if Key == GetTranslation(Translations, "MB1") and Input.UserInputType == Enum.UserInputType.MouseButton1
-                        or Key == GetTranslation(Translations, "MB2") and Input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    if Key == GetTranslation("MB1") or Key == GetTranslation("MB2") then
+                        if Key == GetTranslation("MB1") and Input.UserInputType == Enum.UserInputType.MouseButton1
+                        or Key == GetTranslation("MB2") and Input.UserInputType == Enum.UserInputType.MouseButton2 then
                             KeyPicker.Toggled = not KeyPicker.Toggled
                             KeyPicker:DoClick()
                         end;
@@ -2129,8 +2130,8 @@ do
             Info.AllowNull = true;
         end;
 
-        assert(Info.Values, GetTranslation(Translations, "AddDropdown: Missing dropdown value list."));
-        assert(Info.AllowNull or Info.Default, GetTranslation(Translations, "AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
+        assert(Info.Values, GetTranslation("AddDropdown: Missing dropdown value list."));
+        assert(Info.AllowNull or Info.Default, GetTranslation("AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
 
         Info.Searchable = if typeof(Info.Searchable) == "boolean" then Info.Searchable else false;
         Info.FormatDisplayValue = if typeof(Info.FormatDisplayValue) == "function" then Info.FormatDisplayValue else nil;
@@ -2777,7 +2778,7 @@ do
 
         if select(2, ...) ~= nil and typeof(select(2, ...)) == "table" then
             if select(1, ...) ~= nil then
-                assert(typeof(select(1, ...)) == "string", GetTranslation(Translations, "Expected string for Idx, got ") .. typeof(select(1, ...)))
+                assert(typeof(select(1, ...)) == "string", GetTranslation("Expected string for Idx, got ") .. typeof(select(1, ...)))
             end
 
             local Params = select(2, ...)
@@ -2862,7 +2863,7 @@ do
         }
         Button.OriginalText = Button.Text;
         
-        assert(typeof(Button.Func) == 'function', GetTranslation(Translations, "AddButton: `Func` callback is missing."));
+        assert(typeof(Button.Func) == 'function', GetTranslation("AddButton: `Func` callback is missing."));
 
         local Blank = nil;
         local Groupbox = self;
@@ -2967,7 +2968,7 @@ do
                     Library:AddToRegistry(Button.Label, { TextColor3 = 'AccentColor' })
 
                     Button.Label.TextColor3 = Library.AccentColor
-                    Button.Label.Text = GetTranslation(Translations, 'Are you sure?')
+                    Button.Label.Text = GetTranslation('Are you sure?')
                     Button.Locked = true
 
                     local clicked = WaitForEvent(Button.Outer.InputBegan, 0.5, ValidateClick)
@@ -3001,7 +3002,7 @@ do
                 Func = select(2, ...)
             }
 
-            assert(typeof(SubButton.Func) == 'function', GetTranslation(Translations, "AddButton: `Func` callback is missing."));
+            assert(typeof(SubButton.Func) == 'function', GetTranslation("AddButton: `Func` callback is missing."));
 
             self.Outer.Size = UDim2.new(0.5, -2, 0, 20 * DPIScale)
 
@@ -3149,7 +3150,7 @@ do
     end
 
     function BaseGroupboxFuncs:AddInput(Idx, Info)
-        assert(Info.Text, GetTranslation(Translations, "AddInput: Missing `Text` string."))
+        assert(Info.Text, GetTranslation("AddInput: Missing `Text` string."))
 
         Info.ClearTextOnFocus = if typeof(Info.ClearTextOnFocus) == "boolean" then Info.ClearTextOnFocus else true;
 
@@ -3393,7 +3394,7 @@ do
     end;
 
     function BaseGroupboxFuncs:AddToggle(Idx, Info)
-        assert(Info.Text, GetTranslation(Translations, "AddInput: Missing `Text` string."))
+        assert(Info.Text, GetTranslation("AddInput: Missing `Text` string."))
 
         local Toggle = {
             Value = Info.Default or false;
@@ -3613,11 +3614,11 @@ do
     end;
 
     function BaseGroupboxFuncs:AddSlider(Idx, Info)
-        assert(Info.Default, GetTranslation(Translations, "AddSlider: Missing default value."));
-        assert(Info.Text, GetTranslation(Translations, "AddSlider: Missing slider text."));
-        assert(Info.Min, GetTranslation(Translations, "AddSlider: Missing minimum value."));
-        assert(Info.Max, GetTranslation(Translations, "AddSlider: Missing maximum value."));
-        assert(Info.Rounding, GetTranslation(Translations, "AddSlider: Missing rounding value."));
+        assert(Info.Default, GetTranslation("AddSlider: Missing default value."));
+        assert(Info.Text, GetTranslation("AddSlider: Missing slider text."));
+        assert(Info.Min, GetTranslation("AddSlider: Missing minimum value."));
+        assert(Info.Max, GetTranslation("AddSlider: Missing maximum value."));
+        assert(Info.Rounding, GetTranslation("AddSlider: Missing rounding value."));
 
         local Slider = {
             Value = Info.Default;
@@ -3718,7 +3719,7 @@ do
         local DisplayLabel = Library:CreateLabel({
             Size = UDim2.new(1, 0, 1, 0);
             TextSize = 14;
-            Text = GetTranslation(Translations, 'Infinite');
+            Text = GetTranslation('Infinite');
             ZIndex = 9;
             Parent = SliderInner;
             RichText = true;
@@ -3793,7 +3794,7 @@ do
         end;
         
         function Slider:SetMax(Value)
-            assert(Value > Slider.Min, GetTranslation(Translations, "Max value cannot be less than the current min value."));
+            assert(Value > Slider.Min, GetTranslation("Max value cannot be less than the current min value."));
 
             Slider.Value = math.clamp(Slider.Value, Slider.Min, Value);
             Slider.Max = Value;
@@ -3801,7 +3802,7 @@ do
         end;
 
         function Slider:SetMin(Value)
-            assert(Value < Slider.Max, GetTranslation(Translations, "Min value cannot be greater than the current max value."));
+            assert(Value < Slider.Max, GetTranslation("Min value cannot be greater than the current max value."));
 
             Slider.Value = math.clamp(Slider.Value, Value, Slider.Max);
             Slider.Min = Value;
@@ -3961,8 +3962,8 @@ do
             Info.AllowNull = true;
         end;
 
-        assert(Info.Values, GetTranslation(Translations, "AddDropdown: Missing dropdown value list."));
-        assert(Info.AllowNull or Info.Default, GetTranslation(Translations, "AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
+        assert(Info.Values, GetTranslation("AddDropdown: Missing dropdown value list."));
+        assert(Info.AllowNull or Info.Default, GetTranslation("AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional."));
 
         Info.Searchable = if typeof(Info.Searchable) == "boolean" then Info.Searchable else false;
         Info.FormatDisplayValue = if typeof(Info.FormatDisplayValue) == "function" then Info.FormatDisplayValue else nil;
@@ -4064,7 +4065,7 @@ do
 
                 Font = Library.Font;
                 PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
-                PlaceholderText = GetTranslation(Translations, 'Search...');
+                PlaceholderText = GetTranslation('Search...');
 
                 Text = '';
                 TextColor3 = Library.FontColor;
@@ -4662,9 +4663,9 @@ do
 
         function Depbox:SetupDependencies(Dependencies)
             for _, Dependency in Dependencies do
-                assert(typeof(Dependency) == 'table', GetTranslation(Translations, "SetupDependencies: Dependency is not of type `table`."));
-                assert(Dependency[1], GetTranslation(Translations, "SetupDependencies: Dependency is missing element argument."));
-                assert(Dependency[2] ~= nil, GetTranslation(Translations, "SetupDependencies: Dependency is missing value argument."));
+                assert(typeof(Dependency) == 'table', GetTranslation("SetupDependencies: Dependency is not of type `table`."));
+                assert(Dependency[1], GetTranslation("SetupDependencies: Dependency is missing element argument."));
+                assert(Dependency[2] ~= nil, GetTranslation("SetupDependencies: Dependency is missing value argument."));
             end;
 
             Depbox.Dependencies = Dependencies;
@@ -4791,7 +4792,7 @@ do
         Position = UDim2.fromOffset(5, 2),
         TextXAlignment = Enum.TextXAlignment.Left,
 
-        Text = GetTranslation(Translations, 'Keybinds');
+        Text = GetTranslation('Keybinds');
         ZIndex = 104;
         Parent = KeybindInner;
     });
@@ -4859,7 +4860,7 @@ function Library:CreateWindow(...)
         Config.AutoShow = Arguments[2] or false;
     end
 
-    if typeof(Config.Title) ~= "string" then Config.Title = GetTranslation(Translations, 'No title') end
+    if typeof(Config.Title) ~= "string" then Config.Title = GetTranslation('No title') end
     if typeof(Config.TabPadding) ~= 'number' then Config.TabPadding = 1 end
     if typeof(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
     if typeof(Config.NotifySide) ~= "string" then Library.NotifySide = 'TopRight' else Library.NotifySide = Config.NotifySide end
@@ -5132,7 +5133,7 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, 0, 0, 18);
                 Position = UDim2.new(0, 4, 0, 2);
                 TextSize = 14;
-                Text = GetTranslation(Translations, "Text");
+                Text = GetTranslation("Text");
                 TextXAlignment = Enum.TextXAlignment.Left;
                 TextColor3 = Color3.fromRGB(255, 55, 55);
                 ZIndex = 5;
@@ -5146,7 +5147,7 @@ function Library:CreateWindow(...)
                 Position =  UDim2.new(0, 4, 0, 20);
                 Size = UDim2.new(1, -4, 0, 14);
                 TextSize = 14;
-                Text = GetTranslation(Translations, "Text");
+                Text = GetTranslation("Text");
                 TextWrapped = true,
                 TextXAlignment = Enum.TextXAlignment.Left;
                 TextYAlignment = Enum.TextYAlignment.Top;
@@ -5715,7 +5716,7 @@ function Library:CreateWindow(...)
 
                     local OldMouseIconState = shared.UserInputService.MouseIconEnabled
                     shared.RunService:UnbindFromRenderStep("LinoriaCursor")
-                    shared.RunService:BindToRenderStep("LinoriaCursor", Enum.RenderPriority.Camera.Value - 1, function()
+                    shared.RunService:BindToRenderStep("LinoriaCursor", 2000, function()
                         shared.UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
                         local mPos = shared.UserInputService:GetMouseLocation()
                         local X, Y = mPos.X, mPos.Y
@@ -5857,7 +5858,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
             Font = Library.Font;
-            Text = GetTranslation(Translations, "Toggle UI");
+            Text = GetTranslation("Toggle UI");
             TextColor3 = Library.FontColor;
             TextSize = 14;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -5927,7 +5928,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(1, -4, 1, 0);
             BackgroundTransparency = 1;
             Font = Library.Font;
-            Text = GetTranslation(Translations, "Lock UI");
+            Text = GetTranslation("Lock UI");
             TextColor3 = Library.FontColor;
             TextSize = 14;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -5940,7 +5941,7 @@ function Library:CreateWindow(...)
         
         LockUIButton.MouseButton1Down:Connect(function()
             Library.CantDragForced = not Library.CantDragForced;
-            LockUIButton.Text = Library.CantDragForced and GetTranslation(Translations, "Unlock UI") or GetTranslation(Translations, "Lock UI");
+            LockUIButton.Text = Library.CantDragForced and GetTranslation("Unlock UI") or GetTranslation("Lock UI");
         end)
     end;
 

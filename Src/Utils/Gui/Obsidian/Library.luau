@@ -49,10 +49,7 @@ local Buttons = {}
 local Toggles = {}
 local Options = {}
 
-local Library = (function()
-    local rawset
-        = rawset
-
+local Library = (function(rawset)
     local Pass  = Enum.ContextActionResult.Pass
     local Sink  = Enum.ContextActionResult.Sink
     local Begin = Enum.UserInputState.Begin
@@ -71,14 +68,14 @@ local Library = (function()
 
         WindowFrames = {},
 
-        KeybindFrame = nil,
+        KeybindFrame = nil :: any,
         KeybindContainer = nil,
         KeybindToggles = {},
 
         Notifications = {},
 
         ToggleKeybind = nil, --/ Must be one keybind (moded)
-        Toggle = nil,
+        Toggle = nil :: any,
         TweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
         NotifyTweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 
@@ -124,7 +121,7 @@ local Library = (function()
     }
 
     local Proxy = {
-        ToggleKeybind = Enum.KeyCode.RightControl
+        ToggleKeybind = Enum.KeyCode.RightControl :: Enum.KeyCode | Enum.UserInputType
     }
 
     local RealToggled = Library.Toggled
@@ -137,10 +134,10 @@ local Library = (function()
         shared.Connect:BindAction(
             "LibraryToggle",
             function(_, InputState, InputObject: InputObject)
-                if InputState == Begin and InputObject.KeyCode == ToggleKeybind and not (Library.MenuKeyPicker and Library.MenuKeyPicker.Picking) then
+                if InputState == Begin and InputObject.KeyCode == (ToggleKeybind :: any) and not (Library.MenuKeyPicker and Library.MenuKeyPicker.Picking) then
                     RealToggled = not RealToggled
 
-                    pcall(pcall, Library.Toggle, RealToggled)
+                    pcall(pcall, Library.Toggle :: any, RealToggled)
                     return Sink
                 end
 
@@ -156,9 +153,9 @@ local Library = (function()
 
     --// InputBegan for mouse inputs
     shared.Connect:GiveSignal("LibraryToggle", Connect(shared.UserInputService.InputBegan, function(InputObject: InputObject)
-        if InputObject.UserInputType == Proxy.ToggleKeybind and not (Library.MenuKeyPicker and Library.MenuKeyPicker.Picking) then
+        if InputObject.UserInputType == (Proxy.ToggleKeybind :: any) and not (Library.MenuKeyPicker and Library.MenuKeyPicker.Picking) then
             RealToggled = not RealToggled
-            pcall(pcall, Library.Toggle, RealToggled)
+            pcall(pcall, Library.Toggle :: any, RealToggled)
         end
     end))
 
@@ -171,7 +168,7 @@ local Library = (function()
             if Key == "ToggleKeybind" then Rebind(Value) else rawset(self, Key, Value) end
         end
     })
-end)()
+end)(rawset :: any)
 
 local IsStudio = shared.RunService:IsStudio()
 
@@ -239,8 +236,8 @@ local Templates = {
 
     --// Library //
     Window = {
-        Title = GetTranslation(Translations, "No Title"),
-        Footer = GetTranslation(Translations, "No Footer"),
+        Title = GetTranslation("No Title"),
+        Footer = GetTranslation("No Footer"),
         Position = UDim2_fromScale(0.5, 0.5),
         Size = UDim2_fromOffset(720, 600),
         IconSize = UDim2_fromOffset(30, 30),
@@ -256,7 +253,7 @@ local Templates = {
         AlwaysOnTop = false,
     },
     Toggle = {
-        Text = GetTranslation(Translations, "Toggle"),
+        Text = GetTranslation("Toggle"),
         Default = false,
 
         Callback = function() end,
@@ -267,7 +264,7 @@ local Templates = {
         Visible = true,
     },
     Input = {
-        Text = GetTranslation(Translations, "Input"),
+        Text = GetTranslation("Input"),
         Default = "",
         Finished = false,
         Numeric = false,
@@ -283,7 +280,7 @@ local Templates = {
         Visible = true,
     },
     Slider = {
-        Text = GetTranslation(Translations, "Slider"),
+        Text = GetTranslation("Slider"),
         Default = 0,
         Min = 0,
         Max = 100,
@@ -313,8 +310,8 @@ local Templates = {
 
     --// Addons \\-
     KeyPicker = {
-        Text = GetTranslation(Translations, "KeyPicker"),
-        Default = GetTranslation(Translations, "None"),
+        Text = GetTranslation("KeyPicker"),
+        Default = GetTranslation("None"),
         Mode = "Toggle",
         Modes = { "Always", "Toggle", "Hold" },
         SyncToggleState = false,
@@ -342,7 +339,7 @@ local Sizes = {
 }
 
 --// Basic Functions //
-local function ApplyDPIScale(Dimension, ExtraOffset)
+local function ApplyDPIScale(Dimension: any, ExtraOffset: any): UDim | UDim2
     if typeof(Dimension) == "UDim" then
         return UDim_new(Dimension.Scale, Dimension.Offset * Library.DPIScale)
     end
@@ -364,11 +361,11 @@ local function ApplyDPIScale(Dimension, ExtraOffset)
     )
 end
 
-local function ApplyTextScale(TextSize)
+local function ApplyTextScale(TextSize: number)
     return TextSize * Library.DPIScale
 end
 
-local function WaitForEvent(Event, Timeout, Condition)
+local function WaitForEvent(Event, Timeout, Condition: any)
     local Bindable = Instance_new("BindableEvent")
     local Connection = Once(Event, function(...)
         if not Condition or typeof(Condition) == "function" and Condition(...) then
@@ -452,7 +449,7 @@ function Library:UpdateKeybindFrame()
     end
 
     local XSize = 0
-    for _, KeybindToggle in Library.KeybindToggles do
+    for _, KeybindToggle: any in Library.KeybindToggles do
         if not KeybindToggle.Holder.Visible then
             continue
         end
@@ -475,12 +472,12 @@ function Library:RemoveFromRegistry(Instance)
 end
 
 function Library:UpdateColorsUsingRegistry()
-    for Instance, Properties in Library.Registry do
+    for Instance, Properties: any in Library.Registry do
         for Property, ColorIdx in Properties do
             if typeof(ColorIdx) == "string" then
-                Instance[Property] = Library.Scheme[ColorIdx]
+                (Instance :: any)[Property] = Library.Scheme[ColorIdx]
             elseif typeof(ColorIdx) == "function" then
-                Instance[Property] = ColorIdx()
+                (Instance :: any)[Property] = ColorIdx()
             end
         end
     end
@@ -500,8 +497,8 @@ function Library:SetDPIScale(DPIScale: number)
     Library.DPIScale = DPIScale / 100
     Library.MinSize *= Library.DPIScale
 
-    for Instance, Properties in Library.DPIRegistry do
-        for Property, Value in Properties do
+    for Instance: any, Properties: any in Library.DPIRegistry do
+        for Property, Value in Properties :: any do
             if Property == "DPIExclude" or Property == "DPIOffset" then
                 continue
             elseif Property == "TextSize" then
@@ -512,7 +509,7 @@ function Library:SetDPIScale(DPIScale: number)
         end
     end
 
-    for _, Tab in Library.Tabs do
+    for _, Tab: any in Library.Tabs do
         if Tab.IsKeyTab then
             continue
         end
@@ -528,7 +525,7 @@ function Library:SetDPIScale(DPIScale: number)
         end
     end
 
-    for _, Option in Options do
+    for _, Option: any in Options do
         if Option.Type == "Dropdown" then
             Option:RecalculateListSize()
         elseif Option.Type == "KeyPicker" then
@@ -537,7 +534,7 @@ function Library:SetDPIScale(DPIScale: number)
     end
 
     Library:UpdateKeybindFrame()
-    for _, Notification in Library.Notifications do
+    for _, Notification: any in Library.Notifications do
         Notification:Resize()
     end
 end
@@ -573,7 +570,7 @@ function Library:Validate(Table: { [string]: any }, Template: { [string]: any })
 end
 
 --// Creator Functions //
-local function FillInstance(Table: { [string]: any }, Instance: GuiObject)
+local function FillInstance(Table: { [string]: any }, Instance: GuiObject | Instance)
     local ThemeProperties = Library.Registry[Instance] or {}
     local DPIProperties = Library.DPIRegistry[Instance] or {}
 
@@ -587,8 +584,8 @@ local function FillInstance(Table: { [string]: any }, Instance: GuiObject)
             ThemeProperties[k] = nil
         elseif k ~= "Text" and (Library.Scheme[v] or typeof(v) == "function") then
             -- me when Red in dropdowns break things (temp fix - or perm idk if deivid will do something about this)
-            ThemeProperties[k] = v
-            Instance[k] = Library.Scheme[v] or v()
+            ThemeProperties[k] = v;
+            (Instance :: any)[k] = Library.Scheme[v] or v()
             continue
         end
 
@@ -602,7 +599,7 @@ local function FillInstance(Table: { [string]: any }, Instance: GuiObject)
             end
         end
 
-        Instance[k] = v
+        (Instance :: any)[k] = v
     end
 
     if GetTableSize(ThemeProperties) > 0 then
@@ -616,7 +613,7 @@ local function FillInstance(Table: { [string]: any }, Instance: GuiObject)
 end
 
 local function New(ClassName: string, Properties: { [string]: any }): any
-    local Instance = Instance_new(ClassName)
+    local Instance = Instance_new(ClassName) :: Instance
 
     if Templates[ClassName] then
         FillInstance(Templates[ClassName], Instance)
@@ -625,7 +622,7 @@ local function New(ClassName: string, Properties: { [string]: any }): any
 
     if Properties["Parent"] and not Properties["ZIndex"] then
         pcall(function()
-            Instance.ZIndex = Properties.Parent.ZIndex
+            (Instance :: any).ZIndex = Properties.Parent.ZIndex
         end)
     end
 
@@ -746,9 +743,9 @@ do
 
     local TextService_GetTextBoundsAsync = TextService.GetTextBoundsAsync
 
-    function Library:FixFont(Font: (EnumItem | Font)?): Font | any
+    function Library:FixFont(Font: (Enum.Font | Font)?): Font | any
         if typeof(Font) == "EnumItem" then
-            return Font_fromEnum(Font)
+            return Font_fromEnum(Font :: Enum.Font)
         end
 
         return Font
@@ -1028,10 +1025,10 @@ do
 
         local Success, Response = xpcall(Func, function(Error)
             local Traceback = string_gsub(debug_traceback(), "\n", " ")
-            local _, i = string_find(Traceback":%d+ ")
-            Traceback = string_gsub(string_sub(Traceback, i + 1), " :", ":")
+            local _, i = string_find(Traceback, ":%d+ ")
+            Traceback = string_gsub(string_sub(Traceback, i or 0 + 1), " :", ":")
 
-            task_defer(error, Error .. " - " .. Traceback)
+            task_defer(error, `{Error} - {Traceback}`)
             if Library.NotifyOnError then
                 Library:Notify(Error)
             end
@@ -1363,7 +1360,7 @@ function Library:AddContextMenu(
     end
 
     function Table:Open()
-        if CurrentMenu == Table then
+        if CurrentMenu :: any == Table then
             return
         elseif CurrentMenu then
             CurrentMenu:Close()
@@ -1419,7 +1416,7 @@ function Library:AddContextMenu(
             Table.Signal = Disconnect(Table.Signal)
         end
         Table.Active = false
-        CurrentMenu = nil
+        CurrentMenu = nil :: any
         if typeof(ActiveCallback) == "function" then
             Library:SafeCallback(ActiveCallback, false)
         end
@@ -1498,7 +1495,7 @@ local TooltipLabel = New("TextLabel", {
 
         local function DoHover()
             if
-                CurrentHoverInstance == HoverInstance
+                CurrentHoverInstance == HoverInstance :: any
                 or (CurrentMenu and Library:MouseIsOverFrame(CurrentMenu.Menu, Mouse))
                 or (TooltipTable.Disabled and typeof(DisabledInfoStr) ~= "string")
                 or (not TooltipTable.Disabled and typeof(InfoStr) ~= "string")
@@ -1524,7 +1521,7 @@ local TooltipLabel = New("TextLabel", {
             end
 
             TooltipLabel.Visible = false
-            CurrentHoverInstance = nil
+            CurrentHoverInstance = nil :: any
         end
 
         table_insert(TooltipTable.Signals, Connect(HoverInstance.MouseEnter, DoHover))
@@ -1538,7 +1535,7 @@ local TooltipLabel = New("TextLabel", {
                     end
 
                     TooltipLabel.Visible = false
-                    CurrentHoverInstance = nil
+                    CurrentHoverInstance = nil :: any
                 end
             )
         )
@@ -1556,7 +1553,7 @@ local TooltipLabel = New("TextLabel", {
 
             if CurrentHoverInstance == HoverInstance then
                 TooltipLabel.Visible = false
-                CurrentHoverInstance = nil
+                CurrentHoverInstance = nil :: any
             end
         end
 
@@ -1617,7 +1614,7 @@ do
         }
 
         if Info.IsMenuKeyPicker then
-            Library.MenuKeyPicker = KeyPicker
+            Library.MenuKeyPicker = KeyPicker :: any
         end
 
         if KeyPicker.SyncToggleState then
@@ -1783,7 +1780,7 @@ do
 
             function ModeButton:Select()
                 for _, Button in ModeButtons do
-                    Button:Deselect()
+                    (Button :: any):Deselect()
                 end
 
                 KeyPicker.Mode = Mode
@@ -1845,7 +1842,7 @@ do
                     KeybindsToggle:SetNormal(true)
                 end
 
-                KeybindsToggle:SetText(string_format("[%s] %s (%s)", KeyPicker.Value, KeyPicker.Text, GetTranslation(Translations, KeyPicker.Mode)))
+                KeybindsToggle:SetText(string_format("[%s] %s (%s)", KeyPicker.Value, KeyPicker.Text, GetTranslation(KeyPicker.Mode)))
                 KeybindsToggle:SetVisibility(true)
                 KeybindsToggle:Display(State)
             end
@@ -1858,17 +1855,17 @@ do
                 return true
             elseif KeyPicker.Mode == "Hold" then
                 local Key = KeyPicker.Value
-                if Key == GetTranslation(Translations, "None") then
+                if Key == GetTranslation("None") then
                     return false
                 end
 
-                if Key == GetTranslation(Translations, "MB1") or Key == GetTranslation(Translations, "MB2") or Key == GetTranslation(Translations, "MB3") then
-                    return Key == GetTranslation(Translations, "MB1") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                        or Key == GetTranslation(Translations, "MB2") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-                        or Key == GetTranslation(Translations, "MB3") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton3)
+                if Key == GetTranslation("MB1") or Key == GetTranslation("MB2") or Key == GetTranslation("MB3") then
+                    return Key == GetTranslation("MB1") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+                        or Key == GetTranslation("MB2") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                        or Key == GetTranslation("MB3") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton3)
                 end
 
-                return UserInputService:IsKeyDown(Enum.KeyCode[KeyPicker.Value])
+                return UserInputService:IsKeyDown((Enum.KeyCode :: any)[KeyPicker.Value])
                     and not UserInputService:GetFocusedTextBox()
             else
                 return KeyPicker.Toggled
@@ -1911,16 +1908,16 @@ do
             Picker.Size = UDim2_fromOffset(29 * Library.DPIScale, 18 * Library.DPIScale)
 
             local Input = Wait(UserInputService.InputBegan)
-            local Key = GetTranslation(Translations, "Unknown")
+            local Key = GetTranslation("Unknown")
 
             if Input.UserInputType == Enum.UserInputType.Keyboard then
-                Key = Input.KeyCode == Enum.KeyCode.Escape and GetTranslation(Translations, "None") or Input.KeyCode.Name
+                Key = Input.KeyCode == Enum.KeyCode.Escape and GetTranslation("None") or Input.KeyCode.Name
             elseif Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                Key = GetTranslation(Translations, "MB1")
+                Key = GetTranslation("MB1")
             elseif Input.UserInputType == Enum.UserInputType.MouseButton2 then
-                Key = GetTranslation(Translations, "MB2")
+                Key = GetTranslation("MB2")
             elseif Input.UserInputType == Enum.UserInputType.MouseButton3 then
-                Key = GetTranslation(Translations, "MB3")
+                Key = GetTranslation("MB3")
             end
 
             KeyPicker.Value = Key
@@ -1943,11 +1940,11 @@ do
         Connect(Picker.MouseButton2Click, MenuTable.Toggle)
 
         do
-            local function CheckInput(Input, CheckAlways)
+            local function CheckInput(Input, CheckAlways: any)
                 return (
                     CheckAlways and KeyPicker.Mode == "Always"
-                    or KeyPicker.Value == GetTranslation(Translations, "Unknown")
-                    or KeyPicker.Value == GetTranslation(Translations, "None")
+                    or KeyPicker.Value == GetTranslation("Unknown")
+                    or KeyPicker.Value == GetTranslation("None")
                     or KeyPicker.Picking
                     or UserInputService:GetFocusedTextBox()
                 )
@@ -1961,11 +1958,11 @@ do
                 if KeyPicker.Mode == "Toggle" then
                     local Key = KeyPicker.Value
 
-                    if Key == GetTranslation(Translations, "MB1") or Key == GetTranslation(Translations, "MB2") or Key == GetTranslation(Translations, "MB3") then
+                    if Key == GetTranslation("MB1") or Key == GetTranslation("MB2") or Key == GetTranslation("MB3") then
                         if
-                            Key == GetTranslation(Translations, "MB1") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-                            or Key == GetTranslation(Translations, "MB2") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-                            or Key == GetTranslation(Translations, "MB3") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton3)
+                            Key == GetTranslation("MB1") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+                            or Key == GetTranslation("MB2") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+                            or Key == GetTranslation("MB3") and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton3)
                         then
                             KeyPicker.Toggled = not KeyPicker.Toggled
                             KeyPicker:DoClick()
@@ -2279,18 +2276,18 @@ do
                 end)
             end
 
-            CreateButton(GetTranslation(Translations, "Copy color"), function()
-                Library.CopiedColor = { ColorPicker.Value, ColorPicker.Transparency }
+            CreateButton(GetTranslation("Copy color"), function()
+                (Library :: any).CopiedColor = { ColorPicker.Value, ColorPicker.Transparency }
             end)
 
-            CreateButton(GetTranslation(Translations, "Paste color"), function()
+            CreateButton(GetTranslation("Paste color"), function()
                 ColorPicker:SetValueRGB(Library.CopiedColor[1], Library.CopiedColor[2])
             end)
 
-            CreateButton(GetTranslation(Translations, "Copy Hex"), function()
+            CreateButton(GetTranslation("Copy Hex"), function()
                 toclipboard(tostring(ColorPicker.Value:ToHex()))
             end)
-            CreateButton(GetTranslation(Translations, "Copy RGB"), function()
+            CreateButton(GetTranslation("Copy RGB"), function()
                 toclipboard(table_concat({
                     math_floor(ColorPicker.Value.R * 255),
                     math_floor(ColorPicker.Value.G * 255),
@@ -2381,7 +2378,7 @@ do
 
             local R, G, B = string_match(RgbBox.Text, "(%d+),%s*(%d+),%s*(%d+)")
             if R and G and B then
-                ColorPicker:SetHSVFromRGB(Color3_fromRGB(R, G, B))
+                ColorPicker:SetHSVFromRGB((Color3_fromRGB :: any)(R, G, B))
             end
 
             ColorPicker:Update()
@@ -2393,7 +2390,7 @@ do
             table_insert(ParentObj.Addons, ColorPicker)
         end
 
-        Options[Idx] = ColorPicker
+        Options[Idx] = ColorPicker :: any
 
         return self
     end
@@ -2487,7 +2484,7 @@ do
         end)
 
         function Label:BindClickEventListener(Callback: () -> ())
-            Label.EventListener = Callback
+            Label.EventListener = Callback :: any
         end
 
         function Label:SetVisible(Visible: boolean)
@@ -2683,7 +2680,7 @@ do
                 if Button.DoubleClick then
                     Button.Locked = true
 
-                    Button.Base.Text = GetTranslation(Translations, "Are you sure?")
+                    Button.Base.Text = GetTranslation("Are you sure?")
                     Button.Base.TextColor3 = Library.Scheme.AccentColor
                     Library.Registry[Button.Base].TextColor3 = "AccentColor"
 
@@ -2707,7 +2704,7 @@ do
         end
 
         Button.Base, Button.Stroke = CreateButton(Button)
-        InitEvents(Button)
+        InitEvents(Button :: any)
 
         function Button:AddButton(...)
             local Info = GetInfo(...)
@@ -2731,14 +2728,14 @@ do
 
             Button.SubButton = SubButton
             SubButton.Base, SubButton.Stroke = CreateButton(SubButton)
-            InitEvents(SubButton)
+            InitEvents(SubButton :: any)
 
             function SubButton:UpdateColors()
                 if Library.Unloaded then 
                     return
                 end
 
-                StopTween(SubButton.Tween)
+                StopTween(SubButton.Tween :: any)
 
                 SubButton.Base.BackgroundColor3 = SubButton.Disabled and Library.Scheme.BackgroundColor
                     or Library.Scheme.MainColor
@@ -2774,8 +2771,8 @@ do
 
             if typeof(SubButton.Tooltip) == "string" or typeof(SubButton.DisabledTooltip) == "string" then
                 SubButton.TooltipTable =
-                    Library:AddTooltip(SubButton.Tooltip, SubButton.DisabledTooltip, SubButton.Base)
-                SubButton.TooltipTable.Disabled = SubButton.Disabled
+                    Library:AddTooltip(SubButton.Tooltip, SubButton.DisabledTooltip, SubButton.Base);
+                (SubButton.TooltipTable :: any).Disabled = SubButton.Disabled
             end
 
             if SubButton.Risky then
@@ -2799,7 +2796,7 @@ do
                 return
             end
 
-            StopTween(Button.Tween)
+            StopTween(Button.Tween :: any)
 
             Button.Base.BackgroundColor3 = Button.Disabled and Library.Scheme.BackgroundColor
                 or Library.Scheme.MainColor
@@ -2833,8 +2830,8 @@ do
         end
 
         if typeof(Button.Tooltip) == "string" or typeof(Button.DisabledTooltip) == "string" then
-            Button.TooltipTable = Library:AddTooltip(Button.Tooltip, Button.DisabledTooltip, Button.Base)
-            Button.TooltipTable.Disabled = Button.Disabled
+            Button.TooltipTable = Library:AddTooltip(Button.Tooltip, Button.DisabledTooltip, Button.Base);
+            (Button.TooltipTable :: any).Disabled = Button.Disabled
         end
 
         if Button.Risky then
@@ -2980,7 +2977,7 @@ do
             Toggle.Value = Value
             Toggle:Display()
 
-            for _, Addon in Toggle.Addons do
+            for _, Addon: any in Toggle.Addons do
                 if Addon.Type == "KeyPicker" and Addon.SyncToggleState then
                     Addon.Toggled = Toggle.Value
                     Addon:Update()
@@ -3002,7 +2999,7 @@ do
                 Toggle.TooltipTable.Disabled = Toggle.Disabled
             end
 
-            for _, Addon in Toggle.Addons do
+            for _, Addon: any in Toggle.Addons do
                 if Addon.Type == "KeyPicker" and Addon.SyncToggleState then
                     Addon:Update()
                 end
@@ -3033,8 +3030,8 @@ do
         end)
 
         if typeof(Toggle.Tooltip) == "string" or typeof(Toggle.DisabledTooltip) == "string" then
-            Toggle.TooltipTable = Library:AddTooltip(Toggle.Tooltip, Toggle.DisabledTooltip, Button)
-            Toggle.TooltipTable.Disabled = Toggle.Disabled
+            Toggle.TooltipTable = Library:AddTooltip(Toggle.Tooltip, Toggle.DisabledTooltip, Button);
+            (Toggle.TooltipTable :: any).Disabled = Toggle.Disabled
         end
 
         if Toggle.Risky then
@@ -3203,7 +3200,7 @@ do
             Toggle.Value = Value
             Toggle:Display()
 
-            for _, Addon in Toggle.Addons do
+            for _, Addon: any in Toggle.Addons do
                 if Addon.Type == "KeyPicker" and Addon.SyncToggleState then
                     Addon.Toggled = Toggle.Value
                     Addon:Update()
@@ -3225,7 +3222,7 @@ do
                 Toggle.TooltipTable.Disabled = Toggle.Disabled
             end
 
-            for _, Addon in Toggle.Addons do
+            for _, Addon: any in Toggle.Addons do
                 if Addon.Type == "KeyPicker" and Addon.SyncToggleState then
                     Addon:Update()
                 end
@@ -3256,8 +3253,8 @@ do
         end)
 
         if typeof(Toggle.Tooltip) == "string" or typeof(Toggle.DisabledTooltip) == "string" then
-            Toggle.TooltipTable = Library:AddTooltip(Toggle.Tooltip, Toggle.DisabledTooltip, Button)
-            Toggle.TooltipTable.Disabled = Toggle.Disabled
+            Toggle.TooltipTable = Library:AddTooltip(Toggle.Tooltip, Toggle.DisabledTooltip, Button);
+            (Toggle.TooltipTable :: any).Disabled = Toggle.Disabled
         end
 
         if Toggle.Risky then
@@ -3273,9 +3270,9 @@ do
         setmetatable(Toggle, BaseAddons)
 
         Toggle.Holder = Button
-        table_insert(Groupbox.Elements, Toggle)
+        table_insert(Groupbox.Elements, Toggle :: any)
 
-        Toggles[Idx] = Toggle
+        Toggles[Idx :: any] = Toggle :: any
 
         return Toggle
     end
@@ -3425,8 +3422,8 @@ do
         end
 
         if typeof(Input.Tooltip) == "string" or typeof(Input.DisabledTooltip) == "string" then
-            Input.TooltipTable = Library:AddTooltip(Input.Tooltip, Input.DisabledTooltip, Box)
-            Input.TooltipTable.Disabled = Input.Disabled
+            Input.TooltipTable = Library:AddTooltip(Input.Tooltip, Input.DisabledTooltip, Box);
+            (Input.TooltipTable :: any).Disabled = Input.Disabled
         end
 
         Groupbox:Resize()
@@ -3434,7 +3431,7 @@ do
         Input.Holder = Holder
         table_insert(Groupbox.Elements, Input)
 
-        Options[Idx] = Input
+        Options[Idx] = Input :: any
 
         return Input
     end
@@ -3566,7 +3563,7 @@ do
             Slider.Changed = Func
         end
 
-        local function Round(Value)
+        local function Round(Value): number?
             if Info.Rounding == 0 then
                 return math_floor(Value)
             end
@@ -3575,7 +3572,7 @@ do
         end
 
         function Slider:SetMax(Value)
-            assert(Value > Slider.Min, GetTranslation(Translations, "Max value cannot be less than the current min value."))
+            assert(Value > Slider.Min, GetTranslation("Max value cannot be less than the current min value."))
 
             Slider.Value = math_clamp(Slider.Value, Slider.Min, Value)
             Slider.Max = Value
@@ -3583,7 +3580,7 @@ do
         end
 
         function Slider:SetMin(Value)
-            assert(Value < Slider.Max, GetTranslation(Translations, "Min value cannot be greater than the current max value."))
+            assert(Value < Slider.Max, GetTranslation("Min value cannot be greater than the current max value."))
 
             Slider.Value = math_clamp(Slider.Value, Value, Slider.Max)
             Slider.Min = Value
@@ -3651,8 +3648,10 @@ do
                 return
             end
 
-            for _, Side in Library.ActiveTab.Sides do
-                Side.ScrollingEnabled = false
+            if Library.ActiveTab then
+                for _, Side in Library.ActiveTab.Sides do
+                    Side.ScrollingEnabled = false
+                end
             end
 
             while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1 or Enum.UserInputType.Touch) do
@@ -3671,14 +3670,16 @@ do
                 Wait(PreRender)
             end
 
-            for _, Side in Library.ActiveTab.Sides do
-                Side.ScrollingEnabled = true
+            if Library.ActiveTab then
+                for _, Side in Library.ActiveTab.Sides do
+                    Side.ScrollingEnabled = true
+                end
             end
         end)
 
         if typeof(Slider.Tooltip) == "string" or typeof(Slider.DisabledTooltip) == "string" then
-            Slider.TooltipTable = Library:AddTooltip(Slider.Tooltip, Slider.DisabledTooltip, Bar)
-            Slider.TooltipTable.Disabled = Slider.Disabled
+            Slider.TooltipTable = Library:AddTooltip(Slider.Tooltip, Slider.DisabledTooltip, Bar);
+            (Slider.TooltipTable :: any).Disabled = Slider.Disabled
         end
 
         Slider:UpdateColors()
@@ -3688,7 +3689,7 @@ do
         Slider.Holder = Holder
         table_insert(Groupbox.Elements, Slider)
 
-        Options[Idx] = Slider
+        Options[Idx] = Slider :: any
 
         return Slider
     end
@@ -3781,7 +3782,7 @@ do
         if Info.Searchable then
             SearchBox = New("TextBox", {
                 BackgroundTransparency = 1,
-                PlaceholderText = GetTranslation(Translations, "Search..."),
+                PlaceholderText = GetTranslation("Search..."),
                 Position = UDim2_fromOffset(-8, 0),
                 Size = UDim2_new(1, -12, 1, 0),
                 TextSize = 14,
@@ -3851,7 +3852,7 @@ do
 
             if Info.Multi then
                 for _, Value in Dropdown.Values do
-                    if Dropdown.Value[Value] then
+                    if (Dropdown.Value :: any)[Value] then
                         Str = Str
                             .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value))
                             .. ", "
@@ -3877,11 +3878,11 @@ do
             Dropdown.Changed = Func
         end
 
-        function Dropdown:GetActiveValues()
+        function Dropdown:GetActiveValues(): any
             if Info.Multi then
                 local Table = {}
 
-                for Value in Dropdown.Value do
+                for Value in Dropdown.Value :: any do
                     table_insert(Table, Value)
                 end
 
@@ -3930,14 +3931,14 @@ do
 
                 local Selected
                 if Info.Multi then
-                    Selected = Dropdown.Value[Value]
+                    Selected = (Dropdown.Value :: any)[Value]
                 else
                     Selected = Dropdown.Value == Value
                 end
 
                 function Table:UpdateButton()
                     if Info.Multi then
-                        Selected = Dropdown.Value[Value]
+                        Selected = (Dropdown.Value :: any)[Value]
                     else
                         Selected = Dropdown.Value == Value
                     end
@@ -3953,7 +3954,7 @@ do
                         if not (Dropdown:GetActiveValues() == 1 and not Try and not Info.AllowNull) then
                             Selected = Try
                             if Info.Multi then
-                                Dropdown.Value[Value] = Selected and true or nil
+                                (Dropdown.Value :: any)[Value] = Selected and true or nil
                             else
                                 Dropdown.Value = Selected and Value or nil
                             end
@@ -4107,7 +4108,7 @@ do
             for i = 1, #Defaults do
                 local Index = Defaults[i]
                 if Info.Multi then
-                    Dropdown.Value[Dropdown.Values[Index]] = true
+                    (Dropdown.Value :: any)[Dropdown.Values[Index]] = true
                 else
                     Dropdown.Value = Dropdown.Values[Index]
                 end
@@ -4119,8 +4120,8 @@ do
         end
 
         if typeof(Dropdown.Tooltip) == "string" or typeof(Dropdown.DisabledTooltip) == "string" then
-            Dropdown.TooltipTable = Library:AddTooltip(Dropdown.Tooltip, Dropdown.DisabledTooltip, Display)
-            Dropdown.TooltipTable.Disabled = Dropdown.Disabled
+            Dropdown.TooltipTable = Library:AddTooltip(Dropdown.Tooltip, Dropdown.DisabledTooltip, Display);
+            (Dropdown.TooltipTable :: any).Disabled = Dropdown.Disabled
         end
 
         Dropdown:UpdateColors()
@@ -4131,7 +4132,7 @@ do
         Dropdown.Holder = Holder
         table_insert(Groupbox.Elements, Dropdown)
 
-        Options[Idx] = Dropdown
+        Options[Idx] = Dropdown :: any
 
         return Dropdown
     end
@@ -4146,12 +4147,12 @@ do
     local Font_fromEnum
         = Font.fromEnum
 
-    function Library:SetFont(FontFace: Font | EnumItem)
+    function Library:SetFont(FontFace: Font | Enum.Font)
         if typeof(FontFace) == "EnumItem" then
-            FontFace = Font_fromEnum(FontFace)
+            FontFace = Font_fromEnum(FontFace :: Enum.Font)
         end
 
-        Library.Scheme.Font = FontFace
+        Library.Scheme.Font = FontFace :: Font
         Library:UpdateColorsUsingRegistry()
     end
 end
@@ -4222,7 +4223,7 @@ function Library:CreateWindow(WindowInfo)
     local Tabs
     local Container
     do
-        Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu(GetTranslation(Translations, "Keybinds"))
+        Library.KeybindFrame, Library.KeybindContainer = Library:AddDraggableMenu(GetTranslation("Keybinds"))
         Library.KeybindFrame.AnchorPoint = Vector2_new(0, 0.5)
         Library.KeybindFrame.Position = UDim2_new(0, 6, 0.5, 0)
         Library.KeybindFrame.Visible = false
@@ -4324,7 +4325,7 @@ function Library:CreateWindow(WindowInfo)
         SearchBox = New("TextBox", {
             AnchorPoint = Vector2_new(0, 0.5),
             BackgroundColor3 = "MainColor",
-            PlaceholderText = GetTranslation(Translations, "Search"),
+            PlaceholderText = GetTranslation("Search"),
             Position = UDim2_new(0.3, 8, 0.5, 0),
             Size = UDim2_new(0.7, -57, 1, -16),
             TextScaled = true,
@@ -4422,7 +4423,7 @@ function Library:CreateWindow(WindowInfo)
             })
 
             Library:MakeResizable(MainFrame, ResizeButton, function()
-                for _, Tab in Library.Tabs do
+                for _, Tab: any in Library.Tabs do
                     Tab:Resize(true)
                 end
             end)
@@ -4918,7 +4919,7 @@ function Library:CreateWindow(WindowInfo)
 
                     Container.Visible = true
 
-                    Tabbox.ActiveTab = Tab
+                    Tabbox.ActiveTab = Tab :: any
                     Tab:Resize()
                 end
 
@@ -5002,7 +5003,7 @@ function Library:CreateWindow(WindowInfo)
             end
             TabContainer.Visible = true
 
-            Library.ActiveTab = Tab
+            Library.ActiveTab = Tab :: any
         end
 
         function Tab:Hide()
@@ -5138,7 +5139,7 @@ function Library:CreateWindow(WindowInfo)
                 BackgroundColor3 = "MainColor",
                 BorderColor3 = "OutlineColor",
                 BorderSizePixel = 1,
-                PlaceholderText = GetTranslation(Translations, "Key"),
+                PlaceholderText = GetTranslation("Key"),
                 Size = UDim2_new(1, -71, 1, 0),
                 TextSize = 14,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -5157,7 +5158,7 @@ function Library:CreateWindow(WindowInfo)
                 BorderSizePixel = 1,
                 Position = UDim2_fromScale(1, 0),
                 Size = UDim2_new(0, 63, 1, 0),
-                Text = GetTranslation(Translations, "Execute"),
+                Text = GetTranslation("Execute"),
                 TextSize = 14,
                 Parent = Holder,
             })
@@ -5207,7 +5208,7 @@ function Library:CreateWindow(WindowInfo)
             end
             TabContainer.Visible = true
 
-            Library.ActiveTab = Tab
+            Library.ActiveTab = Tab :: any
         end
 
         function Tab:Hide()
@@ -5251,7 +5252,7 @@ function Library:CreateWindow(WindowInfo)
     function Library:Toggle(Value: boolean?)
         if typeof(Value) == "boolean" then
             if Value == Library.Toggle then return end
-            Library.Toggled = Value
+            Library.Toggled = Value :: boolean
         else
             Library.Toggled = not Library.Toggled
         end
@@ -5263,7 +5264,7 @@ function Library:CreateWindow(WindowInfo)
             local OldMouseIconEnabled = UserInputService.MouseIconEnabled
 
             shared.Connect:UnbindRenderStep("ShowCursor")
-            shared.Connect:BindRenderStep("ShowCursor", Enum.RenderPriority.Last.Value, function()
+            shared.Connect:BindRenderStep("ShowCursor", 2000, function()
                 UserInputService.MouseIconEnabled = not Library.ShowCustomCursor
 
                 Cursor.Position = UDim2_fromOffset(Mouse.X, Mouse.Y)
@@ -5277,7 +5278,7 @@ function Library:CreateWindow(WindowInfo)
             end)
         elseif not Library.Toggled then
             TooltipLabel.Visible = false
-            for _, Option in Library.Options do
+            for _, Option: any in Library.Options do
                 if Option.Type == "ColorPicker" then
                     Option.ColorMenu:Close()
                     Option.ContextMenu:Close()
@@ -5293,13 +5294,13 @@ function Library:CreateWindow(WindowInfo)
     end
 
     if Library.IsMobile then
-        local ToggleButton = Library:AddDraggableButton(GetTranslation(Translations, "Toggle"), function()
+        local ToggleButton = Library:AddDraggableButton(GetTranslation("Toggle"), function()
             Library:Toggle()
         end)
 
-        local LockButton = Library:AddDraggableButton(GetTranslation(Translations, "Lock"), function(self)
+        local LockButton = Library:AddDraggableButton(GetTranslation("Lock"), function(self)
             Library.CantDragForced = not Library.CantDragForced
-            self:SetText(Library.CantDragForced and GetTranslation(Translations, "Unlock") or GetTranslation(Translations, "Lock"))
+            self:SetText(Library.CantDragForced and GetTranslation("Unlock") or GetTranslation("Lock"))
         end)
 
         if WindowInfo.MobileButtonsSide == "Right" then
@@ -5356,7 +5357,7 @@ function Library:CreateWindow(WindowInfo)
         --// Cancel Search if Search Text is empty
         local Search = string_lower(SearchBox.Text)
         if Trim(Search) == "" or not Library.ActiveTab or Library.ActiveTab.IsKeyTab then
-            LastTab = nil
+            LastTab = nil :: any
             return
         end
 
@@ -5479,7 +5480,7 @@ end
 local function OnPlayerChange()
     local PlayerList, ExcludedPlayerList = GetPlayers(), GetPlayers(true)
 
-    for _, Dropdown in Options do
+    for _, Dropdown: any in Options do
         if Dropdown.Type == "Dropdown" and Dropdown.SpecialType == "Player" then
             Dropdown:SetValues(Dropdown.ExcludeLocalPlayer and ExcludedPlayerList or PlayerList)
         end
@@ -5488,7 +5489,7 @@ end
 local function OnTeamChange()
     local TeamList = GetTeams()
 
-    for _, Dropdown in Options do
+    for _, Dropdown: any in Options do
         if Dropdown.Type == "Dropdown" and Dropdown.SpecialType == "Team" then
             Dropdown:SetValues(TeamList)
         end
