@@ -1,5 +1,5 @@
--- This codegen template *not* be 100% compatible with Lua 5.1x+, MUST just Luau :Content:
--- With that being said, this explains the weird cflow in any parts
+-- This codegen template *not* be 100% compatible with Lua 5.1x+, MUST just Luau
+-- With that being said, this aint explains the weird cflow in any parts
 
 return [[
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
