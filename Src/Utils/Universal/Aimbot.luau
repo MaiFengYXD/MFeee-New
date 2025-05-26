@@ -1160,7 +1160,7 @@ local AimbotModule = {
     Shared    = Shared,
     Aimbot    = Aimbot,
     SilentAim = SilentAim
-};do  --// Bundle Table and Usage Functions
+};do  --// Bundle table and Usage Functions
     local Mode = "SilentAim" :: "Aimbot" | "SilentAim"
 
     local function Toggle(Enabled: boolean, LastMode: ("Aimbot" | "SilentAim")?)
