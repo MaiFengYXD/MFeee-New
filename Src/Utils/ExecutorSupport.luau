@@ -289,6 +289,17 @@ Test("cloneref", {}, {"clonereference"}, function()
     assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
 end)
 
+Test("iscached", {}, {}, function()
+    local Part = Instance.new("Part")
+    table_insert(Grabages, function()
+        Part:Destroy()
+    end)
+
+    assert(cache.iscached(Part), "Failed to check if part is cached")
+    cache.invalidate(Part)
+    assert(not cache.iscached(Part), "Failed to invalidate cache for part")
+end)
+
 --// Instance //
 Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: (RBXScriptConnection) -> Table)
     local Returns = {
