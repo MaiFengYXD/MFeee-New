@@ -11,13 +11,12 @@ local EasingLibrary   = wax.shared.EasingLibrary
 local GetTranslation  = Translations.GetTranslation
 local FromTranslation = Translations.FromTranslation
 
-local DoesntSupport = GetTranslation(Translations, "Your executor doesn't support this feature ('%s' not working)")
+local DoesntSupport = GetTranslation("Your executor doesn't support this feature ('%*' not working)")
 
 local DefaultSoundID
 local UpdateSettings
 
 UiManager.shared = {
-    WindowStyle     = "Obsidian" :: "Obsidian" | "Linoria",
     NotifySound     = "Obsidian",
     NotifySide      = "TopRight",
     EasingMode      = "Quartic",
@@ -59,9 +58,9 @@ UiManager.shared = {
         if Success then WriteFile(FileHelper, "MFeee-New/ui.settings.json", NewData) end
     end
 
-    UiManager.Library      = require(`{UiManager.shared.WindowStyle}/Library`)
-    UiManager.SaveManager  = require(`{UiManager.shared.WindowStyle}/SaveManager`)
-    UiManager.ThemeManager = require(`{UiManager.shared.WindowStyle}/ThemeManager`)
+    UiManager.Library      = require("Library")
+    UiManager.SaveManager  = require("SaveManager")
+    UiManager.ThemeManager = require("ThemeManager")
 
     UiManager.Toggles = UiManager.Library.Toggles
     UiManager.Options = UiManager.Library.Options
@@ -126,19 +125,19 @@ function UiManager:CreateMainTab()
     local UniversalMISC = require("../Universal/MISC")
 
     --// Main Tab //
-    UiManager.MainTab = UiManager.Window:AddTab(GetTranslation(Translations, "Main"), "house")
+    UiManager.MainTab = UiManager.Window:AddTab(GetTranslation("Main"), "house")
 
     --// General Groupbox (Left)
-    UiManager.MainTabGeneralGroup = UiManager.MainTab:AddLeftGroupbox(GetTranslation(Translations, "General"))
+    UiManager.MainTabGeneralGroup = UiManager.MainTab:AddLeftGroupbox(GetTranslation("General"))
 
     UiManager.MainTabGeneralGroup:AddToggle("AntiAFK", {
-        Text = GetTranslation(Translations, "Anti AFK"),
+        Text = GetTranslation("Anti AFK"),
         Disabled = not ExecutorSupport.getconnections,
         DisabledTooltip = string_format(DoesntSupport, "getconnections")
     })
 
     UiManager.MainTabGeneralGroup:AddToggle("AntiKick", {
-        Text = GetTranslation(Translations, "Anti Kick (Client)"),
+        Text = GetTranslation("Anti Kick (Client)"),
         Disabled = not (ExecutorSupport.hookfunction and ExecutorSupport.hookmetamethod),
         DisabledTooltip = string_format(DoesntSupport, "hookfunction/hookmetamethod")
     })
@@ -148,34 +147,34 @@ function UiManager:CreateMainTab()
     UiManager.Toggles.AntiKick:OnChanged(UniversalMISC.AntiKick.Start)
 
     --// Other Groupbox (Right)
-    UiManager.MainTabOtherGroup = UiManager.MainTab:AddRightGroupbox(GetTranslation(Translations, "Other"))
+    UiManager.MainTabOtherGroup = UiManager.MainTab:AddRightGroupbox(GetTranslation("Other"))
 
     do
-        UiManager.ClickTimesLabel = UiManager.MainTabOtherGroup:AddLabel(string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
+        UiManager.ClickTimesLabel = UiManager.MainTabOtherGroup:AddLabel(string_format(GetTranslation("You clicked %d times"), UiManager.shared.Skipped))
 
         local SetText = UiManager.ClickTimesLabel.SetText
         local ClickMultiplier = 1
 
-        UiManager.MainTabOtherGroup:AddButton(GetTranslation(Translations, "Click Me!"), function()
+        UiManager.MainTabOtherGroup:AddButton(GetTranslation("Click Me!"), function()
             UiManager.shared.Skipped += ClickMultiplier
-            SetText(UiManager.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
+            SetText(UiManager.ClickTimesLabel, string_format(GetTranslation("You clicked %d times"), UiManager.shared.Skipped))
             UpdateSettings()
         end)
 
         UiManager.MainTabOtherGroup:AddInput("ClickMultiplier", {
-            Text = GetTranslation(Translations, "Click Multiplier"),
+            Text = GetTranslation("Click Multiplier"),
             Default = ClickMultiplier,
             Numeric = true,
             AllowEmpty = false
         });
 
         (UiManager.MainTabOtherGroup :: any):AddButton({
-            Text = GetTranslation(Translations, "Reset Clicks"),
+            Text = GetTranslation("Reset Clicks"),
             DoubleClick = true,
             Func = function()
-                UiManager:Notify(string_format(GetTranslation(Translations, "You lost %d clicks"), UiManager.shared.Skipped))
+                UiManager:Notify(string_format(GetTranslation("You lost %d clicks"), UiManager.shared.Skipped))
                 UiManager.shared.Skipped = 0
-                SetText(UiManager.ClickTimesLabel, string_format(GetTranslation(Translations, "You clicked %d times"), UiManager.shared.Skipped))
+                SetText(UiManager.ClickTimesLabel, string_format(GetTranslation("You clicked %d times"), UiManager.shared.Skipped))
                 UpdateSettings()
             end
         })
@@ -195,12 +194,12 @@ function UiManager:CreateMainTab()
         end
 
         UiManager.MainTabOtherGroup:AddDropdown("EasingMode", {
-            Text   = GetTranslation(Translations, "Easing Mode"),
+            Text   = GetTranslation("Easing Mode"),
             Values = EasingModes
         })
 
         UiManager.MainTabOtherGroup:AddDropdown("EasingDirection", {
-            Text = GetTranslation(Translations, "Easing Direction"),
+            Text = GetTranslation("Easing Direction"),
             Values = {
                 "In",
                 "Out",
@@ -209,7 +208,7 @@ function UiManager:CreateMainTab()
         })
 
         UiManager.MainTabOtherGroup:AddSlider("EasingDuration", {
-            Text = GetTranslation(Translations, "Easing Duration"),
+            Text = GetTranslation("Easing Duration"),
             Min = 0.1,
             Max = 3,
             Rounding = 1
@@ -240,13 +239,13 @@ function UiManager:CreatePlayerTab()
     local UniversalPlayer = require("../Universal/Player")
 
     --// Player Tab //
-    UiManager.PlayerTab = UiManager.Window:AddTab(GetTranslation(Translations, "Player"), "user")
+    UiManager.PlayerTab = UiManager.Window:AddTab(GetTranslation("Player"), "user")
 
     --// Left Tab Box
     UiManager.PlayerLeftTabBox = UiManager.PlayerTab:AddLeftTabbox()
 
     --// Player Overrides Tab
-    UiManager.PlayerLeftTabBoxOverridesTab = UiManager.PlayerLeftTabBox:AddTab(GetTranslation(Translations, "Overrides"))
+    UiManager.PlayerLeftTabBoxOverridesTab = UiManager.PlayerLeftTabBox:AddTab(GetTranslation("Overrides"))
 
     local function Round(Number: number | nil)
         return Number and math.round(Number * 10) / 10
@@ -265,11 +264,11 @@ function UiManager:CreatePlayerTab()
         local TempJumpPower  = Round(tonumber(TempHumanoid.JumpPower))  or 50
 
         UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("WalkSpeedOverride", {
-            Text = GetTranslation(Translations, "WalkSpeed Override")
+            Text = GetTranslation("WalkSpeed Override")
         })
 
         UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("WalkSpeed", {
-            Text = GetTranslation(Translations, "WalkSpeed"),
+            Text = GetTranslation("WalkSpeed"),
             Default = TempWalkSpeed,
             Min = 0,
             Max = 200,
@@ -279,11 +278,11 @@ function UiManager:CreatePlayerTab()
         })
 
         UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("JumpHeightOverride", {
-            Text = GetTranslation(Translations, "JumpHeight Override")
+            Text = GetTranslation("JumpHeight Override")
         })
 
         UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("JumpHeight", {
-            Text = GetTranslation(Translations, "JumpHeight"),
+            Text = GetTranslation("JumpHeight"),
             Default = TempJumpHeight,
             Min = 0,
             Max = 100,
@@ -294,11 +293,11 @@ function UiManager:CreatePlayerTab()
         })
 
         UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("JumpPowerOverride", {
-            Text = GetTranslation(Translations, "JumpPower Override")
+            Text = GetTranslation("JumpPower Override")
         });
 
         (UiManager.PlayerLeftTabBoxOverridesTab :: any):AddSlider("JumpPower", {
-            Text = GetTranslation(Translations, "JumpPower"),
+            Text = GetTranslation("JumpPower"),
             Default = TempJumpPower,
             Min = 0,
             Max = 700,
@@ -308,11 +307,11 @@ function UiManager:CreatePlayerTab()
     end
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("GravityOverride", {
-        Text = GetTranslation(Translations, "Gravity Override")
+        Text = GetTranslation("Gravity Override")
     })
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("Gravity", {
-        Text = GetTranslation(Translations, "Gravity"),
+        Text = GetTranslation("Gravity"),
         Default = math.floor(shared.Workspace.Gravity),
         Min = 0,
         Max = 1000,
@@ -324,19 +323,19 @@ function UiManager:CreatePlayerTab()
     UiManager.PlayerLeftTabBoxOverridesTab:AddDivider()
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("NoAcceleration", {
-        Text = GetTranslation(Translations, "No Acceleration")
+        Text = GetTranslation("No Acceleration")
     })
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("AntiVoidFall", {
-        Text = GetTranslation(Translations, "Anti Void Fall")
+        Text = GetTranslation("Anti Void Fall")
     })
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddToggle("SpeedBoost", {
-        Text = GetTranslation(Translations, "Speed Boost")
+        Text = GetTranslation("Speed Boost")
     })
 
     UiManager.PlayerLeftTabBoxOverridesTab:AddSlider("BoostSpeed", {
-        Text = GetTranslation(Translations, "Boost Speed"),
+        Text = GetTranslation("Boost Speed"),
         Default = UniversalPlayer.SpeedBoost.BoostSpeed,
         Min = 0,
         Max = 100,
@@ -349,10 +348,10 @@ function UiManager:CreatePlayerTab()
 
     UiManager.PlayerLeftTabBoxOverridesTab
     :AddToggle("Noclip", {
-        Text = GetTranslation(Translations, "Noclip")
+        Text = GetTranslation("Noclip")
     })
     :AddKeyPicker("NoclipKeybind", {
-        Text = GetTranslation(Translations, "Noclip"),
+        Text = GetTranslation("Noclip"),
         Default = "N",
         Mode = "Toggle",
         SyncToggleState = true
@@ -360,10 +359,10 @@ function UiManager:CreatePlayerTab()
 
     UiManager.PlayerLeftTabBoxOverridesTab
     :AddToggle("VehicleNoclip", {
-        Text = GetTranslation(Translations, "Vehicle Noclip")
+        Text = GetTranslation("Vehicle Noclip")
     })
     :AddKeyPicker("VehicleNoclipKeybind", {
-        Text = GetTranslation(Translations, "Vehicle Noclip"),
+        Text = GetTranslation("Vehicle Noclip"),
         Default = "H",
         Mode = "Toggle",
         SyncToggleState = true
@@ -397,7 +396,7 @@ end
 
 function UiManager:CreateUniversalTabs()
     --// MISC Tab //
-    UiManager.MiscTab = UiManager.Window:AddTab(GetTranslation(Translations, "Misc"), "boxes")
+    UiManager.MiscTab = UiManager.Window:AddTab(GetTranslation("Misc"), "boxes")
 
     --// Roblox Groupbox (Left)
     UiManager.MiscTabRobloxGroup = UiManager.MiscTab:AddLeftGroupbox("Roblox")
@@ -412,51 +411,51 @@ function UiManager:CreateUniversalTabs()
         local Toggles = {}
 
         Toggles.EnableReset = UiManager.MiscTabRobloxGroup:AddToggle("EnableReset", {
-            Text = GetTranslation(Translations, "Enable Reset"),
+            Text = GetTranslation("Enable Reset"),
             Default = GetCore(StarterGui, "ResetButtonCallback")
         })
 
         Toggles.EnablePlayerList = UiManager.MiscTabRobloxGroup:AddToggle("EnablePlayerList", {
-            Text = GetTranslation(Translations, "Enable Player List"),
+            Text = GetTranslation("Enable Player List"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.PlayerList)
         })
 
         Toggles.EnableHealth = UiManager.MiscTabRobloxGroup:AddToggle("EnableHealth", {
-            Text = GetTranslation(Translations, "Enable Health Bar"),
+            Text = GetTranslation("Enable Health Bar"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Health)
         })
 
         Toggles.EnableBackpack = UiManager.MiscTabRobloxGroup:AddToggle("EnableBackpack", {
-            Text = GetTranslation(Translations, "Enable Backpack"),
+            Text = GetTranslation("Enable Backpack"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Backpack)
         })
 
         Toggles.EnableChat = UiManager.MiscTabRobloxGroup:AddToggle("EnableChat", {
-            Text = GetTranslation(Translations, "Enable Chat"),
+            Text = GetTranslation("Enable Chat"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.Chat)
         })
 
         Toggles.EnableEmotesMenu = UiManager.MiscTabRobloxGroup:AddToggle("EnableEmotesMenu", {
-            Text = GetTranslation(Translations, "Enable Emotes Menu"),
+            Text = GetTranslation("Enable Emotes Menu"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.EmotesMenu)
         })
 
         Toggles.EnableSelfView = UiManager.MiscTabRobloxGroup:AddToggle("EnableSelfView", {
-            Text = GetTranslation(Translations, "Enable Self View"),
-            Tooltip = GetTranslation(Translations, "Avatar \"selfie\" (with facial capture enabled)"),
+            Text = GetTranslation("Enable Self View"),
+            Tooltip = GetTranslation("Avatar \"selfie\" (with facial capture enabled)"),
             Default = GetCoreGuiEnabled(StarterGui, CoreGuiType.SelfView)
         })
 
         UiManager.MiscTabRobloxGroup:AddDivider()
 
         UiManager.MiscTabRobloxGroup:AddToggle("DevConsoleVisible", {
-            Text = GetTranslation(Translations, "Dev Console Visible"),
+            Text = GetTranslation("Dev Console Visible"),
             Default = GetCore(StarterGui, "DevConsoleVisible")
         })
 
         Toggles.AvatarContextMenu = UiManager.MiscTabRobloxGroup:AddToggle("AvatarContextMenu", {
-            Text = GetTranslation(Translations, "Avatar Context Menu"),
-            Tooltip = GetTranslation(Translations, "Left-clicking on a player's avatar will pop up a context menu, and stop you from moving\n(which players who enjoy Natural Disaster Survival should be very familiar with)"),
+            Text = GetTranslation("Avatar Context Menu"),
+            Tooltip = GetTranslation("Left-clicking on a player's avatar will pop up a context menu, and stop you from moving\n(which players who enjoy Natural Disaster Survival should be very familiar with)"),
             Default = GetCore(StarterGui, "AvatarContextMenuEnabled")
         })
 
@@ -502,26 +501,26 @@ function UiManager:CreateUniversalTabs()
     end
 
     --// Settings Tab //
-    UiManager.SettingsTab = UiManager.Window:AddTab(GetTranslation(Translations, "Settings"), "settings")
+    UiManager.SettingsTab = UiManager.Window:AddTab(GetTranslation("Settings"), "settings")
 
     --// Menu Groupbox (Left)
-    UiManager.SettingsTabMenuGroup = UiManager.SettingsTab:AddLeftGroupbox(GetTranslation(Translations, "Menu"))
+    UiManager.SettingsTabMenuGroup = UiManager.SettingsTab:AddLeftGroupbox(GetTranslation("Menu"))
 
     UiManager.SettingsTabMenuGroup:AddToggle("OpenKeybindMenu", {
-        Text = GetTranslation(Translations, "Open Keybind Menu")
+        Text = GetTranslation("Open Keybind Menu")
     })
 
     UiManager.SettingsTabMenuGroup:AddToggle("ShowCustomCursor", {
-        Text = GetTranslation(Translations, "Show Custom Cursor")
+        Text = GetTranslation("Show Custom Cursor")
     })
 
     UiManager.SettingsTabMenuGroup:AddToggle("ForceCheckbox", {
-        Text = GetTranslation(Translations, "Force Checkbox"),
+        Text = GetTranslation("Force Checkbox"),
         Default = UiManager.shared.ForceCheckbox
     })
 
     UiManager.SettingsTabMenuGroup
-    :AddLabel(GetTranslation(Translations, "Menu Keybind"))
+    :AddLabel(GetTranslation("Menu Keybind"))
     :AddKeyPicker("MenuKeybind", {
         Default = "RightControl",
         Mode = "Toggle",
@@ -532,7 +531,7 @@ function UiManager:CreateUniversalTabs()
     UiManager.SettingsTabMenuGroup:AddDivider()
 
     UiManager.SettingsTabMenuGroup:AddButton({
-        Text = GetTranslation(Translations, "Unload"),
+        Text = GetTranslation("Unload"),
         DoubleClick = true,
         Func = wax.shared.OnUnload
     })
@@ -581,11 +580,11 @@ function UiManager:CreateUniversalTabs()
             end
 
             shared.StarterGui:SetCore("SendNotification", {
-                Title = GetTranslation(Translations, "Need Recovery?"),
-                Text  = GetTranslation(Translations, "You set the menu keybind to MB1 which is not recommended. Do you want to recovery it to default?"),
+                Title = GetTranslation("Need Recovery?"),
+                Text  = GetTranslation("You set the menu keybind to MB1 which is not recommended. Do you want to recovery it to default?"),
                 Duration = (1 / 0),
-                Button1  = GetTranslation(Translations, "Yes"),
-                Button2  = GetTranslation(Translations, "No"),
+                Button1  = GetTranslation("Yes"),
+                Button2  = GetTranslation("No"),
                 Callback = Bindable
             })
         end
@@ -631,17 +630,17 @@ function UiManager:CreateUniversalTabs()
     end
 
     --// UI Groupbox (Right)
-    UiManager.SettingsTabUiGroup = UiManager.SettingsTab:AddRightGroupbox(GetTranslation(Translations, "UI"))
+    UiManager.SettingsTabUiGroup = UiManager.SettingsTab:AddRightGroupbox(GetTranslation("UI"))
 
     UiManager.SettingsTabUiGroup:AddToggle("AlwaysOnTop", {
-        Text = GetTranslation(Translations, "Always On Top"),
+        Text = GetTranslation("Always On Top"),
         Disabled = not pcall(function()
             Instance.new("ScreenGui").OnTopOfCoreBlur = true
         end)
     });
 
     (UiManager.SettingsTabUiGroup :: any):AddToggle("UiActivated", {
-        Text = GetTranslation(Translations, "UI Activated")
+        Text = GetTranslation("UI Activated")
     })
 
     do
@@ -658,7 +657,7 @@ function UiManager:CreateUniversalTabs()
         end
 
         UiManager.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
-            Text    = GetTranslation(Translations, "Change Language"),
+            Text    = GetTranslation("Change Language"),
             Values  = NativeLanguage.Name,
             Default = wax.shared.AllowedLanguages[wax.shared.Language]
         })
@@ -670,29 +669,20 @@ function UiManager:CreateUniversalTabs()
             local Tag = NativeLanguage.Tag[Index]
             WriteFile(FileHelper, "MFeee-New/Language.txt", Tag)
 
-            UiManager:Notify(GetTranslation(Translations, "Restart to Apply"))
+            UiManager:Notify(GetTranslation("Restart to Apply"))
         end)
     end
 
-    UiManager.SettingsTabUiGroup:AddDropdown("WindowStyle", {
-        Text = GetTranslation(Translations, "Window Style"),
-        Values = {
-            "Obsidian",
-            "Linoria"
-        },
-        Default = GetTranslation(Translations, UiManager.shared.WindowStyle)
-    })
-
     UiManager.SettingsTabUiGroup:AddSlider("DPIScale", {
-        Text = GetTranslation(Translations, "DPI Scale"),
+        Text = GetTranslation("DPI Scale"),
         Min = 50,
         Max = 200,
         Suffix = "%"
     })
 
     UiManager.SettingsTabUiGroup:AddSlider("UICorner", {
-        Text = GetTranslation(Translations, "UI Corner"),
-        Tooltip = GetTranslation(Translations, "Some elements require restarting to apply"),
+        Text = GetTranslation("UI Corner"),
+        Tooltip = GetTranslation("Some elements require restarting to apply"),
         Min = 0,
         Max = 10,
         Suffix = "px"
@@ -701,32 +691,32 @@ function UiManager:CreateUniversalTabs()
     UiManager.SettingsTabUiGroup:AddDivider();
 
     (UiManager.SettingsTabUiGroup :: any):AddToggle("DisableNotify", {
-        Text = GetTranslation(Translations, "Disable Notify"),
+        Text = GetTranslation("Disable Notify"),
         Default = UiManager.shared.DisableNotify
     })
 
     UiManager.SettingsTabUiGroup:AddDropdown("NotifySide", {
-        Text = GetTranslation(Translations, "Notify Side"),
+        Text = GetTranslation("Notify Side"),
         Values = {
-            GetTranslation(Translations, "TopLeft"),
-            GetTranslation(Translations, "TopRight"),
-            GetTranslation(Translations, "BottomLeft"),
-            GetTranslation(Translations, "BottomRight")
+            GetTranslation("TopLeft"),
+            GetTranslation("TopRight"),
+            GetTranslation("BottomLeft"),
+            GetTranslation("BottomRight")
         },
-        Default = GetTranslation(Translations, UiManager.shared.NotifySide)
+        Default = GetTranslation(UiManager.shared.NotifySide)
     })
 
     UiManager.SettingsTabUiGroup:AddDropdown("NotifySound", {
-        Text = GetTranslation(Translations, "Notify Sound"),
+        Text = GetTranslation("Notify Sound"),
         Values = {
             "Obsidian",
             "Linoria"
         },
-        Default = GetTranslation(Translations, UiManager.shared.NotifySound)
+        Default = GetTranslation(UiManager.shared.NotifySound)
     })
 
     UiManager.SettingsTabUiGroup:AddInput("NotifySoundId", {
-        Text = GetTranslation(Translations, "Notify Sound ID"),
+        Text = GetTranslation("Notify Sound ID"),
         Default = "",
         EmptyReset = "",
         Placeholder = tostring(DefaultSoundID),
@@ -734,15 +724,15 @@ function UiManager:CreateUniversalTabs()
     })
 
     UiManager.SettingsTabUiGroup:AddSlider("NotifyVolume", {
-        Text = GetTranslation(Translations, "Notify Volume"),
+        Text = GetTranslation("Notify Volume"),
         Min = 0,
         Max = 1000,
         Suffix = "%"
     })
 
     do
-        local TestNotify  = GetTranslation(Translations, "Test Notify")
-        local TestNotify2 = GetTranslation(Translations, "This is a test notification")
+        local TestNotify  = GetTranslation("Test Notify")
+        local TestNotify2 = GetTranslation("This is a test notification")
 
         UiManager.SettingsTabUiGroup:AddButton(TestNotify, function()
             UiManager:Notify({
@@ -770,12 +760,6 @@ function UiManager:CreateUniversalTabs()
             Frame.Active = Enabled
         end
 
-        UpdateSettings()
-    end)
-
-    UiManager.Options.WindowStyle:OnChanged(function(Style)
-        UiManager.shared.WindowStyle = Style
-        UiManager:Notify(GetTranslation(Translations, "Restart to Apply"))
         UpdateSettings()
     end)
 
@@ -846,78 +830,68 @@ function UiManager:CreateUniversalTabs()
     UiManager.Options.NotifySoundId:SetValue(UiManager.shared.NotifySoundId)
 
     --// Info Tab //
-    UiManager.InfoTab = UiManager.Window:AddTab(GetTranslation(Translations, "Info"), "info")
+    UiManager.InfoTab = UiManager.Window:AddTab(GetTranslation("Info"), "info")
 
     --// Developers Groupbox (Left)
-    UiManager.InfoTabDevelopersGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Developers"))
+    UiManager.InfoTabDevelopersGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation("Developers"))
 
     local function ApplyColor(Text: string | number, NoFrame: any | nil)
         return `{NoFrame and "" or "["}<font color="#1f6feb">{Text}</font>{NoFrame and "" or "]"}`
     end
 
     UiManager.InfoTabDevelopersGroup:AddLabel({
-        Text = `{ApplyColor("MaiFengYXD")} {GetTranslation(Translations, "Owner, developer")}`,
+        Text = `{ApplyColor("MaiFengYXD")} {GetTranslation("Owner, developer")}`,
         DoesWrap = true
     })
 
     --// Credits Groupbox (Left)
-    UiManager.InfoTabCreditsGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Credits"))
+    UiManager.InfoTabCreditsGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation("Credits"))
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("upio")} {GetTranslation(Translations, "Teaches me how to use wax")}`,
+        Text = `{ApplyColor("upio")} {GetTranslation("Teaches me how to use wax")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("mspaint")} {GetTranslation(Translations, "Gives me inspiration")}`,
+        Text = `{ApplyColor("mspaint")} {GetTranslation("Gives me inspiration")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("GitHub Copilot")} {GetTranslation(Translations, "Helps complete code")}`,
+        Text = `{ApplyColor("GitHub Copilot")} {GetTranslation("Helps complete code")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("Google Gemini")} {GetTranslation(Translations, "Helps translate")}`,
+        Text = `{ApplyColor("Google Gemini")} {GetTranslation("Helps translate")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor(GetTranslation(Translations, "And you!"))} {GetTranslation(Translations, "For using my script!")}`,
+        Text = `{ApplyColor(GetTranslation("And you!"))} {GetTranslation("For using my script!")}`,
         DoesWrap = true
     })
 
     --// Special Thanks Groupbox (Left)
-    UiManager.InfoTabThanksGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation(Translations, "Special Thanks"))
+    UiManager.InfoTabThanksGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation("Special Thanks"))
 
     UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("latte-soft")} {GetTranslation(Translations, "Wax bundler")}`,
+        Text = `{ApplyColor("latte-soft")} {GetTranslation("Wax bundler")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("deividcomsono")} {GetTranslation(Translations, "Obsidian UI")}`,
+        Text = `{ApplyColor("Exunys")} {GetTranslation("Aimbot Inspiration")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("mstudio45")} {GetTranslation(Translations, "Linoria UI and ESP")}`,
-        DoesWrap = true
-    })
-
-    UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("Exunys")} {GetTranslation(Translations, "Aimbot Inspiration")}`,
-        DoesWrap = true
-    })
-
-    UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("7GrandDadPGN")} {GetTranslation(Translations, "SilentAim Inspiration")}`,
+        Text = `{ApplyColor("7GrandDadPGN")} {GetTranslation("SilentAim Inspiration")}`,
         DoesWrap = true
     })
 
     --// About Game Groupbox (Right)
-    UiManager.InfoTabAboutGameGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation(Translations, "About Game"))
+    UiManager.InfoTabAboutGameGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation("About Game"))
 
     local PlayedLabel      = UiManager.InfoTabAboutGameGroup:AddLabel()
     local TimeRunningLabel = UiManager.InfoTabAboutGameGroup:AddLabel()
@@ -940,8 +914,8 @@ function UiManager:CreateUniversalTabs()
             return `{Hour}:{Minute}:{Second}`
         end
 
-        local YouPlayed   = GetTranslation(Translations, "You Played: %s")
-        local TimeRunning = GetTranslation(Translations, "Time Running: %s")
+        local YouPlayed   = GetTranslation("You Played: %s")
+        local TimeRunning = GetTranslation("Time Running: %s")
 
         shared.Connect:RunThread("YouPlayedLabel"  , coroutine.create(function()
             repeat
@@ -959,7 +933,7 @@ function UiManager:CreateUniversalTabs()
 
         task_spawn(function()
             repeat task_wait() until wax.shared.GameName
-            GameNameLabel:SetText(string_format(GetTranslation(Translations, "Game Name: %s"), `{ApplyColor(wax.shared.GameName, 1)}`))
+            GameNameLabel:SetText(string_format(GetTranslation("Game Name: %s"), `{ApplyColor(wax.shared.GameName, 1)}`))
         end)
     end
 
@@ -970,29 +944,29 @@ function UiManager:CreateUniversalTabs()
         local PlaceId = tostring(game.PlaceId);
 
         (UiManager.InfoTabAboutGameGroup :: any):AddButton({
-            Text = string_format(GetTranslation(Translations, "Place Id: %s"), PlaceId),
+            Text = string_format(GetTranslation("Place Id: %s"), PlaceId),
             Func = function()
                 toclipboard(PlaceId)
-                UiManager:Notify(GetTranslation(Translations, "Place Id Copied"))
+                UiManager:Notify(GetTranslation("Place Id Copied"))
             end
         })
 
         --// Links Groupbox (Right)
-        UiManager.InfoTabLinksGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation(Translations, "Links"));
+        UiManager.InfoTabLinksGroup = UiManager.InfoTab:AddRightGroupbox(GetTranslation("Links"));
 
         (UiManager.InfoTabLinksGroup :: any)
         :AddButton({
-            Text = GetTranslation(Translations, "Discord"),
+            Text = GetTranslation("Discord"),
             Func = function()
                 toclipboard("https://discord.gg/YBQUd8X8PK")
-                UiManager:Notify(GetTranslation(Translations, "Discord Server Link Copied"))
+                UiManager:Notify(GetTranslation("Discord Server Link Copied"))
             end
         })
         :AddButton({
-            Text = GetTranslation(Translations, "GitHub"),
+            Text = GetTranslation("GitHub"),
             Func = function()
                 toclipboard("https://github.com/MaiFengYXD")
-                UiManager:Notify(GetTranslation(Translations, "GitHub Link Copied"))
+                UiManager:Notify(GetTranslation("GitHub Link Copied"))
             end
         })
     end
@@ -1035,11 +1009,11 @@ function UiManager:CreateUniversalTabs()
         }
 
         for Index, Content in TipTitles do
-            TipTitles[Index]   = GetTranslation(Translations, Content)
+            TipTitles[Index]   = GetTranslation(Content)
         end
 
         for Index, Content in TipContents do
-            TipContents[Index] = GetTranslation(Translations, Content)
+            TipContents[Index] = GetTranslation(Content)
         end
 
         local function FormatTip(Title, Content)
@@ -1053,8 +1027,8 @@ function UiManager:CreateUniversalTabs()
 
         AllTips += 1
 
-        table_insert(TipTitles  , GetTranslation(Translations, "Funny trivia:"))
-        table_insert(TipContents, string_format(GetTranslation(Translations, "You had %f%% chance to roll this tip"), 1 / AllTips * 100))
+        table_insert(TipTitles  , GetTranslation("Funny trivia:"))
+        table_insert(TipContents, string_format(GetTranslation("You had %f%% chance to roll this tip"), 1 / AllTips * 100))
 
         local Label = (UiManager.InfoTabLinksGroup :: any):AddLabel({
             Text = CurrentTip,

@@ -53,11 +53,11 @@ end
 local Translation = Translations[Language]
 local Reverse     = Translations.Reverse
 
-function Translations:GetTranslation(Key: string): string
+function Translations.GetTranslation(Key: string): string
     return Translation and Translation[Key] or Key
 end
 
-function Translations:FromTranslation(Value: string): string?
+function Translations.FromTranslation(Value: string): string?
     return not Translation and Value or Reverse[Value]
 end
 
