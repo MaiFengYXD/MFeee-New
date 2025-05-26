@@ -83,7 +83,7 @@ local SpeakerPosition;do
         end)
     end
 
-    shared.Connect:GiveSignal("AimbotCharacterChanged", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
+    shared.Connect:GiveSignal("AimbotCharacterChanged1", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
         Character = Speaker.Character
         SetUpPositionMonitor(Character)
     end))
@@ -99,6 +99,8 @@ local Fov
 --// Helper Functions //
 local GetMousePosition: () -> Vector2,
 
+      IsValid:     <T>(Object: Instance, Parent: Instance?) -> false | (Instance),
+
       IsTeammate:     (Player: Player) -> boolean,
       IsDead:         (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
       IsFiltered:     (Player: Player) -> boolean,
@@ -106,24 +108,35 @@ local GetMousePosition: () -> Vector2,
 
       CommonChecks:   (Player: Player | Model, IsNpc: boolean | nil) -> boolean,
 
-      IsOffScreen:    (Target:   Vector3) -> boolean,
-      IsObscured:     (Original: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
-      IsOutOfRange:   (Original: Vector3 | nil, Target:    Vector3) -> boolean,
+      IsOffScreen:    (Target: Vector3) -> boolean,
+      IsObscured:     (Origin: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
+      IsOutOfRange:   (Origin: Vector3 | nil, Target:    Vector3) -> boolean,
 
       GetPriorities:  () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
-      GetHitPart:     (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
-      EasyGetHitPart: (Head: BasePart?, RootPart: BasePart?, Original: Vector3?)  -> nil | BasePart,
+      GetHitPart:     (Head: BasePart?, RootPart: BasePart?) -> nil | BasePart,
+      EasyGetHitPart: (Head: BasePart?, RootPart: BasePart?, Origin: Vector3?)  -> nil | BasePart,
 
-      Predict: (
-          Original: Vector3,
+      Predict: <T>(
+          Origin:   Vector3,
           Target:   BasePart,
           Humanoid: Humanoid?,
           RootPart: BasePart?,
 
-          RaycastParams: RaycastParams?
+          RaycastParams:        RaycastParams?,
+          AlwaysReturnsVector3: boolean | nil
       ) -> Vector3
 
 do
+    --// Is Valid
+    local typeof,      IsDescendantOf
+        = typeof, game.IsDescendantOf
+
+    function IsValid(Object: Instance, Parent: Instance?): false | Instance
+        return if (
+            typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
+        ) then Object else false
+    end
+
     --// Is Teammate
     local Teams    = shared.Teams :: Teams
     local GetTeams = Teams.GetTeams
@@ -172,11 +185,10 @@ do
     --// Common Checks
     function CommonChecks(Player: Player | Model, IsNpc: boolean | nil): boolean
         return (
+            (not IsNpc and IsFiltered(Player :: Player)) or
             (not IsNpc and IsTeammate(Player :: Player)) or
             IsDead(Player, IsNpc) or
-            (not IsNpc and NotVulnerable(Player :: Player)) or
-            NotVulnerable(Player, IsNpc) or
-            (not IsNpc and IsFiltered(Player :: Player))
+            NotVulnerable(Player, IsNpc)
         )
     end
 
@@ -187,7 +199,7 @@ do
         if not Shared.OnScreenCheck then return false end
 
         local _, IsOnScreen = WorldToViewportPoint(Camera, Target)
-        return IsOnScreen
+        return not IsOnScreen
     end
 
     --// Is Obscured
@@ -197,14 +209,14 @@ do
     local Exclude = Enum.RaycastFilterType.Exclude
     local Raycast = Workspace.Raycast
 
-    function IsObscured(Original: Vector3, Direction: Vector3, ...: any): boolean
+    function IsObscured(Origin: Vector3, Direction: Vector3, ...: any): boolean
         if not Shared.WallCheck then return false end
 
         local RaycastParam = RaycastParams_new()
         RaycastParam.FilterDescendantsInstances = {..., Character :: any}
         RaycastParam.FilterType = Exclude
 
-        local RaycastResult = Raycast(Workspace, Original, Direction, RaycastParam)
+        local RaycastResult = Raycast(Workspace, Origin, Direction, RaycastParam)
         local HitPart = RaycastResult and RaycastResult.Instance
         if not HitPart then return false end
 
@@ -266,7 +278,7 @@ do
         return true
     end
 
-    function IsOutOfRange(Original: Vector3 | nil, Target: Vector3): boolean
+    function IsOutOfRange(Origin: Vector3 | nil, Target: Vector3): boolean
         local IsWithinFov = true
 
         if Fov.Enabled then
@@ -286,7 +298,7 @@ do
             end
         end
 
-        local Distance      = (Original or SpeakerPosition - Target).Magnitude
+        local Distance      = (Origin or SpeakerPosition - Target).Magnitude
         local IsWithinRange = Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance
 
         return not (IsWithinFov and IsWithinRange)
@@ -332,7 +344,7 @@ do
     function EasyGetHitPart(
         Head:     BasePart?,
         RootPart: BasePart?,
-        Original: Vector3?,
+        Origin:   Vector3?,
 
         WallCheckExclude: {BasePart}?
     ): nil | BasePart
@@ -340,11 +352,11 @@ do
         if not HitPart then return end
 
         local Position = HitPart.Position
-        if IsOutOfRange(Original, Position) then return end
+        if IsOutOfRange(Origin, Position) then return end
         if IsOffScreen(Position) then return end
         if IsObscured(
             Position,
-            (Original or SpeakerPosition) - Position,
+            (Origin or SpeakerPosition) - Position,
             HitPart,
             if WallCheckExclude then unpack(WallCheckExclude) else nil
         ) then return end
@@ -358,15 +370,24 @@ do
 
     local R6 = Enum.HumanoidRigType.R6
 
+    local BackupRaycastParams = RaycastParams_new()
+    BackupRaycastParams.FilterType = Exclude
+    BackupRaycastParams.FilterDescendantsInstances = {Character :: any}
+
+    shared.Connect:GiveSignal("AimbotCharacterChanged2", Speaker:GetPropertyChangedSignal("Character"):Connect(function()
+        BackupRaycastParams.FilterDescendantsInstances = {Speaker.Character :: any}
+    end))
+
     function Predict(
-        Original: Vector3,
+        Origin:   Vector3,
         Target:   BasePart,
         Humanoid: Humanoid?,
         RootPart: BasePart?,
 
-        RaycastParams: RaycastParams?
-    ): Vector3
-        if not Shared.Prediction.Enabled then return Original end
+        RaycastParams:        RaycastParams?,
+        AlwaysReturnsVector3: boolean | nil
+    ): Vector3?
+        if not Shared.Prediction.Enabled then return Origin end
 
         local DefaultGravity = UniversalPlayer.Gravity.Default
         local PlayerHeight   = 0
@@ -380,7 +401,7 @@ do
         end
 
         local Solution = SolveTrajectory(
-            Original,
+            Origin,
             Shared.Prediction.Speed,
             nil,
             Shared.Prediction.PickLongest,
@@ -388,10 +409,10 @@ do
             Target.AssemblyLinearVelocity,
             DefaultGravity,
             PlayerHeight,
-            RaycastParams
+            RaycastParams or BackupRaycastParams
         )
 
-        return Solution or Original
+        return Solution or if AlwaysReturnsVector3 then Origin else nil
     end
 end
 
@@ -749,7 +770,7 @@ local Aimbot = {
             StepThread = task_spawn(function()
                 if not (Shared.Enabled and AimbotEnabled) then return end
 
-                if _Target then
+                if _Target and IsValid(_Target) then
                     if (
                         IsOutOfRange(nil, _Target.Position) or
                         IsOffScreen(_Target.Position) or
@@ -758,14 +779,14 @@ local Aimbot = {
                         return task_defer(CancelLock)
                     end
 
-                    return Move(Predict(_Target.Position, _Target, Humanoid, RootPart))
+                    return Move(Predict(_Target.Position, _Target, Humanoid, RootPart, nil, true))
                 end
 
                 CancelTween(EasingLibrary, "Aimbot")
                 _Target = GetTarget()
                 if not _Target then return end
 
-                Move(Predict(_Target.Position, _Target, Humanoid, RootPart))
+                Move(Predict(_Target.Position, _Target, Humanoid, RootPart, nil, true))
             end)
         end)
     end
@@ -807,7 +828,7 @@ local SilentAim = {
     local ProjectileRaycastParams = RaycastParams_new()
 
     --// Helper Functions
-    local function GetTarget(Original: Vector3, WallCheckExclude: {BasePart}?): (BasePart | nil, Vector3)
+    local function GetTarget(Origin: Vector3, WallCheckExclude: {BasePart}?): (BasePart | nil, Vector3)
         local Target: BasePart?
 
         local CommonChecks   = CommonChecks
@@ -816,13 +837,13 @@ local SilentAim = {
 
         local function FromPlayers(
             --/ Local values -> upvalues -> params | upvalues -> params
-            Original:         Vector3,
+            Origin:         Vector3,
             WallCheckExclude: {BasePart}?,
             CommonChecks:    (Player) -> boolean,
             EasyGetHitPart:   (
                 BasePart?,
                 BasePart?,
-                Original: Vector3?,
+                Origin: Vector3?,
                 WallCheckExclude: {BasePart}?
             ) -> nil | BasePart
         )
@@ -830,7 +851,7 @@ local SilentAim = {
                 if CommonChecks(Player) then continue end
 
                 local RootPart_ = PlayerStore.RootPart
-                local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_, Original, WallCheckExclude)
+                local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_, Origin, WallCheckExclude)
 
                 if not HitPart then continue end
 
@@ -847,13 +868,13 @@ local SilentAim = {
         end
 
         local function FromNpcs(
-            Original:         Vector3,
+            Origin:         Vector3,
             WallCheckExclude: {BasePart}?,
             CommonChecks:    (Model, boolean) -> boolean,
             EasyGetHitPart:   (
                 BasePart?,
                 BasePart?,
-                Original: Vector3?,
+                Origin: Vector3?,
                 WallCheckExclude: {BasePart}?
             ) -> nil | BasePart
         )
@@ -861,7 +882,7 @@ local SilentAim = {
                 if CommonChecks(Npc, true) then continue end
 
                 local RootPart_ = NpcStore.RootPart
-                local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_, Original, WallCheckExclude)
+                local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_, Origin, WallCheckExclude)
 
                 if not HitPart then continue end
 
@@ -876,20 +897,20 @@ local SilentAim = {
         end
 
         if First == "Players" then
-            FromPlayers(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
+            FromPlayers(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Npcs" then
-                FromNpcs(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
+                FromNpcs(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
             end
         elseif First == "Npcs" then
-            FromNpcs(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
+            FromNpcs(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
 
             if not Target and Second == "Players" then
-                FromPlayers(Original, WallCheckExclude, CommonChecks, EasyGetHitPart)
+                FromPlayers(Origin, WallCheckExclude, CommonChecks, EasyGetHitPart)
             end
         end
 
-        return Target, Original
+        return Target, Origin
     end
 
     local Hooks = {};do --// Hooks
@@ -904,9 +925,9 @@ local SilentAim = {
 
         local Include = Enum.RaycastFilterType.Include
 
-        local function EasyPredict(Original: Vector3, Target: BasePart)
+        local function EasyPredict(Origin: Vector3, Target: BasePart)
             return Predict(
-                Original,
+                Origin,
                 Target,
                 Humanoid,
                 RootPart,
@@ -918,7 +939,7 @@ local SilentAim = {
         local function FindPartOnRay(Arguments: {any}): nil | array
             local Filtered = Arguments[2]
 
-            local Target: BasePart | nil, Original: Vector3 = GetTarget(Arguments[1], (
+            local Target: BasePart | nil, Origin: Vector3 = GetTarget(Arguments[1], (
                 if typeof(Filtered) == "Instance" then {Filtered}
                 else if typeof(Filtered) == "table" then Filtered
                 else nil
@@ -929,39 +950,39 @@ local SilentAim = {
                 return {
                     Target,
                     Target.Position,
-                    GetClosestPointOnSurface(Target, Original)
+                    GetClosestPointOnSurface(Target, Origin)
                 } :: array
             end
 
-            local EndPoint = CFrame_lookAt(Original, Target.Position).LookVector * Arguments[1].Direction.Magnitude
+            local EndPoint = CFrame_lookAt(Origin, Target.Position).LookVector * Arguments[1].Direction.Magnitude
             if Shared.Prediction.Enabled then
-                EndPoint = EasyPredict(Original, Target)
+                EndPoint = EasyPredict(Origin, Target)
             end
 
-            Arguments[1] = Ray_new(Original, EndPoint)
+            Arguments[1] = Ray_new(Origin, EndPoint)
             return
         end
 
         local function Ray(Arguments: {any}): nil
-            local Target: BasePart | nil, Original = GetTarget(Arguments[1])
+            local Target: BasePart | nil, Origin = GetTarget(Arguments[1])
             if not Target then return end
 
             local EndPoint = Target.Position
             if Shared.Prediction.Enabled then
-                EndPoint = EasyPredict(Original, Target) or EndPoint
+                EndPoint = EasyPredict(Origin, Target) or EndPoint
             end
 
-            Arguments[2] = CFrame_lookAt(Original, EndPoint).LookVector * Arguments[2].Magnitude
+            Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
             return
         end
 
         local function Raycast(Arguments: {any}): nil
-            local Target: BasePart | nil, Original = GetTarget(Arguments[1])
+            local Target: BasePart | nil, Origin = GetTarget(Arguments[1])
             if not Target then return end
 
             local EndPoint = Target.Position
             if Shared.Prediction.Enabled then
-                EndPoint = EasyPredict(Original, Target) or EndPoint
+                EndPoint = EasyPredict(Origin, Target) or EndPoint
             end
 
             if SilentAim.WallBang then
@@ -972,22 +993,22 @@ local SilentAim = {
                 Arguments[3] = RaycastParams
             end
 
-            Arguments[2] = CFrame_lookAt(Original, EndPoint).LookVector * Arguments[2].Magnitude
+            Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
             return
         end
 
         local function ScreenPointToRay(Arguments: {any}): nil | array
-            local Target: BasePart | nil, Original = GetTarget(Camera.CFrame.Position)
+            local Target: BasePart | nil, Origin = GetTarget(Camera.CFrame.Position)
             if not Target then return end
 
-            local Direction = CFrame_lookAt(Original, Target.Position)
+            local Direction = CFrame_lookAt(Origin, Target.Position)
             if Shared.Prediction.Enabled then
-                local Solution = EasyPredict(Original, Target)
-                Direction = Solution and CFrame_lookAt(Original, Solution) or Direction
+                local Solution = EasyPredict(Origin, Target)
+                Direction = Solution and CFrame_lookAt(Origin, Solution) or Direction
             end
 
             return {Ray_new(
-                Original + (Arguments[3] and Direction.LookVector * Arguments[3] or Vector3_zero),
+                Origin + (Arguments[3] and Direction.LookVector * Arguments[3] or Vector3_zero),
                 Direction.LookVector
             )}
         end
@@ -1014,8 +1035,8 @@ local SilentAim = {
         FindPartOnRayWithWhitelist:  (self: WorldRoot, ...any) -> any,
         FindPartOnRayWithIgnoreList: (self: WorldRoot, ...any) -> any,
 
-        Ray:     (Original: Vector3,   Direction: Vector3) -> Ray,
-        Raycast: (self:     WorldRoot, Original:  Vector3, Direction: Vector3, RaycastParams) -> RaycastResult,
+        Ray:     (Origin: Vector3,   Direction: Vector3) -> Ray,
+        Raycast: (self:     WorldRoot, Origin:  Vector3, Direction: Vector3, RaycastParams) -> RaycastResult,
 
         ScreenPointToRay:   (self: Camera, number, number, Depth: number) -> Ray,
         ViewportPointToRay: (self: Camera, number, number, Depth: number) -> Ray
@@ -1125,9 +1146,9 @@ local SilentAim = {
                         local Hook  = Hooks.Ray
                         local Hooks = SilentAim.Hooks
 
-                        Old.Ray = GetHook(Function, Method, function(Original: Vector3, Direction: Vector3): Ray
-                            if checkcaller() then return Old.Ray(Original, Direction)
-                            elseif not Hooks.Ray then return Old.Ray(Original, Direction) end
+                        Old.Ray = GetHook(Function, Method, function(Origin: Vector3, Direction: Vector3): Ray
+                            if checkcaller() then return Old.Ray(Origin, Direction)
+                            elseif not Hooks.Ray then return Old.Ray(Origin, Direction) end
 
                             local Calling = getcallingscript()
                             if Calling then
@@ -1135,11 +1156,11 @@ local SilentAim = {
                                     "ControlModule",
                                     "ControlScript"
                                 } do
-                                    if Calling.Name == Name then return Old.Ray(Original, Direction) end
+                                    if Calling.Name == Name then return Old.Ray(Origin, Direction) end
                                 end
                             end
 
-                            local Arguments = {Original, Direction}
+                            local Arguments = {Origin, Direction}
                             Hook(Arguments)
 
                             return Old.Ray(unpack(Arguments))
