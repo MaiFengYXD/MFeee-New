@@ -7,12 +7,6 @@ Including:
 + SilentAim
 --]]
 
-local table_find, RaycastParams_new
-    = table.find, RaycastParams.new
-
-local      IsA
-    = game.IsA
-
 --// Setting Up //
 local Shared = {
     Enabled         = false :: boolean,
@@ -48,7 +42,7 @@ local Shared = {
     PlayerFilterMode = "Blacklist" :: "Blacklist" | "Whitelist"
 }
 
-local Workspace = shared.Workspace :: Workspace
+local Workspace = shared.Workspace :: Workspace & WorldRoot
 local Camera    = shared.Camera    :: Camera
 local Players   = shared.Players   :: Players
 local Speaker   = shared.Speaker   :: Player
@@ -97,8 +91,6 @@ end
 
 local _Target: BasePart?
 
-local Raycast = Workspace.Raycast
-
 local Prediction = require("../Prediction")
 local Entities   = require("../Entities")
 
@@ -115,16 +107,17 @@ local GetMousePosition: () -> Vector2,
 
       OnScreenChecker:   (Target:   Vector3) -> boolean,
       WallChecker:       (Original: Vector3,       Direction: Vector3, ...any & Instance) -> boolean,
-      DistanceChecker:   (Original: Vector3 | nil, Target:    Vector3) -> boolean,
+      DistanceChecker:   (Original: Vector3 | nil, Target:    Vector3) -> boolean | number,
 
       GetPriorities:     () -> ("Players" | "Npcs" | nil, "Players" | "Npcs" | nil),
       GetHitPart:        (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
-      EasyGetHitPart:    (Head: BasePart?, RootPart: BasePart?)  -> nil | BasePart,
+      EasyGetHitPart:    (Head: BasePart?, RootPart: BasePart?, Original: Vector3?)  -> nil | BasePart,
 
       Predict:           (
           Original: Vector3,
           Target:   BasePart,
           Humanoid: Humanoid?,
+          RootPart: BasePart?,
 
           RaycastParams: RaycastParams?
       ) -> Vector3
@@ -156,6 +149,9 @@ do
     end
 
     --// Filter Checker
+    local table_find
+        = table.find
+
     local FilteredPlayers = Shared.FilteredPlayers
 
     function FilterChecker(Player: Player): boolean
@@ -193,9 +189,13 @@ do
     end
 
     --// Wall Checker
-    local Exclude = Enum.RaycastFilterType.Exclude
+    local      IsA, RaycastParams_new
+        = game.IsA, RaycastParams.new
 
-    function WallChecker(Original: Vector3, Direction: Vector3, ...: any & Instance): boolean
+    local Exclude = Enum.RaycastFilterType.Exclude
+    local Raycast = Workspace.Raycast
+
+    function WallChecker(Original: Vector3, Direction: Vector3, ...: any): boolean
         if not Shared.WallCheck then return false end
 
         local RaycastParam = RaycastParams_new()
@@ -221,7 +221,7 @@ do
         return (Position2.X - Position1.X) * (Position3.Y - Position1.Y) - (Position2.Y - Position1.Y) * (Position3.X - Position1.X)
     end
 
-    --/ Helper function, make DistanceChecker more accurate in "triangle" fov
+    --/ Helper function, make DistanceChecker more accurate in polygon fov
     local function IsPointInRegularPolygon(
         Point:    Vector2,
         Center:   Vector2,
@@ -264,25 +264,28 @@ do
         return true
     end
 
-    function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean
+    function DistanceChecker(Original: Vector3 | nil, Target: Vector3): boolean | number
         if Fov.Enabled then
             local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
             if not IsOnScreen then return true end
 
             local Position2D = Vector3ToVector2(ScreenPosition)
             local NumSides   = Fov.NumSides
+            local Magnitude  = (Position2D - Fov.Position).Magnitude
 
-            if Fov.PRPCheck then
-                return if NumSides > 30 then
-                    (Position2D - Fov.Position).Magnitude > Fov.Radius
-                else not IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, Fov.NumSides)
+            if Fov.Polygon then
+                if NumSides > 30 then
+                    return (Magnitude > Fov.Radius) or Magnitude
+                end
+
+                return not IsPointInRegularPolygon(Position2D, Fov.Position, Fov.Radius, Fov.NumSides) or Magnitude
             else
-                return (Position2D - Fov.Position).Magnitude > Fov.Radius
+                return ((Position2D - Fov.Position).Magnitude > Fov.Radius) or Magnitude
             end
         end
 
         local Distance = (Original or SpeakerPosition - Target).Magnitude
-        return not (Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance)
+        return (not (Distance >= Shared.MinDistance and Distance <= Shared.MaxDistance)) or Distance
     end
 
     --// Get Priority
@@ -313,39 +316,64 @@ do
         local HeadshotChance = Shared.HeadshotChance
 
         return (
-            if NextNumber(Random, 0, 100) > HitChance and HitChance < 100 then nil else
+            if NextNumber(Random, 0, 100) > HitChance      and HitChance      < 100 then nil else
             if NextNumber(Random, 0, 100) > HeadshotChance and HeadshotChance < 100 then RootPart else Head
         )
     end
 
     --// Easy Get HitPart
-    function EasyGetHitPart(Head: BasePart?, RootPart: BasePart?): nil | BasePart
+    local unpack
+        = unpack
+
+    function EasyGetHitPart(
+        Head:     BasePart?,
+        RootPart: BasePart?,
+        Original: Vector3?,
+
+        WallCheckExclude: {BasePart}?
+    ): nil | BasePart
         local HitPart = GetHitPart(Head, RootPart)
         if not HitPart then return end
 
         local Position = HitPart.Position
-        if DistanceChecker(nil, Position) then return end
+        if DistanceChecker(Original, Position) then return end
         if OnScreenChecker(Position) then return end
-        if WallChecker(Position, SpeakerPosition - Position, HitPart) then return end
+        if WallChecker(
+            Position,
+            (Original or SpeakerPosition) - Position,
+            HitPart,
+            if WallCheckExclude then unpack(WallCheckExclude) else nil
+        ) then return end
 
-        return HitPart 
+        return HitPart
     end
 
     --// Predict
     local SolveTrajectory = Prediction.SolveTrajectory
     local UniversalPlayer = require("Player")
 
+    local R6 = Enum.HumanoidRigType.R6
+
     function Predict(
         Original: Vector3,
         Target:   BasePart,
         Humanoid: Humanoid?,
+        RootPart: BasePart?,
 
         RaycastParams: RaycastParams?
     ): Vector3
         if not Shared.Prediction.Enabled then return Original end
 
         local DefaultGravity = UniversalPlayer.Gravity.Default
-        local PlayerHeight   = Humanoid and Humanoid.HipHeight or 2
+        local PlayerHeight   = 0
+
+        if Humanoid then
+            PlayerHeight += Humanoid.HipHeight + (Humanoid.RigType == R6 and 2 or 0)
+        end
+
+        if RootPart then
+            PlayerHeight += RootPart.Size.Y / 2
+        end
 
         local Solution = SolveTrajectory(
             Original,
@@ -370,7 +398,7 @@ Fov = {
     Enabled  = false :: boolean,
     Visible  = true  :: boolean,
 
-    PRPCheck = true :: boolean,
+    Polygon  = true  :: boolean,
 
     Filled   = false :: boolean,
     Radius   = 150   :: number,
@@ -573,8 +601,8 @@ local Aimbot = {
     Method      = "Mouse" :: "Mouse" | "Camera",
     Smoothness  = 0.5     :: number
 } :: {[string]: any};do
-    local mousemoverel, Vector2_new, CFrame_lookAt, task_cancel, task_spawn
-        = mousemoverel, Vector2.new, CFrame.lookAt, task.cancel, task.spawn
+    local mousemoverel, Vector2_new, CFrame_lookAt, task_cancel, task_spawn, task_defer
+        = mousemoverel, Vector2.new, CFrame.lookAt, task.cancel, task.spawn, task.defer
 
     local AimbotEnabled = false
 
@@ -602,50 +630,74 @@ local Aimbot = {
     end
 
     local Humanoid: Humanoid?
+    local RootPart: BasePart?
 
     local function GetTarget(): (BasePart?, Humanoid?)
-        local Target:   BasePart?
+        local Target: BasePart?
 
-        local CommonChecker = CommonChecker
-        local First, Second = GetPriorities()
+        --/ Upvalues -> local values
+        local CommonChecker  = CommonChecker
+        local EasyGetHitPart = EasyGetHitPart
+        local First, Second  = GetPriorities()
 
-        local function FromPlayers(CommonChecker:(Player) -> boolean): BasePart?
+        local function FromPlayers(
+            --/ Local values -> upvalues -> params
+            CommonChecker:  (Player) -> boolean,
+            EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
+        )
             for Player, PlayerStore in Players_ do
                 if CommonChecker(Player) then continue end
 
-                local HitPart = EasyGetHitPart(PlayerStore.Head, PlayerStore.RootPart)
-                if HitPart then return HitPart, PlayerStore.Humanoid end
+                local RootPart_ = PlayerStore.RootPart
+                local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_)
+
+                if not HitPart then continue end
+
+                Target   = HitPart
+                Humanoid = PlayerStore.Humanoid
+                RootPart = RootPart_
+                break
             end
 
             return
         end
 
-        local function FromNpcs(CommonChecker: (Model, boolean) -> boolean): BasePart?
+        local function FromNpcs(
+            CommonChecker:  (Model, boolean) -> boolean,
+            EasyGetHitPart: (BasePart?, BasePart?) -> nil | BasePart
+        )
             for Npc, NpcStore in Npcs_ do
                 if CommonChecker(Npc, true) then continue end
 
-                local HitPart = EasyGetHitPart(NpcStore.Head, NpcStore.RootPart)
-                if HitPart then return HitPart, NpcStore.Humanoid end
+                local RootPart_ = NpcStore.RootPart
+                local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_)
+
+                if not HitPart then continue end
+
+                Target   = HitPart
+                Humanoid = NpcStore.Humanoid
+                RootPart = RootPart_
+                break
             end
 
             return
         end
 
         if First == "Players" then
-            Target, Humanoid = FromPlayers(CommonChecker)
+            FromPlayers(CommonChecker, EasyGetHitPart)
 
             if not Target and Second == "Npcs" then
-                Target, Humanoid = FromNpcs(CommonChecker)
+                FromNpcs(CommonChecker, EasyGetHitPart)
             end
         elseif First == "Npcs" then
-            Target, Humanoid = FromNpcs(CommonChecker)
+            FromNpcs(CommonChecker, EasyGetHitPart)
 
             if not Target and Second == "Players" then
-                Target, Humanoid = FromPlayers(CommonChecker)
+                FromPlayers(CommonChecker, EasyGetHitPart)
             end
         end
 
-        return Target, Humanoid
+        return Target
     end
 
     --// Main Logics //
@@ -673,8 +725,8 @@ local Aimbot = {
         end
     end
 
-    local AimbotKey = wax.shared.UiManager.Options.AimbotKey
-    local GetState  = AimbotKey.GetState
+    local AimbotKeybind = wax.shared.UiManager.Options.AimbotKeybind
+    local GetState      = AimbotKeybind.GetState
 
     local StepThread: thread?
 
@@ -685,12 +737,10 @@ local Aimbot = {
 
     Aimbot.Start = function(Enabled: boolean)
         AimbotEnabled = Enabled
+        CancelLock()
 
         Connect[`{Enabled and "B" or "Unb"}indRenderStep`](Connect, "StepAimbot", 200, function()
-            if not GetState(AimbotKey) then
-                CancelLock()
-                return
-            end
+            if not GetState(AimbotKeybind) then return CancelLock() end
 
             StepThread = task_spawn(function()
                 if not (Shared.Enabled and AimbotEnabled) then return end
@@ -701,35 +751,438 @@ local Aimbot = {
                         OnScreenChecker(_Target.Position) or
                         WallChecker(_Target.Position, SpeakerPosition - _Target.Position, _Target)
                     ) then
-                        return CancelLock()
+                        return task_defer(CancelLock)
                     end
 
-                    return Move(Predict(_Target.Position, _Target, Humanoid))
+                    return Move(Predict(_Target.Position, _Target, Humanoid, RootPart))
                 end
 
-                CancelLock()
-                _Target, Humanoid = GetTarget()
+                CancelTween(EasingLibrary, "Aimbot")
+                _Target = GetTarget()
                 if not _Target then return end
 
-                Move(Predict(_Target.Position, _Target, Humanoid))
+                Move(Predict(_Target.Position, _Target, Humanoid, RootPart))
             end)
         end)
     end
 end
 
---// Finalize //
-local AimbotModule = {}
+--// SilentAim //
+local SilentAim = {
+    WallBang = false :: boolean,
 
-do  --// Bundle Table and Usage Functions
+    Hooks  = {
+        FindPartOnRay               = true :: boolean,
+        FindPartOnRayWithWhitelist  = true :: boolean,
+        FindPartOnRayWithIgnoreList = true :: boolean,
+
+        Ray     = true :: boolean,
+        Raycast = true :: boolean,
+
+        ScreenPointToRay   = true :: boolean,
+        ViewportPointToRay = true :: boolean
+    }
+};if (
+    wax.shared.ExecutorSupport.getcallingscript and
+    wax.shared.ExecutorSupport.checkcaller and (
+        wax.shared.ExecutorSupport.hookfunction or (
+            wax.shared.ExecutorSupport.hookmetamethod and
+            wax.shared.ExecutorSupport.getnamecallmethod
+        )
+    )
+) then
+    local RaycastParams_new
+        = RaycastParams.new
+
+    local Players_ = Entities.Players
+    local Npcs_    = Entities.Npcs
+
+    local Humanoid: Humanoid?
+    local RootPart: BasePart?
+
+    local ProjectileRaycastParams = RaycastParams_new()
+
+    --// Helper Functions
+    local function GetTarget(Original: Vector3, WallCheckExclude: {BasePart}?): (BasePart | nil, Vector3)
+        local Target: BasePart?
+
+        local CommonChecker  = CommonChecker
+        local EasyGetHitPart = EasyGetHitPart
+        local First, Second  = GetPriorities()
+
+        local function FromPlayers(
+            --/ Local values -> upvalues -> params | upvalues -> params
+            Original:         Vector3,
+            WallCheckExclude: {BasePart}?,
+            CommonChecker:    (Player) -> boolean,
+            EasyGetHitPart:   (
+                BasePart?,
+                BasePart?,
+                Original: Vector3?,
+                WallCheckExclude: {BasePart}?
+            ) -> nil | BasePart
+        )
+            for Player, PlayerStore in Players_ do
+                if CommonChecker(Player) then continue end
+
+                local RootPart_ = PlayerStore.RootPart
+                local HitPart   = EasyGetHitPart(PlayerStore.Head, RootPart_, Original, WallCheckExclude)
+
+                if not HitPart then continue end
+
+                Target   = HitPart
+                Humanoid = PlayerStore.Humanoid
+                RootPart = RootPart_
+
+                ProjectileRaycastParams.FilterDescendantsInstances = {PlayerStore.Character :: any}
+                ProjectileRaycastParams.CollisionGroup = HitPart.CollisionGroup
+                break
+            end
+
+            return
+        end
+
+        local function FromNpcs(
+            Original:         Vector3,
+            WallCheckExclude: {BasePart}?,
+            CommonChecker:    (Model, boolean) -> boolean,
+            EasyGetHitPart:   (
+                BasePart?,
+                BasePart?,
+                Original: Vector3?,
+                WallCheckExclude: {BasePart}?
+            ) -> nil | BasePart
+        )
+            for Npc, NpcStore in Npcs_ do
+                if CommonChecker(Npc, true) then continue end
+
+                local RootPart_ = NpcStore.RootPart
+                local HitPart   = EasyGetHitPart(NpcStore.Head, RootPart_, Original, WallCheckExclude)
+
+                if not HitPart then continue end
+
+                Target   = HitPart
+                Humanoid = NpcStore.Humanoid
+                RootPart = RootPart_
+
+                ProjectileRaycastParams.FilterDescendantsInstances = {Npc}
+                ProjectileRaycastParams.CollisionGroup = HitPart.CollisionGroup
+                break
+            end
+        end
+
+        if First == "Players" then
+            FromPlayers(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+
+            if not Target and Second == "Npcs" then
+                FromNpcs(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+            end
+        elseif First == "Npcs" then
+            FromNpcs(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+
+            if not Target and Second == "Players" then
+                FromPlayers(Original, WallCheckExclude, CommonChecker, EasyGetHitPart)
+            end
+        end
+
+        return Target, Original
+    end
+
+    local Hooks = {};do --// Hooks
+        local typeof, Ray_new, CFrame_lookAt, Vector3_zero
+            = typeof, Ray.new, CFrame.lookAt, Vector3.zero
+
+        local GetClosestPointOnSurface;do
+            local Part = Instance.new("Part")
+            GetClosestPointOnSurface = Part.GetClosestPointOnSurface
+            Part:Destroy()
+        end
+
+        local Include = Enum.RaycastFilterType.Include
+
+        local function EasyPredict(Original: Vector3, Target: BasePart)
+            return Predict(
+                Original,
+                Target,
+                Humanoid,
+                RootPart,
+
+                ProjectileRaycastParams
+            )
+        end
+
+        local function FindPartOnRay(Arguments: {any}): nil | array
+            local Filtered = Arguments[2]
+
+            local Target: BasePart | nil, Original: Vector3 = GetTarget(Arguments[1], (
+                if typeof(Filtered) == "Instance" then {Filtered}
+                else if typeof(Filtered) == "table" then Filtered
+                else nil
+            ))
+
+            if not Target then return end
+            if SilentAim.WallBang then
+                return {
+                    Target,
+                    Target.Position,
+                    GetClosestPointOnSurface(Target, Original)
+                } :: array
+            end
+
+            local EndPoint = CFrame_lookAt(Original, Target.Position).LookVector * Arguments[1].Direction.Magnitude
+            if Shared.Prediction.Enabled then
+                EndPoint = EasyPredict(Original, Target)
+            end
+
+            Arguments[1] = Ray_new(Original, EndPoint)
+            return
+        end
+
+        local function Ray(Arguments: {any}): nil
+            local Target: BasePart | nil, Original = GetTarget(Arguments[1])
+            if not Target then return end
+
+            local EndPoint = Target.Position
+            if Shared.Prediction.Enabled then
+                EndPoint = EasyPredict(Original, Target) or EndPoint
+            end
+
+            Arguments[2] = CFrame_lookAt(Original, EndPoint).LookVector * Arguments[2].Magnitude
+            return
+        end
+
+        local function Raycast(Arguments: {any}): nil
+            local Target: BasePart | nil, Original = GetTarget(Arguments[1])
+            if not Target then return end
+
+            local EndPoint = Target.Position
+            if Shared.Prediction.Enabled then
+                EndPoint = EasyPredict(Original, Target) or EndPoint
+            end
+
+            if SilentAim.WallBang then
+                local RaycastParams = RaycastParams_new()
+                RaycastParams.FilterType = Include
+                RaycastParams.FilterDescendantsInstances = {Target}
+
+                Arguments[3] = RaycastParams
+            end
+
+            Arguments[2] = CFrame_lookAt(Original, EndPoint).LookVector * Arguments[2].Magnitude
+            return
+        end
+
+        local function ScreenPointToRay(Arguments: {any}): nil | array
+            local Target: BasePart | nil, Original = GetTarget(Camera.CFrame.Position)
+            if not Target then return end
+
+            local Direction = CFrame_lookAt(Original, Target.Position)
+            if Shared.Prediction.Enabled then
+                local Solution = EasyPredict(Original, Target)
+                Direction = Solution and CFrame_lookAt(Original, Solution) or Direction
+            end
+
+            return {Ray_new(
+                Original + (Arguments[3] and Direction.LookVector * Arguments[3] or Vector3_zero),
+                Direction.LookVector
+            )}
+        end
+
+        Hooks.FindPartOnRay               = FindPartOnRay
+        Hooks.FindPartOnRayWithWhitelist  = FindPartOnRay
+        Hooks.FindPartOnRayWithIgnoreList = FindPartOnRay
+
+        Hooks.Ray     = Ray
+        Hooks.Raycast = Raycast
+
+        Hooks.ScreenPointToRay   = ScreenPointToRay
+        Hooks.ViewportPointToRay = ScreenPointToRay
+    end
+
+    --// Main Logics
+    local hookfunction, hookmetamethod, getnamecallmethod, getcallingscript, checkcaller
+        = hookfunction, hookmetamethod, getnamecallmethod, getcallingscript, checkcaller
+
+    local Old = {} :: {
+        __namecall: (self: Object, ...any) -> any,
+
+        FindPartOnRay:               (self: WorldRoot, ...any) -> any,
+        FindPartOnRayWithWhitelist:  (self: WorldRoot, ...any) -> any,
+        FindPartOnRayWithIgnoreList: (self: WorldRoot, ...any) -> any,
+
+        Ray:     (Original: Vector3,   Direction: Vector3) -> Ray,
+        Raycast: (self:     WorldRoot, Original:  Vector3, Direction: Vector3, RaycastParams) -> RaycastResult,
+
+        ScreenPointToRay:   (self: Camera, number, number, Depth: number) -> Ray,
+        ViewportPointToRay: (self: Camera, number, number, Depth: number) -> Ray
+    }
+
+    local Support_hookfunction = wax.shared.ExecutorSupport.hookfunction
+    local Support_hookmetamethod = (
+        wax.shared.ExecutorSupport.hookmetamethod and
+        wax.shared.ExecutorSupport.getnamecallmethod
+    )
+
+    local function GetHook(Function: Function, Method: 
+        "FindPartOnRay" |
+        "FindPartOnRayWithWhitelist" |
+        "FindPartOnRayWithIgnoreList" |
+
+        "Ray" |
+        "Raycast" |
+
+        "ScreenPointToRay" |
+        "ViewportPointToRay"
+    , Custom: Function?): Function
+        local checkcaller, getcallingscript, unpack
+            = checkcaller, getcallingscript, unpack
+
+        local Hook  = Hooks[Method]
+        local Hooks = SilentAim.Hooks
+
+        return hookfunction(Function, Custom or function(self: Instance, ...: any): any
+            if checkcaller() then return Old[Method](...)
+            elseif not Hooks[Method] then return Old[Method](...) end
+
+            local Calling = getcallingscript()
+            if Calling then
+                for _, Name in {
+                    "ControlModule",
+                    "ControlScript"
+                } do
+                    if Calling.Name == Name then return Old[Method](...) end
+                end
+            end
+
+            local Arguments = {...}
+            local Result    = Hook(Arguments)
+
+            return if Result then unpack(Result) else Old[Method](self, Arguments)
+        end)
+    end
+
+    local FunctionAndMethods = {
+        [Workspace.FindPartOnRay :: any]        = "FindPartOnRay",
+        [Workspace.FindPartOnRayWithWhitelist]  = "FindPartOnRayWithWhitelist",
+        [Workspace.FindPartOnRayWithIgnoreList] = "FindPartOnRayWithIgnoreList",
+
+        [Ray.new]           = "Ray",
+        [Workspace.Raycast] = "Raycast",
+
+        [Camera.ScreenPointToRay]   = "ScreenPointToRay",
+        [Camera.ViewportPointToRay] = "ViewportPointToRay"
+    }
+
+    SilentAim.Start = function(Enabled: boolean)
+        --// __namecall Hooking
+        if Support_hookmetamethod then
+            if Enabled then
+                local getnamecallmethod, getcallingscript, unpack
+                    = getnamecallmethod, getcallingscript, unpack
+
+                local Hooks  = SilentAim.Hooks
+                local Hooks_ = Hooks
+
+                Old.__namecall = hookmetamethod(game, "__namecall", function(self: Object, ...: any) 
+                    local Method = getnamecallmethod()
+
+                    if not Hooks[Method] then return Old.__namecall(self, ...)
+                    elseif checkcaller() then return Old.__namecall(self, ...) end
+
+                    local Calling = getcallingscript()
+                    if Calling then
+                        for _, Name in {
+                            "ControlModule",
+                            "ControlScript"
+                        } do
+                            if Calling.Name == Name then return Old.__namecall(self, ...) end
+                        end
+                    end
+
+                    local Arguments = {...}
+                    local Result    = Hooks_[Method](Arguments)
+
+                    return if Result then unpack(Result) else Old.__namecall(self, unpack(Arguments))
+                end)
+            else
+                hookmetamethod(game, "__namecall", Old.__namecall)
+                Old.__namecall = nil :: any
+            end
+        end
+
+        --// Function Hooking
+        if Support_hookfunction then
+            if Enabled then
+                for Function, Method in FunctionAndMethods do
+                    if Method == "Ray" then
+                        local checkcaller, getcallingscript
+                            = checkcaller, getcallingscript
+
+                        local Hook  = Hooks.Ray
+                        local Hooks = SilentAim.Hooks
+
+                        Old.Ray = GetHook(Function, Method, function(Original: Vector3, Direction: Vector3): Ray
+                            if checkcaller() then return Old.Ray(Original, Direction)
+                            elseif not Hooks.Ray then return Old.Ray(Original, Direction) end
+
+                            local Calling = getcallingscript()
+                            if Calling then
+                                for _, Name in {
+                                    "ControlModule",
+                                    "ControlScript"
+                                } do
+                                    if Calling.Name == Name then return Old.Ray(Original, Direction) end
+                                end
+                            end
+
+                            local Arguments = {Original, Direction}
+                            Hook(Arguments)
+
+                            return Old.Ray(unpack(Arguments))
+                        end)
+                    else
+                        Old[Method] = GetHook(Function, Method :: any)
+                    end
+                end
+            else
+                for Function, Method in FunctionAndMethods do
+                    hookfunction(Function, Old[Method])
+                    Old[Method] = nil :: any
+                end
+            end
+        end
+    end
+end
+
+--// Finalize //
+local AimbotModule = {
+    Fov       = Fov,
+    Shared    = Shared,
+    Aimbot    = Aimbot,
+    SilentAim = SilentAim
+};do  --// Bundle Table and Usage Functions
     local Mode = "SilentAim" :: "Aimbot" | "SilentAim"
 
-    local function Toggle(Enabled: boolean)
+    local function Toggle(Enabled: boolean, LastMode: ("Aimbot" | "SilentAim")?)
         Shared.Enabled = Enabled
+        _Target = nil
 
-        
+        if LastMode then
+            AimbotModule[LastMode].Start(false)
+        end
+        AimbotModule[Mode].Start(Enabled)
     end
 
-    local function SetMode(Mode: "Aimbot" | "SilentAim")
-        Mode = Mode
+    local function SetMode(NewMode: "Aimbot" | "SilentAim")
+        local LastMode = Mode
+        Mode = NewMode
+
+        _Target = nil
+        Toggle(Shared.Enabled, LastMode :: "Aimbot" | "SilentAim")
     end
+
+    AimbotModule.Toggle  = Toggle
+    AimbotModule.SetMode = SetMode
+
+    return AimbotModule
 end
