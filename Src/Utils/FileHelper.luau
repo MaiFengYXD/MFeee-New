@@ -1,100 +1,78 @@
-local makefolder, writefile, isfile, readfile, type, tostring, tonumber, string_match
-    = makefolder, writefile, isfile, readfile, type, tostring, tonumber, string.match
+local string_match, tostring, tonumber, makefolder, writefile, isfolder, isfile, readfile, type
+    = string.match, tostring, tonumber, makefolder, writefile, isfolder, isfile, readfile, type
 
-local FileHelper = {}
+local FileHelper = {
+    ApiUncompatible = not wax.shared.ExecutorSupport.SupportFileSystem
+}
 
-function FileHelper:CheckAPI()
-    return not wax.shared.ExecutorSupport.SupportFileSystem
-end
+function FileHelper:CreateFolder(FolderPath: string): string?
+    if self.ApiUncompatible then return nil end
 
-function FileHelper:CreateParentFolder(FilePath: string): string?
-    if self:CheckAPI() then return nil end
+    if not isfolder(FolderPath) then
+        makefolder(FolderPath)
+    end
 
-    local FolderPath = FilePath:match("^(.*)/[^/]*$")
-    if not FolderPath then return nil end
-
-    makefolder(FolderPath)
     return FolderPath
 end
 
-function FileHelper:CreateFolder(Path: string): string?
-    if self:CheckAPI() then return nil end
+function FileHelper:CreateParentFolder(FilePath: string): string?
+    if self.ApiUncompatible then return nil end
 
-    makefolder(Path)
-    return Path
+    local FolderPath = string_match(FilePath, "^(.*)/[^/]*$")
+    if not FolderPath then return nil end
+
+    return self:CreateFolder(FolderPath)
 end
 
-function FileHelper:CheckFile(Path: string, Fallback: string, Targets: any): string | number?
-    Fallback = tostring(Fallback)
+function FileHelper:WriteFile(FilePath: string, Content: string, DontOverwrite: boolean?): string?
+    if self.ApiUncompatible then return nil end
 
-    if self:CheckAPI() then return Fallback end
-    self:CreateParentFolder(Path)
-
-    local function Return(type: ("number" | "string")? | any): string | number?
-        writefile(Path, Fallback)
-
-        if type == "number" then
-            return tonumber(Fallback)
-        end
-
-        return Fallback
-    end
-
-    local TargetType = type(Targets)
-
-    if isfile(Path) then
-        local Content = readfile(Path)
-
-        if TargetType == "table" then
-            local Matched
-
-            for Target1, Target2 in Targets do
-                if Content ~= Target1 and Content ~= Target2 then continue end
-
-                Matched = Content
-                break
-            end
-
-            return Matched or Return("string")
-        elseif TargetType == "number" then
-            if type(tonumber(Content)) ~= TargetType then return Return("number") end
-
-            return tonumber(Content)
-        elseif TargetType == "nil" then
-            return Content
-        end
-    end
-
-    return Return(TargetType)
-end
-
-function FileHelper:WriteFile(Path: string, Content: string, DontOverwrite: boolean?): string?
     Content = tostring(Content)
+    self:CreateParentFolder(FilePath)
 
-    if self:CheckAPI() then return Content end
-    self:CreateParentFolder(Path)
+    if DontOverwrite then
+        local Repeated  = 1
+        local BasePath  = string_match(FilePath, "(.+)%.[^%.]+$")
+        local Extension = string_match(FilePath, "%.([^%.]+)$")
 
-    local LoopedTimes = 1
-    local BasePath    = string_match(Path, "(.+)%.[^%.]+$")
-    local Extension   = string_match(Path, "%.([^%.]+)$")
-
-    while isfile(Path) and DontOverwrite do
-        LoopedTimes += 1
-        Path = `{BasePath} ({LoopedTimes}).{Extension}`
+        while isfile(FilePath) do
+            Repeated += 1
+            FilePath  = `{BasePath} ({Repeated}).{Extension}`
+        end
     end
 
-    writefile(Path, Content)
+    writefile(FilePath, Content)
     return Content
 end
 
-function FileHelper:IsFile(Path: string): (boolean | string)
-    if self:CheckAPI() then return false end
+function FileHelper:IsFile(FilePath: string): boolean? | string
+    if self.ApiUncompatible then return nil end
+    return if isfile(FilePath) then readfile(FilePath) else false
+end
 
-    if isfile(Path) then
-        return readfile(Path)
+function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): string? | number?
+    if self.ApiUncompatible then return nil end
+
+    if not self:IsFile(FilePath) then return self:WriteFile(FilePath, Fallback) end
+
+    local Content    = readfile(FilePath)
+    local TargetType = type(Target)
+
+    if TargetType == "number" then
+        local NewContent = tonumber(Content)
+
+        return if type(NewContent) ~= "number" then tonumber(self:WriteFile(FilePath, Fallback)) else NewContent
+    elseif TargetType == "table" then
+        for Key, Value in Target do
+            if Key == Content or Value == Content then
+                return Content
+            end
+        end
+
+        return self:WriteFile(FilePath, Fallback)
     end
 
-    return false
+    return Content
 end
 
 return FileHelper
