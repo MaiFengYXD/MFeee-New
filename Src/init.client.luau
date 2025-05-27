@@ -94,6 +94,67 @@ do
     function wax.AddOnUnload(Callback: () -> (), ...: any)
         table_insert(OnUnloadFunctions, {(Callback :: any), {...}})
     end
+
+    local utf8_char
+        = utf8.char
+
+    local Random      = Random.new()
+    local NextInteger = Random.NextInteger
+
+    function Global.randomstring(Length: number | nil): string
+        local String = ""
+
+        for _ = 1, Length or NextInteger(Random, 16, 64) do
+            String ..= utf8_char(NextInteger(Random, 0, 1114111))
+        end
+
+        return String
+    end
+
+    local Color3_fromHSV, tick
+        = Color3.fromHSV, tick
+
+    function Global.getrainbowcolor(RainbowSpeed: number | nil): Color3
+        return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
+    end
+
+    local ScreenGui = Instance.new("ScreenGui") :: ScreenGui;do
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ScreenGui.IgnoreGuiInset = true
+        ScreenGui.ResetOnSpawn   = false
+        ScreenGui.DisplayOrder   = 2^31 - 1
+        ScreenGui.Name           = Global.randomstring()
+        ScreenGui.Parent         = Global.gethui()
+    end
+
+    wax.shared.ScreenGui = ScreenGui
+
+    local tonumber, string_match, table_sort
+        = tonumber, string.match, table.sort
+
+    function wax.shared.Sequencing(Table: table): table
+        table_sort(Table, function(A, B)
+            local NumA = tonumber(string_match(A.Name, "^(%d+)%."))
+            local NumB = tonumber(string_match(B.Name, "^(%d+)%."))
+
+            return NumA < NumB
+        end)
+
+        return Table
+    end
+
+    wax.shared.ScriptName    = "Universal"
+    wax.shared.ScriptFolder  = "Universal"
+    wax.shared.ScriptDisplay = "Universal"
+
+    local Mappings = require("Mappings")
+    local Mapping  = Mappings[game.PlaceId]
+
+    if Mapping then
+        wax.shared.ScriptName    = Mapping.Name
+        wax.shared.ScriptFolder  = Mapping.Folder
+        wax.shared.ScriptDisplay = Mapping.Display
+    end
 end
 
 --// Start to Load //
@@ -110,46 +171,6 @@ shared.Camera = shared.Workspace.CurrentCamera
 wax.shared.Emoji           = require("Utils/ArtEmoji")
 wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
 wax.shared.FileHelper      = require("Utils/FileHelper")
-
-do
-    local utf8_char
-        = utf8.char
-
-    local Random      = Random.new()
-    local NextInteger = Random.NextInteger
-
-    function Global.randomstring(Length: number | nil): string
-        local String = ""
-
-        for _ = 1, Length or NextInteger(Random, 16, 64) do
-            String ..= utf8_char(NextInteger(Random, 0, 1114111))
-        end
-
-        return String
-    end
-end
-
-do
-    local Color3_fromHSV, tick
-        = Color3.fromHSV, tick
-
-    function Global.getrainbowcolor(RainbowSpeed: number | nil): Color3
-        return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
-    end
-end
-
-do
-    local ScreenGui = Instance.new("ScreenGui") :: ScreenGui;do
-        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        ScreenGui.IgnoreGuiInset = true
-        ScreenGui.ResetOnSpawn   = false
-        ScreenGui.DisplayOrder   = 2^31 - 1
-        ScreenGui.Name           = Global.randomstring()
-        ScreenGui.Parent         = Global.gethui()
-    end
-
-    wax.shared.ScreenGui = ScreenGui
-end
 
 wax.shared.AllowedLanguages = {
     -- ["am"] = "አማርኛ",
@@ -180,37 +201,6 @@ wax.shared.AllowedLanguages = {
 }
 
 wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee-New/Language.txt", "en", wax.shared.AllowedLanguages)
-
-do
-    wax.shared.ScriptName    = "Universal"
-    wax.shared.ScriptFolder  = "Universal"
-    wax.shared.ScriptDisplay = "Universal"
-
-    local Mappings = require("Mappings")
-    local Mapping  = Mappings[game.PlaceId]
-
-    if Mapping then
-        wax.shared.ScriptName    = Mapping.Name
-        wax.shared.ScriptFolder  = Mapping.Folder
-        wax.shared.ScriptDisplay = Mapping.Display
-    end
-end
-
-do
-    local tonumber, string_match, table_sort
-        = tonumber, string.match, table.sort
-
-    function wax.shared.Sequencing(Table: table): table
-        table_sort(Table, function(A, B)
-            local NumA = tonumber(string_match(A.Name, "^(%d+)%."))
-            local NumB = tonumber(string_match(B.Name, "^(%d+)%."))
-
-            return NumA < NumB
-        end)
-
-        return Table
-    end
-end
 
 wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
