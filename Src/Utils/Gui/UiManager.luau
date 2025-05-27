@@ -107,7 +107,6 @@ function UiManager:CreateWindow()
         Footer = `{wax.shared.ScriptDisplay} | {wax.shared.ScriptVersion}`,
         Center = true,
         AutoShow = true,
-        AlwaysOnTop  = UiManager.shared.AlwaysOnTop,
         CornerRadius = UiManager.shared.UiCorner,
         NotifySide   = UiManager.shared.NotifySide,
         ShowCustomCursor = UiManager.shared.CustomCursor
@@ -748,7 +747,7 @@ function UiManager:CreateUniversalTabs()
     --// UI Groupbox OnChanged
     UiManager.Toggles.AlwaysOnTop:OnChanged(function(Enabled)
         UiManager.shared.AlwaysOnTop = Enabled
-        UiManager.Library.ScreenGui.OnTopOfCoreBlur = Enabled
+        wax.shared.ScreenGui.OnTopOfCoreBlur = Enabled
 
         UpdateSettings()
     end)
