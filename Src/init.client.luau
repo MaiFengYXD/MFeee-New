@@ -1,5 +1,5 @@
-local pcall
-    = pcall
+local pcall, task
+    = pcall, task
 
 wax.Unloaded = false
 
@@ -102,7 +102,7 @@ wax.shared.TempStorage = {}
 task.spawn(function()
     while not (pcall(function()
         wax.shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
-    end) and wax.shared.GameName) do end
+    end) and wax.shared.GameName) and task.wait(0.5) do end
 end)
 
 shared.Camera = shared.Workspace.CurrentCamera
@@ -121,7 +121,7 @@ do
     function Global.randomstring(Length: number | nil): string
         local String = ""
 
-        for _ = 1, Length or 16 do
+        for _ = 1, Length or NextInteger(Random, 16, 64) do
             String ..= utf8_char(NextInteger(Random, 0, 1114111))
         end
 
@@ -138,32 +138,43 @@ do
     end
 end
 
-shared.Connect = require("Utils/Connect")
+do
+    local ScreenGui = Instance.new("ScreenGui") :: ScreenGui;do
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ScreenGui.IgnoreGuiInset = true
+        ScreenGui.ResetOnSpawn   = false
+        ScreenGui.DisplayOrder   = 2^31 - 1
+        ScreenGui.Name           = Global.randomstring()
+        ScreenGui.Parent         = Global.gethui()
+    end
+
+    wax.shared.ScreenGui = ScreenGui
+end
 
 wax.shared.AllowedLanguages = {
-    ["am"] = "አማርኛ",
-    ["ar"] = "العربية",
-    ["az"] = "Azərbaycan dili",
-    ["de"] = "Deutsch",
+    -- ["am"] = "አማርኛ",
+    -- ["ar"] = "العربية",
+    -- ["az"] = "Azərbaycan dili",
+    -- ["de"] = "Deutsch",
     ["en"] = "English",
     ["es"] = "Español",
-    ["et"] = "Eesti",
-    ["fa"] = "فارسی",
-    ["fr"] = "Français",
-    ["hi"] = "हिन्दी",
-    ["hr"] = "Hrvatski",
-    ["hu"] = "Magyar",
-    ["id"] = "Bahasa Indonesia",
+    -- ["et"] = "Eesti",
+    -- ["fa"] = "فارسی",
+    -- ["fr"] = "Français",
+    -- ["hi"] = "हिन्दी",
+    -- ["hr"] = "Hrvatski",
+    -- ["hu"] = "Magyar",
+    -- ["id"] = "Bahasa Indonesia",
     ["ja"] = "日本語",
-    ["kz"] = "Қазақ тілі",
-    ["ms"] = "Bahasa Melayu",
-    ["pt"] = "Português",
+    -- ["kz"] = "Қазақ тілі",
+    -- ["ms"] = "Bahasa Melayu",
+    -- ["pt"] = "Português",
     ["ru"] = "Русский язык",
-    ["sv"] = "Svenska",
-    ["tr"] = "Türkçe",
-    ["uk"] = "Українська мова",
-    ["ur"] = "اردو",
-    ["vi"] = "Tiếng Việt",
+    -- ["sv"] = "Svenska",
+    -- ["tr"] = "Türkçe",
+    -- ["uk"] = "Українська мова",
+    -- ["ur"] = "اردو",
+    -- ["vi"] = "Tiếng Việt",
     ["zh-cn"  ] = "简体中文",
     ["zh-hant"] = "繁體中文"
 }
@@ -203,6 +214,8 @@ end
 
 wax.shared.Translations  = require("Translations")
 wax.shared.EasingLibrary = require("Utils/EasingLibrary")
+
+shared.Connect = require("Utils/Connect")
 
 shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     shared.Camera  = shared.Workspace.CurrentCamera
