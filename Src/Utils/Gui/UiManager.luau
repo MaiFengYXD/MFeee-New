@@ -611,7 +611,6 @@ function UiManager:CreateUniversalTabs()
 
         if Bind1 == "UserInputType" then
             Key = GetTranslation(
-                Translations,
                 Bind2 == "MouseButton1" and "MB1" or
                 Bind2 == "MouseButton2" and "MB2" or
                 Bind2 == "MouseButton3" and "MB3" or
@@ -793,7 +792,7 @@ function UiManager:CreateUniversalTabs()
     end)
 
     UiManager.Options.NotifySide:OnChanged(function(Side)
-        Side = FromTranslation(Translations, Side)
+        Side = FromTranslation(Side)
         if not Side then return end
 
         UiManager.shared.NotifySide = Side
@@ -847,16 +846,6 @@ function UiManager:CreateUniversalTabs()
     UiManager.InfoTabCreditsGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation("Credits"))
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("upio")} {GetTranslation("Teaches me how to use wax")}`,
-        DoesWrap = true
-    })
-
-    UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor("mspaint")} {GetTranslation("Gives me inspiration")}`,
-        DoesWrap = true
-    })
-
-    UiManager.InfoTabCreditsGroup:AddLabel({
         Text = `{ApplyColor("GitHub Copilot")} {GetTranslation("Helps complete code")}`,
         DoesWrap = true
     })
@@ -867,7 +856,7 @@ function UiManager:CreateUniversalTabs()
     })
 
     UiManager.InfoTabCreditsGroup:AddLabel({
-        Text = `{ApplyColor(GetTranslation("And you!"))} {GetTranslation("For using my script!")}`,
+        Text = `{ApplyColor(GetTranslation("And you"))} {GetTranslation("For using my script!")}`,
         DoesWrap = true
     })
 
@@ -875,17 +864,27 @@ function UiManager:CreateUniversalTabs()
     UiManager.InfoTabThanksGroup = UiManager.InfoTab:AddLeftGroupbox(GetTranslation("Special Thanks"))
 
     UiManager.InfoTabThanksGroup:AddLabel({
+        Text = `{ApplyColor("mspaint")} {GetTranslation("Give me huge inspirations")}`,
+        DoesWrap = true
+    })
+
+    UiManager.InfoTabThanksGroup:AddLabel({
         Text = `{ApplyColor("latte-soft")} {GetTranslation("Wax bundler")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("Exunys")} {GetTranslation("Aimbot Inspiration")}`,
+        Text = `{ApplyColor("deividcomsono")} {GetTranslation("UI credit (inspired by Obsidian)")}`,
         DoesWrap = true
     })
 
     UiManager.InfoTabThanksGroup:AddLabel({
-        Text = `{ApplyColor("7GrandDadPGN")} {GetTranslation("SilentAim Inspiration")}`,
+        Text = `{ApplyColor("Exunys")} {GetTranslation("Aimbot inspiration")}`,
+        DoesWrap = true
+    })
+
+    UiManager.InfoTabThanksGroup:AddLabel({
+        Text = `{ApplyColor("7GrandDadPGN")} {GetTranslation("SilentAim inspiration")}`,
         DoesWrap = true
     })
 
@@ -979,7 +978,7 @@ function UiManager:CreateUniversalTabs()
             "Did you know?",
             "Guess what?",
             "Loading...",
-            "The Ascent Begins:",
+            "@upio:",
             "Do you know?",
             "Tip hunt:",
             "MOTD:",
@@ -988,14 +987,15 @@ function UiManager:CreateUniversalTabs()
             "Error:",
             "@fr:",
             "upio:",
-            "upio:"
+            "upio:",
+            ""
         }
 
         local TipContents = {
             "You can click on the notification to close it.",
             "You can actually bind any key to open the menu (even mouse buttons <s>although it's stupid fr</s>)",
             "Fetching new tips... (remaining 2147483647 years)",
-            "With a groan like tortured stone, the black iron gate yielded. The warrior, known only as Kael, stepped into the echoing darkness of the Maw. The air was thick with the smell of damp earth and ancient dust. Eyes adjusted slowly, revealing twisted tunnels leading into the deep. From the shadows, a low growl erupted. Goblins, small and vicious, swarmed forward, crude blades glinting. Kael met them head-on, his axe a blur of steel. Parrying, striking, the clang of metal on metal filled the confined space. He felt a blade bite his arm, a sharp pain that fueled his fury. He learned their patterns, the way they feinted left before thrusting right. He moved faster, anticipating their blows, his defense hardening. Finally, the last goblin fell, leaving only the sound of his own ragged breath and the dripping water. Wiping sweat and blood from his brow, Kael felt a new strength settle in his bones. His movements felt more fluid, his senses sharper. The trial had left its mark, physically and... somewhere deeper. But the path ahead plunged further into the mountain's core, and from the depths, a deeper, more ominous rumble echoed. His journey had just begun.\n<i>to be continued...</i>",
+            "when i skidded and pasted the most",
             "Click me to skip to the next tip",
             "Our tips are currently on vacation, please try again <s>never</s>later",
             "zib zib zib zib zib zib zib zib zib zib zib zib zib zib zib zib zib z",
@@ -1004,7 +1004,8 @@ function UiManager:CreateUniversalTabs()
             "Failed to load tips: Server error, firefighters are putting out the fire on our server",
             "",
             "if no bypass is detected we detect one",
-            "If no executor is detected, we default to a generic bypass"
+            "If no executor is detected, we default to a generic bypass",
+            "<b>⚠️ YOUR SITE HAS BEN DDOS PLEASE SEND 20$ TO UNDDOS</b> :"
         }
 
         for Index, Content in TipTitles do
