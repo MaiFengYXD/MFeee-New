@@ -1,3 +1,8 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+    task.wait(1)
+end
+
 local pcall, task
     = pcall, task
 
@@ -26,6 +31,8 @@ shared.Speaker = shared.Players.LocalPlayer
 
 if type(getgenv) ~= "function" then
     shared.Speaker:Kick("This script doesn't support non-executor environments.");return
+elseif shared.Workspace.DistributedGameTime < 1 then
+    task.wait(1 - shared.Workspace.DistributedGameTime)
 end
 
 local Global = getgenv()
@@ -56,8 +63,6 @@ task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
     "rbxassetid://4590657391"
 })
 
-if not game:IsLoaded() then game.Loaded:Wait() end
-
 shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (function(IsA, Wait, ChildAdded)
     local PlayerGui
 
@@ -68,9 +73,13 @@ shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (functio
     return PlayerGui
 end)(game.IsA, game.Close.Wait, shared.Speaker.ChildAdded)
 
+wax.shared.Emoji           = require("Utils/ArtEmoji")
+wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
+wax.shared.FileHelper      = require("Utils/FileHelper")
+
 do
-    local table_insert, unpack
-        = table.insert, unpack
+    local table_insert, table_clear, unpack
+        = table.insert, table.clear, unpack
 
     local OnUnloadFunctions = {} :: {{any}}
 
@@ -83,7 +92,7 @@ do
         for _, Bundled in OnUnloadFunctions do
             task_defer(pcall, Bundled[1], unpack(Bundled[2]))
         end
-        OnUnloadFunctions = table.clear(OnUnloadFunctions)
+        OnUnloadFunctions = table_clear(OnUnloadFunctions)
 
         Global.MFeeeLoaded  = false
         Global.MFeeeLoading = false
@@ -118,13 +127,15 @@ do
         return Color3_fromHSV((tick() * (RainbowSpeed or 0.4)) % 1, 1, 1)
     end
 
-    local ScreenGui = Instance.new("ScreenGui") :: ScreenGui;do
-        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        ScreenGui.IgnoreGuiInset = true
-        ScreenGui.ResetOnSpawn   = false
-        ScreenGui.DisplayOrder   = 2^31 - 1
-        ScreenGui.Name           = Global.randomstring()
-        ScreenGui.Parent         = Global.gethui()
+    local ScreenGui = Instance.new("ScreenGui");do
+        ScreenGui.ZIndexBehavior       = Enum.ZIndexBehavior.Sibling
+        ScreenGui.ClipToDeviceSafeArea = false
+        ScreenGui.IgnoreGuiInset       = true
+        ScreenGui.ResetOnSpawn         = false
+        ScreenGui.AutoLocalize         = false
+        ScreenGui.DisplayOrder         = 2^31 - 1
+        ScreenGui.Name                 = Global.randomstring()
+        ScreenGui.Parent               = Global.gethui()
     end
 
     wax.shared.ScreenGui = ScreenGui
@@ -141,6 +152,23 @@ do
         end)
 
         return Table
+    end
+
+    local type
+        = type
+
+    function wax.shared.Validate(Target: table, Template: table): table
+        if type(Target) ~= "table" then
+            return Template
+        end
+
+        for Key, Value in Template do
+            if Target[Key] == nil then
+                Target[Key] = Value
+            end
+        end
+
+        return Target
     end
 
     wax.shared.ScriptName    = "Universal"
@@ -167,10 +195,6 @@ task.spawn(function()
 end)
 
 shared.Camera = shared.Workspace.CurrentCamera
-
-wax.shared.Emoji           = require("Utils/ArtEmoji")
-wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
-wax.shared.FileHelper      = require("Utils/FileHelper")
 
 wax.shared.AllowedLanguages = {
     -- ["am"] = "አማርኛ",
@@ -236,8 +260,8 @@ task.spawn(pcall, function()
     assert(Version ~= wax.shared.ScriptVersion and #Version > 0)
 
     wax.shared.UiManager:Notify({
-        Title       = wax.shared.Translations:GetTranslation("Version Mismatch"),
-        Description = wax.shared.Translations:GetTranslation("The script version is outdated, please update it!"),
+        Title       = wax.shared.Translations.GetTranslation("Version Mismatch"),
+        Description = wax.shared.Translations.GetTranslation("The script version is outdated, please update it!"),
         Time        = 15
     })
 end)
