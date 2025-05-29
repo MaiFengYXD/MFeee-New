@@ -119,7 +119,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
             if CompileSuccess then
                 -- Optimize for maximum speed by tuning parameter variables
                 local ClosureTemplate = [[
-function(shared, wax, script, require)
+function(shared, wax, script, require, ...)
 %s
     end]]
 
@@ -200,7 +200,21 @@ function(shared, wax, script, require)
         StackLimit = (1 / 0),
     })
 
-    local SerializedClosureBindings = LuaEncode(ClosureBindings, {
+    local SortedKeys = {}
+    for RefId in ClosureBindings do
+        table_insert(SortedKeys, RefId)
+    end
+
+    table.sort(SortedKeys, function(A, B)
+        return A < B
+    end)
+
+    local OrderedBindings = {}
+    for _, Id in SortedKeys do
+        OrderedBindings[Id] = ClosureBindings[Id]
+    end
+
+    local SerializedClosureBindings = LuaEncode(OrderedBindings, {
         Prettify = Prettify,
         FunctionsReturnRaw = true, -- For Script.Source function closures
         ExtraNewlineAfterComma = true,
