@@ -334,7 +334,9 @@ for RefId, Closure in ClosureBindings do
     end
 end
 
-local function LoadScript(scriptRef)
+local function LoadScript(scriptRef, ...)
+    local Args = {...}
+
     local function OnError()
         local Title = "Error Loading!"
         local Text  = "Would you like to unload?"
@@ -396,9 +398,11 @@ local function LoadScript(scriptRef)
 
     -- Modify xpcall usage
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
+        local Globals = {ImportGlobals(scriptRef)}
+
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
             return FormatError(debug.traceback(msg, 2))
-        end, shared, ImportGlobals(scriptRef))
+        end, shared, Globals[1], Globals[2], Globals[3], unpack(Args))
 
         if not RunSuccess then
             Defer(OnError)
@@ -406,13 +410,15 @@ local function LoadScript(scriptRef)
         end
         return
     else
+        local Globals = {ImportGlobals(scriptRef)}
+
         -- Module script logic
         local PCallReturn
-        local RunSuccess, ErrorMessage = xpcall(function()
-            PCallReturn = {Closure(shared, ImportGlobals(scriptRef))}
+        local RunSuccess, ErrorMessage = xpcall(function(Args)
+            PCallReturn = {Closure(shared, Globals[1], Globals[2], Globals[3], unpack(Args))}
         end, function(msg)
             return FormatError(debug.traceback(msg, 2))
-        end)
+        end, Args)
 
         if not RunSuccess then
             Defer(OnError)
@@ -460,6 +466,7 @@ function ImportGlobals(refId)
     local Global_script = ScriptRef
 
     local function Global_require(module, ...)
+        local Args = {...}
         local ModuleArgType = type(module)
 
         local ErrorNonModuleScript = "Attempted to call require with a non-ModuleScript"
@@ -472,7 +479,7 @@ function ImportGlobals(refId)
                 error(ErrorSelfRequire, 2)
             end
 
-            return LoadScript(module)
+            return LoadScript(module, unpack(Args))
         elseif ModuleArgType == "string" and string_sub(module, 1, 1) ~= "@" then
             -- The control flow on this SUCKS
 
@@ -526,7 +533,7 @@ function ImportGlobals(refId)
                 error(ErrorSelfRequire, 2)
             end
 
-            return LoadScript(CurrentRefPointer)
+            return LoadScript(CurrentRefPointer, unpack(Args))
         end
 
         return RealCall(require, module, ...)
