@@ -9,6 +9,9 @@ export type table = Table
 export type Array = {[number]: any}
 export type array = Array
 
+export type Hash = {[string]: any}
+export type hash = Hash
+
 declare class DataModel extends DataModel
     function HttpGet(self, url: string): string
     function HttpPost(self, url: string, data: string, contentType: string?): string
@@ -54,7 +57,7 @@ declare function getthreadcontext(): number
 declare function setthreadidentity(identity: number): ()
 declare function setidentity(identity: number): ()
 declare function setthreadcontext(identity: number): ()
-declare function require(target: ModuleScript | string): any
+declare function require(target: ModuleScript | string, ...: any): any
 
 -- \\ Misc // --
 declare function identifyexecutor(): (string, string)
