@@ -474,11 +474,10 @@ Fov = {
         MouseEnabled = UserInputService.MouseEnabled
     end))
 
-    function GetMousePosition()
-        if Fov.FollowMouse and MouseEnabled then
-            return GetMouseLocation(UserInputService)
-        end
-        return Camera.ViewportSize / 2
+    function GetMousePosition(): Vector2
+        return if Fov.FollowMouse and MouseEnabled then
+            GetMouseLocation(UserInputService)
+        else Camera.ViewportSize / 2
     end
 
     if not Fov.Replaced then
