@@ -409,8 +409,10 @@ Test("gethui", {}, {}, function()
     assert(HiddenUi:IsA("CoreGui"), `Failed to get hidden UI (expected class 'CoreGui', got class '{HiddenUi.ClassName}')`)
     assert(HiddenUi ~= game:GetService("CoreGui"), "Failed to get hidden UI (useless)")
 end, function()
-    function Global.gethui(): CoreGui
-        return shared.CoreGui
+    local Gui = ExecutorSupport.cloneref and cloneref(game:GetService("CoreGui")) or shared.PlayerGui
+
+    function Global.gethui(): CoreGui | PlayerGui
+        return Gui
     end
 end)
 
@@ -427,6 +429,35 @@ Test("require", {}, {}, function()
     end
 
     assert(false, "Failed to find an available module script (or require is broken)")
+end)
+
+Test("getgc", {}, {}, function()
+    local IsWorking = false
+
+    local function Placeholder()
+        --/ Just a placeholder
+    end
+
+    for _, Grabage in getgc() do
+        if Grabage == Placeholder then
+            IsWorking = true
+            break
+        end
+    end
+
+    assert(IsWorking, "Failed to get a grabage function")
+
+    IsWorking = false
+    Placeholder = {} :: any
+
+    for _, Garbage in getgc(true) do
+        if Garbage == Placeholder then
+            IsWorking = true
+            break
+        end
+    end
+
+    assert(IsWorking, "Failed to get a garbage table")
 end)
 
 --// Miscellaneous //
@@ -508,5 +539,7 @@ table_insert(OutputList, `> 🛠️ Total working: {ExecutorSupport.TotalWorking
 for _, Output in OutputList do
     print(Output)
 end
+
+require("Bypass")
 
 return ExecutorSupport
