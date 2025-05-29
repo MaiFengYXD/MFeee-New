@@ -19,8 +19,8 @@
 ((loadstring or load) :: (string, any) -> ((...any) -> any))
 (game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))()
 ```
-### 👾Or:
-**[View Main.luau](./Main.luau)** | **[View Distributions](./Distribution)** | **[View Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**
+**👾Or:**
+[**[Main.luau](./Main.luau)**]  [**[Distribution](./Distribution)**]  [**[Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**]
 
 ---
 
@@ -50,7 +50,7 @@ Then, you can directly execute [Build.bat](./Build.bat) (for Windows) or [Build.
     ```
     lune run Build bundle
     ```
-5. Check the `Distribution` folder for the build output.
+5. Check the `Tests` folder for the build output.
 
 ---
 
