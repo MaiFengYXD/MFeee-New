@@ -1,7 +1,10 @@
+<h1 align="center">📖Contributing Guide📖</h1>
+
 >[!NOTE]
 >**When creating commit messages follow the [Conventional Commits Standard](https://www.conventionalcommits.org/en/v1.0.0/).**
 
 ---
+
 ## Code Style
 
 ### Naming Conventions
