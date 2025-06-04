@@ -1,36 +1,30 @@
-# MFeee~ New
-
->[!CAUTION]
->### The Current Release Has Not Been Tested
->Use at your own risk!
-
----
-
-**🚀*A Free Open-source and Fastest Roblox Script Hub***
-
-**🌍*Translated 24 Languages*** *(not finished lol)*
-
-**😭*Work In Progress, Many Features are Buggy!***
+<div align="center">
+    <h1>🎉MFeee~ New🎉</h1>
+    🚀<b>A Free Open-source and Fastest Roblox Script Hub</b>🚀
+    <br>
+    🌏<b>Translated 24 Languages</b> <s>(not finished lol)</s>🌏
+</div>
 
 ---
 
 ## 💾Load:
+
 ```luau
 ((loadstring or load) :: (string, any) -> ((...any) -> any))
 (game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))()
 ```
-**👾Or:**
+
 [**[Main.luau](./Main.luau)**]  [**[Distribution](./Distribution)**]  [**[Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**]
 
 ---
 
 ## 🛠️Build:
-To begin, clone this repository or download and extract [main.zip](https://github.com/MaiFengYXD/MFeee-New/archive/refs/heads/main.zip).
+To begin, **clone** this repository or **download** and extract **[main.zip](https://github.com/MaiFengYXD/MFeee-New/archive/refs/heads/main.zip)**.
 
-Then, you can directly execute [Build.bat](./Build.bat) (for Windows) or [Build.sh](./Build.sh) (for macOS and Linux) to build the script. You can also follow the steps below to build manually:
+Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[Build.sh](./Build.sh)** (for macOS and Linux) to build the script. You can also follow the steps below to **build manually**:
 
-1. Download and extract [Rokit](https://github.com/rojo-rbx/rokit/releases) appropriate for your OS
-2. Navigate to the extracted folder and run:
+1. Download and extract **[Rokit](https://github.com/rojo-rbx/rokit/releases)** appropriate for your OS
+2. Navigate to the **extracted folder** and run:
     ```
     rokit self-install
     ```
@@ -46,7 +40,7 @@ Then, you can directly execute [Build.bat](./Build.bat) (for Windows) or [Build.
 
     rokit list
     ```
-4. Go to the repository folder you just downloaded (or cloned). Then, run:
+4. Go to the **repository folder** you just **cloned** (or **downloaded**). Then, run:
     ```
     lune run Build bundle
     ```
@@ -55,66 +49,50 @@ Then, you can directly execute [Build.bat](./Build.bat) (for Windows) or [Build.
 ---
 
 ## 📊Supported Games:
-### 🧩UNIVERSAL
->- Anti AFK
->- Anti kick
->- Walk speed overrides
->- Jump height overrides
->- Gravity overrides
->- No acceleration
->- Anti Roblox void
->- Speed boost
->- Noclip
->- Vehicle noclip
->- Instant interaction
->- Interact distance
->- Noclip interaction
->- Fly (BodyMovers, constrains, CFrame)
->- Roblox gui controller
->- More features work in progress!
++ **🧩Universal**
++ **👁️The Foundation (WIP🔥)**
++ **~~🔪Murder Mystery 2 (WIP🔥)~~**
++ **~~🔫Weaponry (WIP🔥)~~**
 
-<br>
+---
 
-### ~~🔪MURDER MYSTERY 2 (WIP🔥)~~
->- Auto collect coins
->- Aimbot/silent aim (knife, gun)
->- Kill all
->- Hostage
->- Second life (sheriff, innocent)
->- Trolls
->- Auto pickup gun
->- ESP for *players*, *innocent*, *sheriff*, *murderer*, *gun*, *coins*, *interactive*
->- Autoplay (unstable)
->- Universal features available...
->- Event: auto collect rare eggs
-<br>
+## 📝License:
+```txt
+MIT License
 
-### 👁️THE FOUNDATION (WIP🔥)
->- Skip Seek (client-side)
->- Auto cage minigames
->- Autoplay/skip breaker minigames
->- Lader speed boost
->- Anti Decoy (lockers)
->- Get free badges
->- Anti void
->- Anti Dark
->- Door reach
->- Anti Screech
->- Anti death pit
->- Show monster's node
->- Cage minigames no damage
->- Anti Stare (the red eye)
->- Anti Eyes
->- Skip terminal minigames
->- Seek no damage (client-side)
->- ESP for *entities*, *players*, *interactive*
->- Universal features available...
-<br>
+Copyright (c) 2025 MikeFeng
 
-### ~~🔫WEAPONRY (WIP🔥)~~
->- Hitbox extender
->- ESP for *players*, *guns*
->- Bullet breadcrumbs
->- Universal features available...
->- *(server validation makes exploits hard, and blatant cheating is detectable)*
-<br>
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
+## 💡Develop Together
+We welcome all forms of contributions! If you have any improvement ideas, find a bug, or want to contribute to the project, feel free to reach out or submit a Pull Request.
+
++ **Report Issues / Suggest Features**: [Issues](https://github.com/MaiFengYXD/MFeee-New/issues).
++ **Contribute Code**: Pull Requests are welcome, please refer to [CONTRIBUTING.md](./CONTRIBUTING.md).
++ **Become a Script Developer**: If you'd like to create scripts with us, please join our [Discord server](https://discord.gg/YBQUd8X8PK) and open a ticket, or add our [QQ group](https://qm.qq.com/q/T5SGKuVmgO) to let us know!
+
+---
+
+## 🎁Help Us Continue
+The easiest way to support developers is to click on the **star** (⭐) at the top of the page!
+
+![Stars](https://api.star-history.com/svg?repos=MaiFengYXD/MFeee-New&Date)
