@@ -49,10 +49,10 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
 ---
 
 ## 📊Supported Games:
-+ **🧩Universal**
 + **👁️The Foundation (WIP🔥)**
 + **~~🔪Murder Mystery 2 (WIP🔥)~~**
 + **~~🔫Weaponry (WIP🔥)~~**
++ **🧩And 10 Billion+ Games (Universal)**
 
 ---
 
