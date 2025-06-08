@@ -93,6 +93,8 @@ function EasingLibrary:Ease(
     Mode:      string | Enum.EasingStyle | nil,
     Direction: string | Enum.EasingDirection | nil
 ): StoredTween | nil
+    assert(Index ~= nil, "EasingLibrary.Ease: Argument 'Index' is required!")
+
     if Mode == "None" or self.EasingMode == "None" then
         if type(Property) == "string" then
             (Target :: any)[Property] = EndValue
