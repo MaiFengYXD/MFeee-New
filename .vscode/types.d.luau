@@ -36,7 +36,7 @@ declare class HttpResponse
 end
 
 -- \\ Scripts // --
-declare function getgc(includeTables: boolean?): {Function  | any}
+declare function getgc(includeTables: boolean?): array
 declare function getgenv(): { [any]: any }
 declare function getloadedmodules(excludeCore: boolean?): {ModuleScript}
 declare function getmodules(excludeCore: boolean?): {ModuleScript}
