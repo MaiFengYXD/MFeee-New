@@ -51,7 +51,7 @@ local function GenerateFor<T>(Object: Instance, Property: string, Default: (nil 
                 if self.Stopped then return end
 
                 local CurrentValue = (Object :: any)[Property]
-                if CurrentValue ~= self.Moded then
+                if CurrentValue == CurrentValue and CurrentValue ~= self.Moded then
                     self.Default = CurrentValue
                 end
 
