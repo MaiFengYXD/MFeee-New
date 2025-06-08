@@ -109,7 +109,7 @@ local PlayerVariables = {};do
         Connections[ConnectId] = Connect(GetPropertyChangedSignal(Where, Name), function()
             local CurrentValue = (Where :: any)[Name]
 
-            if CurrentValue ~= Moded then
+            if CurrentValue == CurrentValue and CurrentValue ~= Moded then
                 PlayerVariables[Name] = CurrentValue
             end
         end)
@@ -120,6 +120,7 @@ local PlayerVariables = {};do
     BindVariableMonitor("CameraMaxZoomDistance", shared.Speaker, 0.5)
     BindVariableMonitor("CameraMinZoomDistance", shared.Speaker, 0.5)
     BindVariableMonitor("CameraMode", shared.Speaker, Enum.CameraMode.LockFirstPerson)
+    BindVariableMonitor("CameraSubject", shared.Camera.CameraSubject, RootPart)
 end
 
 --// Controls //
@@ -331,6 +332,7 @@ local function StartFreeCamera(Value: boolean)
             shared.Speaker.CameraMinZoomDistance = 0.5
             shared.Speaker.CameraMaxZoomDistance = 0.5
             shared.Speaker.CameraMode = LockFirstPerson
+            shared.Camera.CameraSubject = RootPart
 
             IsUp   = FindUpDown("Up")
             IsDown = FindUpDown("Down")
@@ -342,6 +344,7 @@ local function StartFreeCamera(Value: boolean)
             RootPart.CFrame = Camera.CFrame
         end))
 
+        shared.Speaker.CameraSubject = PlayerVariables.CameraSubject
         shared.Speaker.CameraMode = PlayerVariables.CameraMode
         shared.Speaker.CameraMaxZoomDistance = PlayerVariables.CameraMaxZoomDistance
         shared.Speaker.CameraMinZoomDistance = (PlayerVariables.CameraMinZoomDistance + PlayerVariables.CameraMaxZoomDistance) / 2
