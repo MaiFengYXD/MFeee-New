@@ -19,16 +19,14 @@ local function GetAsset(Name: string)
     local IconIndex = IconIndices [Name]
     local Icon      = IconRegistry[IconIndex]
 
-    if not Icon then return end
-
-    return {
+    return Icon and {
         Id  = 103134660123798,
         Url = "rbxassetid://103134660123798",
 
         IconName        = Name,
         ImageRectSize   = ImageRectSize,
         ImageRectOffset = Vector2_new(Icon[1], Icon[2]),
-    }
+    } or nil
 end
 
 return {GetAsset = GetAsset}
