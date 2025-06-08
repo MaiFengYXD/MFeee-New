@@ -23,6 +23,7 @@ require("Utils/Services"):GetServices({
     "StarterGui",
     "RunService",
     "Workspace",
+    "Lighting",
     "Players",
     "Teams"
 })
@@ -111,6 +112,9 @@ do
     local NextInteger = Random.NextInteger
 
     function Global.randomstring(Length: number | nil): string
+        local utf8_char, Random, NextInteger
+            = utf8_char, Random, NextInteger
+
         local String = ""
 
         for _ = 1, Length or NextInteger(Random, 16, 64) do
@@ -144,6 +148,9 @@ do
         = tonumber, string.match, table.sort
 
     function wax.shared.Sequencing(Table: table): table
+        local tonumber, string_match
+            = tonumber, string_match
+
         table_sort(Table, function(A, B)
             local NumA = tonumber(string_match(A.Name, "^(%d+)%."))
             local NumB = tonumber(string_match(B.Name, "^(%d+)%."))
@@ -169,6 +176,47 @@ do
         end
 
         return Target
+    end
+
+    local DeviceTypes = {
+        Mobile = {
+            "IOS",
+            "Android",
+            "Ouya",
+            "Chromecast",
+            "MetaOS"
+        },
+
+        Desktop = {
+            "AndroidTV",
+            "Windows",
+            "OSX",
+            "Linux",
+            "SteamOS",
+            "DOS",
+            "BeOS",
+            "UWP",
+            "XBoxOne",
+            "PS4",
+            "PS3",
+            "XBox360",
+            "WiiU",
+            "NX",
+            "WebOS",
+            "PS5",
+            "None"
+        }
+    }
+
+    local Platform = shared.UserInputService:GetPlatform().Name
+
+    for Type, OSList in DeviceTypes :: hash do
+        for _, OS in OSList do
+            if OS ~= Platform then continue end
+
+            wax.shared.DeviceType = Type
+            break
+        end
     end
 
     wax.shared.ScriptName    = "Universal"
@@ -257,11 +305,21 @@ Global.MFeeeLoading = false
 
 task.spawn(pcall, function()
     local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
-    assert(Version ~= wax.shared.ScriptVersion and #Version > 0)
+    assert(Version ~= wax.shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
 
     wax.shared.UiManager:Notify({
         Title       = wax.shared.Translations.GetTranslation("Version Mismatch"),
         Description = wax.shared.Translations.GetTranslation("The script version is outdated, please update it!"),
         Time        = 15
     })
+end)
+
+task.spawn(pcall, function()
+    if wax.shared.BypassedMethod then
+        wax.shared.UiManager:Notify({
+            Title       = wax.shared.Translations.GetTranslation("Bypassed Anticheat"),
+            Description = string.format(wax.shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), wax.shared.BypassedMethod),
+            Time        = 4
+        })
+    end
 end)
