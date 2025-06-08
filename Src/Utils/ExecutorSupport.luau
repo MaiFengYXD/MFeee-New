@@ -15,13 +15,9 @@ local ExecutorSupport = {
 local OutputList = {}
 local Grabages   = {} :: {Function}
 
-local assert;do
-    --/ Disable error traceback
-    local Nan = (0 / 0)
-
-    function assert<T>(Assertion: T, Message: string?): (nil)
-        return if Assertion then nil else error(Message, Nan)
-    end
+local function assert<T>(Assertion: T, Message: string?): (nil)
+    --/ Set to 19998 for disabling traceback
+    return if Assertion then nil else error(Message, 19998)
 end
 
 local function Test(
