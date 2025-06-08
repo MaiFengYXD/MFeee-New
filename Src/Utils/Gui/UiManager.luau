@@ -642,29 +642,26 @@ function UiManager:CreateUniversalTabs()
     })
 
     do
-        local NativeLanguage = {
-            Tag  = {},
-            Name = {}
-        }
+        local Names, Tags = {}, {}
+
+        for Tag, Name in wax.shared.AllowedLanguages do
+            table_insert(Names, Name)
+            table_insert(Tags, Tag)
+        end
 
         local WriteFile = FileHelper.WriteFile
 
-        for Tag, Name in wax.shared.AllowedLanguages do
-            table_insert(NativeLanguage.Tag , Tag)
-            table_insert(NativeLanguage.Name, Name)
-        end
-
         UiManager.SettingsTabUiGroup:AddDropdown("ChangeLanguage", {
             Text    = GetTranslation("Change Language"),
-            Values  = NativeLanguage.Name,
+            Values  = Names,
             Default = wax.shared.AllowedLanguages[wax.shared.Language]
         })
 
         UiManager.Options.ChangeLanguage:OnChanged(function(Language)
-            local Index = table_find(NativeLanguage.Name, Language)
+            local Index = table_find(Names, Language)
             if not Index then return end
 
-            local Tag = NativeLanguage.Tag[Index]
+            local Tag = Tags[Index]
             WriteFile(FileHelper, "MFeee-New/Language.txt", Tag)
 
             UiManager:Notify(GetTranslation("Restart to Apply"))
