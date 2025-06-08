@@ -107,7 +107,7 @@ local function GenerateOverride<T>(
                         if self.Stopped then return end
 
                         local CurrentValue = Humanoid[Property]
-                        if CurrentValue ~= self.Moded then
+                        if CurrentValue == CurrentValue and CurrentValue ~= self.Moded then
                             self.Default = CurrentValue
                         end
 
@@ -133,7 +133,7 @@ local function GenerateOverride<T>(
                     if self.Stopped then return end
 
                     local CurrentValue = Object[Property]
-                    if CurrentValue ~= self.Moded then
+                    if CurrentValue == CurrentValue and CurrentValue ~= self.Moded then
                         self.Default = self.Moded
                     end
 
@@ -230,7 +230,7 @@ Universal.NoAcceleration = {
 
             GiveSignal(_Connect, "NoAcceleration", Connect(GetPropertyChangedSignal(RootPart, "CustomPhysicalProperties"), function()
                 local CurrentValue = RootPart.CustomPhysicalProperties
-                if CurrentValue ~= Moded then
+                if CurrentValue == CurrentValue and CurrentValue ~= Moded then
                     self.DefaultPhysics = CurrentValue
                 end
 
@@ -258,8 +258,7 @@ Universal.AntiVoidFall = {
         if Enabled then
             GiveSignal(_Connect, "AntiVoidFall", Connect(GetPropertyChangedSignal(Workspace, "FallenPartsDestroyHeight"), function()
                 local CurrentValue = Workspace.FallenPartsDestroyHeight
-                --// NaN check
-                if CurrentValue ~= CurrentValue then return end
+                if CurrentValue == CurrentValue and CurrentValue ~= CurrentValue then return end
 
                 self.Default = CurrentValue
                 Workspace.FallenPartsDestroyHeight = Nan
