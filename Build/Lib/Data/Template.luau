@@ -351,7 +351,7 @@ local function LoadScript(scriptRef, ...)
             getgenv().MFeeeLoading = false
         end
 
-        print(`[{EnvName}] {Title} {Text}`)
+        print(string.format("[%*] %* %*"), EnvName, Title, Text)
 
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title    = Title,
