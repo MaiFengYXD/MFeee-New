@@ -1,7 +1,10 @@
-local pcall, xpcall, typeof, randomstring, Instance_new, Enum: typeof(Enum)
-    = pcall, xpcall, typeof, randomstring, Instance.new, Enum
+local pcall, typeof, setmetatable, randomstring, Instance_new, Enum: typeof(Enum)
+    = pcall, typeof, setmetatable, randomstring, Instance.new, Enum
 
-local GetDarkerColor, GetBrightColor
+local GetDarkerColor: (Original: Color3, Alpha: number?) -> Color3,
+      GetBrightColor: (Original: Color3, Alpha: number?) -> Color3,
+
+      SafeCallback:   (Callback: Function, ...any) -> (boolean, ...any)
 
 local GetTranslation = wax.shared.Translations.GetTranslation :: (string) -> string
 
@@ -23,9 +26,6 @@ local Ease = EasingLibrary.Ease
 local Connect    = shared.Connect
 local GiveSignal = Connect.GiveSignal
 
-local TextService = shared.TextService :: TextService
-local GetTextBoundsAsync = TextService.GetTextBoundsAsync
-
 type NotificationSide = (
     | "Center"
     | "Top"    | "TopLeft"
@@ -36,7 +36,7 @@ type NotificationSide = (
 
 local Windows = {}
 
---// Groupboxes
+--// Base Groupboxes
 local Dropdowns = {}
 local Toggles   = {}
 local Buttons   = {}
@@ -44,7 +44,7 @@ local Sliders   = {}
 local Inputs    = {}
 local Labels    = {}
 
---// Addons
+--// Base Addons
 local KeyPickers   = {}
 local ColorPickers = {}
 
@@ -61,7 +61,7 @@ local Library = {
         BackgroundColor = Color3.fromHex("#121E2E"),
         PrimaryColor    = Color3.fromHex("#1F3246"),
         SecondaryColor  = Color3.fromHex("#3B5878"),
-        AccentColor     = Color3.fromHex("ack"),
+        AccentColor     = Color3.fromHex("#6299fe"),
         OutlineColor    = Color3.fromHex("#0A141F"),
         FontColor       = Color3.fromHex("#FFFFFF"),
         RiskyColor      = Color3.fromHex("#C02020"),
@@ -81,7 +81,10 @@ local Library = {
     Labels    = Labels,
 
     KeyPickers   = KeyPickers,
-    ColorPickers = ColorPickers
+    ColorPickers = ColorPickers,
+
+    UseCheckbox      = false,
+    UseCheckboxEvent = Instance_new("BindableEvent") :: BindableEvent
 }
 
 local InstanceTemplates = {
@@ -247,17 +250,28 @@ local function AddClickBounce(GuiObject: GuiObject, Size1: UDim2, Size2: UDim2)
     end)
 end
 
-local function UpdateWithContentSize(ScrollingFrame: ScrollingFrame, UIListLayout: UIListLayout)
-    GiveSignal(Connect, nil, GetPropertyChangedSignal(UIListLayout, "AbsoluteContentSize"), function()
-        local CurrentSize = ScrollingFrame.CanvasSize
+local function UpdateWithContentSize(Frame: ScrollingFrame | Frame, UIListLayout: UIListLayout)
+    local OnChanged = (Frame.ClassName == "Frame" and function()
+        local CurrentSize = Frame.Size;
 
-        ScrollingFrame.CanvasSize = UDim2.new(
-            CurrentSize.Y.Scale,
-            GetUnscaledContentSize(UIListLayout, "Y") :: number,
+        (Frame :: Frame).Size = UDim2.new(
             CurrentSize.X.Scale,
-            CurrentSize.X.Offset
+            CurrentSize.X.Offset,
+            CurrentSize.Y.Scale,
+            GetUnscaledContentSize(UIListLayout, "Y") :: number
         )
-    end)
+    end) or function()
+        local CurrentSize = (Frame :: ScrollingFrame).CanvasSize;
+
+        (Frame :: ScrollingFrame).CanvasSize = UDim2.new(
+            CurrentSize.X.Scale,
+            CurrentSize.X.Offset,
+            CurrentSize.Y.Scale,
+            GetUnscaledContentSize(UIListLayout, "Y") :: number
+        )
+    end
+
+    GiveSignal(Connect, nil, GetPropertyChangedSignal(UIListLayout, "AbsoluteContentSize"), OnChanged)
 end
 
 local function GetUnscaledTextBounds(TextElement: TextLabel | TextButton, Latitude: "X" | "Y"): Vector2 | number
@@ -271,6 +285,9 @@ local function GetUnscaledTextBounds(TextElement: TextLabel | TextButton, Latitu
 end
 
 do
+    local error, xpcall, string_find, debug_traceback, string_gsub, string_sub, task_defer
+        = error, xpcall, string.find, debug.traceback, string.gsub, string.sub, task.defer
+
     local Bright = Color3.new(1, 1, 1)
     local Dark   = Color3.new()
 
@@ -282,6 +299,23 @@ do
 
     function GetBrightColor(Original: Color3, Alpha: number?): Color3
         return Lerp(Original, Bright, Alpha or 0.5)
+    end
+
+    function SafeCallback(Callback: Function, ...: any): (boolean, ...any)
+        if not Callback or typeof(Callback) ~= "function" then
+            return false, "No function provided"
+        end
+
+        return xpcall(Callback, function(Error: string)
+            local Traceback = string_gsub(debug_traceback(), "\n", " ")
+            local _, Index  = string_find(Traceback, ":%d+ ")
+            Traceback       = string_gsub(string_sub(Traceback, (Index or 0) + 1), " :", ":")
+
+            Error ..= ` - {Traceback}`
+            task_defer(error, Error)
+
+            return Error
+        end, ...)
     end
 end
 
@@ -328,17 +362,37 @@ type Window = {
 }
 
 type Tab = {
-    Num:            number,
-    LayoutOrder:    number,
-    Holder:         Frame,
-    UIListLayout:   UIListLayout,
-    Container:      ScrollingFrame,
-    LeftContainer:  Frame,
-    RightContainer: Frame,
-    TextHolder:     TextLabel?,
-    IconHolder:     ImageLabel?,
-    AddGroupbox:    (self: Tab, Title: string, Side: "Left" | "Right") -> any
+    Window:           Window,
+    Num:              number,
+    LayoutOrder:      number,
+    Groupboxes:       {Groupbox},
+    Holder:           Frame,
+    UIListLayout:     UIListLayout,
+    Container:        ScrollingFrame,
+    LeftContainer:    Frame,
+    RightContainer:   Frame,
+    TextHolder:       TextLabel?,
+    IconHolder:       ImageLabel?,
+    AddGroupbox:      (self: Tab, Title: string, Side: "Left" | "Right") -> Groupbox,
+    AddLeftGroupbox:  (self: Tab, ...string) -> Groupbox,
+    AddRightGroupbox: (self: Tab, ...string) -> Groupbox
 }
+
+type Groupbox = hash & {
+    Side:        string,
+    Tab:         Tab,
+    Num:         number,
+    LayoutOrder: number,
+    Container:   Frame,
+    Elements:    {any},
+}
+
+local BaseGroupboxes = {}
+local BaseAddons     = {}
+
+function BaseGroupboxes:AddDropdown()
+
+end
 
 function Library:CreateWindow(WindowInfo: WindowInfo)
     Validate(WindowInfo, ElementTemplates.Window)
@@ -415,6 +469,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
             Size = UDim2.new(1, -50, 1, 0),
             Text = WindowInfo.Title,
             TextSize = 28,
+            TextXAlignment = Enum.TextXAlignment.Left,
             Parent = TitleContainer
         })
 
@@ -580,9 +635,11 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
         local NumTabs = #self.Tabs
 
         local Tab = {
+            Window = self,
             Num = NumTabs + 1,
-            LayoutOrder = 1 - NumTabs
-        }
+            LayoutOrder = 1 - NumTabs,
+            Groupboxes = {}
+        } :: Tab
 
         if not HideHolder then
             local Holder = Create("Frame", {
@@ -608,6 +665,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
                 Text = Name,
                 TextSize = 24,
                 TextTransparency = 0.3,
+                TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Holder
             }) :: TextLabel
 
@@ -647,10 +705,10 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
         }) :: ScrollingFrame
 
         Create("UIPadding", {
-            PaddingTop = UDim.new(0, 5),
+            PaddingTop = UDim.new(0, 7),
             PaddingBottom = UDim.new(0, 5),
             PaddingLeft = UDim.new(0, 5),
-            PaddingRight = UDim.new(0, 5),
+            PaddingRight = UDim.new(0, 7),
             Parent = Container
         })
 
@@ -666,6 +724,8 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
         Tab.UIListLayout = UIListLayout
         Tab.Container    = Container
 
+        UpdateWithContentSize(Container, UIListLayout)
+
         local LeftContainer = Create("Frame", {
             BackgroundTransparency = 1,
             Size = UDim2.fromScale(1, 0),
@@ -678,8 +738,8 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
             Parent = Container
         }) :: Frame
 
-        Create("UIListLayout", LeftContainer)
-        Create("UIListLayout", RightContainer)
+        UpdateWithContentSize(LeftContainer,  Create("UIListLayout", LeftContainer)  :: UIListLayout)
+        UpdateWithContentSize(RightContainer, Create("UIListLayout", RightContainer) :: UIListLayout)
 
         Tab.LeftContainer  = LeftContainer
         Tab.RightContainer = RightContainer
@@ -691,8 +751,88 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
             UIListLayout.FillDirection = Collapsed and Horizontal or Vertical
         end)
 
-        function Tab:AddGroupbox(Title: string, Side: "Left" | "Right")
-            local Groupbox
+        function Tab:AddGroupbox(Title: string, Side: "Left" | "Right"): Groupbox
+            local NumGroupboxes = #self.Groupboxes
+
+            local Groupbox = setmetatable(({
+                Side = Side,
+                Tab = self,
+                Num = NumGroupboxes + 1,
+                LayoutOrder = 1 - NumGroupboxes,
+                Elements = {}
+            } :: Groupbox), BaseGroupboxes)
+
+            local Container = Create("Frame", {
+                BackgroundColor3 = function()
+                    return GetDarkerColor(Library.Scheme.PrimaryColor, 0.2)
+                end,
+                Size = UDim2.fromScale(1, 0),
+                Parent = self[`{Side}Container`]
+            }) :: Frame
+
+            Create("UICorner", Container)
+
+            Create("UIPadding", {
+                PaddingLeft = UDim.new(0, 6),
+                PaddingRight = UDim.new(0, 6),
+                Parent = Container
+            })
+
+            UpdateWithContentSize(Container, Create("UIListLayout", {
+                Padding = UDim.new(0, 5),
+                Parent = Container
+            }) :: UIListLayout)
+
+            Groupbox.Container = Container
+
+            if Title then
+                Container.Size = UDim2.new(1, 0, 0, 30)
+
+                local TitleContainer = Create("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 30),
+                    Parent = Container
+                })
+
+                local TitleLabel = Create("TextLabel", {
+                    BackgroundColor3 = function()
+                        return GetDarkerColor(Library.Scheme.PrimaryColor, 0.2)
+                    end,
+                    Size = UDim2.fromScale(1, 1),
+                    Text = Title,
+                    TextSize = 20,
+                    TextTransparency = 0.3,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = TitleContainer
+                }) :: TextLabel
+
+                TitleLabel.Size = UDim2.new(
+                    0,
+                    GetUnscaledTextBounds(TitleLabel, "X") :: number,
+                    1,
+                    0
+                )
+
+                Create("UICorner", Create("Frame", {
+                    BackgroundColor3 = "PrimaryColor",
+                    Position = UDim2.new(0, 0, 0.5, -1),
+                    Size = UDim2.new(1, 0, 0, 2),
+                    ZIndex = 0,
+                    Parent = TitleContainer
+                }))
+            end
+
+            self.Groupboxes[NumGroupboxes + 1] = Groupbox
+
+            return Groupbox
+        end
+
+        function Tab:AddLeftGroupbox(...)
+            return self:AddGroupbox(..., "Left")
+        end
+
+        function Tab:AddRightGroupbox(...)
+            return self:AddGroupbox(..., "Right")
         end
 
         self.Tabs[NumTabs + 1] = Tab
