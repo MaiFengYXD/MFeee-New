@@ -320,6 +320,9 @@ do
 end
 
 --// Main //
+local BaseGroupboxes = {}
+local BaseAddons     = {}
+
 local WindowSizeEvent = Create("BindableEvent") :: BindableEvent
 
 local ScreenGui = Create("ScreenGui", {
@@ -378,7 +381,7 @@ type Tab = {
     AddRightGroupbox: (self: Tab, ...string) -> Groupbox
 }
 
-type Groupbox = hash & {
+type Groupbox = typeof(setmetatable({} :: Groupbox, {__index = BaseGroupboxes})) & {
     Side:        string,
     Tab:         Tab,
     Num:         number,
@@ -386,9 +389,6 @@ type Groupbox = hash & {
     Container:   Frame,
     Elements:    {any},
 }
-
-local BaseGroupboxes = {}
-local BaseAddons     = {}
 
 function BaseGroupboxes:AddDropdown()
 
@@ -754,13 +754,13 @@ function Library:CreateWindow(WindowInfo: WindowInfo)
         function Tab:AddGroupbox(Title: string, Side: "Left" | "Right"): Groupbox
             local NumGroupboxes = #self.Groupboxes
 
-            local Groupbox = setmetatable(({
+            local Groupbox = setmetatable({
                 Side = Side,
                 Tab = self,
                 Num = NumGroupboxes + 1,
                 LayoutOrder = 1 - NumGroupboxes,
                 Elements = {}
-            } :: Groupbox), BaseGroupboxes)
+            }, BaseGroupboxes) :: Groupbox
 
             local Container = Create("Frame", {
                 BackgroundColor3 = function()
