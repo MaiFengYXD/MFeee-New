@@ -394,7 +394,7 @@ function BaseGroupboxes:AddDropdown()
 
 end
 
-function Library:CreateWindow(WindowInfo: WindowInfo)
+function Library:CreateWindow(WindowInfo: WindowInfo): Window
     Validate(WindowInfo, ElementTemplates.Window)
 
     for Property, Value in WindowInfo :: any do
