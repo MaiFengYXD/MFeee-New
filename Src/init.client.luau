@@ -279,13 +279,13 @@ wax.shared.EasingLibrary = require("Utils/EasingLibrary")
 
 shared.Connect = require("Utils/Connect")
 
-shared.Connect:GiveSignal("CameraChangedSignal" , shared.Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-    shared.Camera  = shared.Workspace.CurrentCamera
-end))
+shared.Connect:GiveSignal(nil, shared.Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
+    shared.Camera = shared.Workspace.CurrentCamera
+end)
 
-shared.Connect:GiveSignal("SpeakerChangedSignal", shared.Players  :GetPropertyChangedSignal("LocalPlayer"  ):Connect(function()
-    shared.Speaker = shared.Players  .LocalPlayer
-end))
+shared.Connect:GiveSignal(nil, shared.Players:GetPropertyChangedSignal("LocalPlayer"), function()
+    shared.Speaker = shared.Players.LocalPlayer
+end)
 
 --// Loader //
 wax.shared.ScriptVersion = "Build 1"
