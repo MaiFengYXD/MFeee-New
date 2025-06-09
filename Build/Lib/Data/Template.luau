@@ -23,6 +23,7 @@ local string, task, setmetatable, error, table, unpack, coroutine, script, type,
 if not require then require = function(...) return nil end;end
 
 local shared: {[any]: any} = shared
+local __argument = ...
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -461,6 +462,8 @@ function ImportGlobals(refId)
         -- "Real" globals instead of the env set ones
         script = script,
         require = require,
+
+        argument = __argument
     }
 
     local Global_script = ScriptRef
