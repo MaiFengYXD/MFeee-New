@@ -58,8 +58,6 @@ if wax.shared.BypassedMethod then
     return {}
 end
 
-wax.shared.BypassedMethod = "Universal"
-
 xpcall(function(
     xpcall:      typeof(xpcall),
     debug_info:  typeof(debug.info),
