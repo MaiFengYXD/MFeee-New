@@ -304,6 +304,8 @@ Global.MFeeeLoaded  = true
 Global.MFeeeLoading = false
 
 task.spawn(pcall, function()
+    assert(wax.shared.argument ~= "FromHttpGet")
+
     local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
     assert(Version ~= wax.shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
 
