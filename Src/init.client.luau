@@ -1,10 +1,10 @@
+local pcall, task
+    = pcall, task
+
 if not game:IsLoaded() then
     game.Loaded:Wait()
     task.wait(1)
 end
-
-local pcall, task
-    = pcall, task
 
 wax.Unloaded = false
 
