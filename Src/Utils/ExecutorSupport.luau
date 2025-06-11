@@ -26,8 +26,7 @@ local function Test(
     Aliases:  {string?},
     TestFunction: (...any) -> (nil),
     Fix: ((nil) -> (nil)) | nil,
-    CannotTest: boolean   | nil,
-    CustomInfo: string    | nil
+    CannotTest: boolean   | nil
 ): (nil)
     ExecutorSupport.TotalTestes += 1
 
@@ -46,7 +45,7 @@ local function Test(
         ExecutorSupport[Name] = RealSuccess
         ExecutorSupport.TotalWorking += RealSuccess and 1 or 0
 
-        table_insert(OutputList, `> {Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"} [{Name}]{not Success and ` - {TestResult}` or CustomInfo and ` - {CustomInfo}` or ""}`)
+        table_insert(OutputList, `> {Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"} [{Name}]{not Success and ` - {TestResult}` or ""}`)
 
         task_defer(table_clear, Requires)
         task_defer(table_clear, Aliases)
@@ -81,12 +80,12 @@ local function Test(
 
     if not RealFunction then
         for _, Alias in (Aliases :: {string}) do
-            local Table = string_find(Alias, "table: ")
-            local Key   = string_find(Alias, "key: ")
+            local _, Table = string_find(Alias, "table: ")
+            local Key      = string_find(Alias, "key: ")
 
             if Table and Key then
-                local TableName = string_sub(Alias, Table + 1, Key - 1)
-                local KeyName   = string_sub(Alias, Key + 4)
+                local TableName = string_sub(Alias, Table + 1, Key - 2)
+                local KeyName   = string_sub(Alias, Key + 5)
 
                 local TableFunction = if type(Global[TableName]) == "table" then Global[TableName][KeyName] else nil
                 RealFunction = if type(TableFunction) == "function" then TableFunction else nil
@@ -285,7 +284,7 @@ Test("cloneref", {}, {"clonereference"}, function()
     assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
 end)
 
-Test("iscached", {}, {}, function()
+Test("iscached", {}, {"table: cache key: iscached"}, function()
     local Part = Instance.new("Part")
     table_insert(Grabages, function()
         Part:Destroy()
@@ -396,16 +395,22 @@ end)
 
 Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: (Part1: BasePart, Part2: BasePart, State: number) -> nil)
     --/ nope cause firetouchinterest only works on server-side BasePart
-end, nil, true, "Hard to test cause it only works on server-side BasePart")
+end, nil, true)
 
 Test("gethui", {}, {}, function()
     local HiddenUi = gethui()
 
     assert(typeof(HiddenUi) == "Instance", `Failed to get hidden UI (expected type 'Instance', got type '{typeof(HiddenUi)}')`)
-    assert(HiddenUi:IsA("CoreGui"), `Failed to get hidden UI (expected class 'CoreGui', got class '{HiddenUi.ClassName}')`)
-    assert(HiddenUi ~= game:GetService("CoreGui"), "Failed to get hidden UI (useless)")
+    assert(HiddenUi:IsA("CoreGui") or HiddenUi:IsA("PlayerGui"), `Failed to get hidden UI (expected class 'CoreGui' or 'PlayerGui', got class '{HiddenUi.ClassName}')`)
+    assert(HiddenUi ~= game:GetService("CoreGui") and HiddenUi ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
 end, function()
-    local Gui = ExecutorSupport.cloneref and cloneref(game:GetService("CoreGui")) or shared.PlayerGui
+    local CanAccessCoreGui = pcall(function()
+        local CoreGui = game:GetService("CoreGui")
+        CoreGui:FindFirstChild("")
+    end)
+    local Gui = ExecutorSupport.cloneref and cloneref(
+        CanAccessCoreGui and game:GetService("CoreGui") or shared.PlayerGui
+    ) or shared.PlayerGui
 
     function Global.gethui(): CoreGui | PlayerGui
         return Gui
@@ -434,8 +439,8 @@ Test("getgc", {}, {}, function()
         --/ Just a placeholder
     end
 
-    for _, Grabage in getgc() do
-        if Grabage == Placeholder then
+    for _, Garbage in getgc() do
+        if Garbage == Placeholder then
             IsWorking = true
             break
         end
@@ -462,15 +467,15 @@ Test("queue_on_teleport", {}, {"queueonteleport", "table: syn key: queue_on_tele
         return assert(false, `Failed to queue on teleport due to {Message}`)
     end, "return 1")
     --/ There's only this much I can do
-end, nil, true, "Only test whether the call is successful")
+end, nil, true)
 
 Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "table: syn key: write_clipboard", "table: Clipboard key: set"}, function(RealFunction: (string) -> nil)
     --/ nope cause it involves managing the user's clipboard (it may be impolite and cannot verify if it works)
-end, nil, true, "This test cannot be tested, only checking the existence")
+end, nil, true)
 
 Test("mousemoverel", {}, {}, function()
     --/ idk
-end, nil, true, "idk")
+end, nil, true)
 
 Test("Drawing", {}, {}, function()
     local typeof
@@ -535,7 +540,5 @@ table_insert(OutputList, `> 🛠️ Total working: {ExecutorSupport.TotalWorking
 for _, Output in OutputList do
     print(Output)
 end
-
-require("Bypass")
 
 return ExecutorSupport
