@@ -32,7 +32,7 @@ local ThemeManager = {
 }
 
 for Name, Scheme in {
-    ["Blue Dusk"]     = [[{"BackgroundColor":"#121E2E","PrimaryColor":"#1F3246","SecondaryColor":"#3B5878","AccentColor":"#6299fe","OutlineColor":"#0A141F","RiskyColor":"#C02020"}]],
+    ["Blue Dusk"]     = [[{"BackgroundColor":"#121E2E","PrimaryColor":"#1F3246","SecondaryColor":"#3B5878","AccentColor":"#62a8fe","OutlineColor":"#0A141F","RiskyColor":"#C02020"}]],
     ["Green Forest"]  = [[{"BackgroundColor":"#2A3A2A","PrimaryColor":"#4A6A4A","SecondaryColor":"#7BA37B","AccentColor":"#C8E6C9","OutlineColor":"#1E2B1E","RiskyColor":"#F44336"}]],
     ["Volcanic Red"]  = [[{"BackgroundColor":"#2B0F0A","PrimaryColor":"#5E2D24","SecondaryColor":"#9A4F3F","AccentColor":"#FF8C00","OutlineColor":"#1F0B08","RiskyColor":"#FF3333"}]],
     ["Deep Violet"]   = [[{"BackgroundColor":"#2A1A2A","PrimaryColor":"#5C3D5C","SecondaryColor":"#8E6F8E","AccentColor":"#C38DDC","OutlineColor":"#1E121E","RiskyColor":"#FF0000"}]],
