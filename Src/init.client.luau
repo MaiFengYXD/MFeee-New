@@ -78,6 +78,8 @@ wax.shared.Emoji           = require("Utils/ArtEmoji")
 wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
 wax.shared.FileHelper      = require("Utils/FileHelper")
 
+require("Utils/Bypass")
+
 do
     local table_insert, table_clear, unpack
         = table.insert, table.clear, unpack
@@ -317,11 +319,11 @@ task.spawn(pcall, function()
 end)
 
 task.spawn(pcall, function()
-    if wax.shared.BypassedMethod then
-        wax.shared.UiManager:Notify({
-            Title       = wax.shared.Translations.GetTranslation("Bypassed Anticheat"),
-            Description = string.format(wax.shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), wax.shared.BypassedMethod),
-            Time        = 4
-        })
-    end
+    assert(wax.shared.BypassedMethod)
+
+    wax.shared.UiManager:Notify({
+        Title       = wax.shared.Translations.GetTranslation("Bypassed Anticheat"),
+        Description = string.format(wax.shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), wax.shared.BypassedMethod),
+        Time        = 4
+    })
 end)
