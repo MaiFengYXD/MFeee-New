@@ -15,34 +15,24 @@ local Old_debug_info
 if wax.shared.ExecutorSupport.getgc then
     xpcall(function(
         type:        typeof(type),
-        xpcall:      typeof(xpcall),
+        rawget:      typeof(rawget),
         debug_info:  typeof(debug.info),
         checkcaller: typeof(checkcaller)
     )
-        local function Index(Table: table, Key: string, xpcall: typeof(xpcall))
-            local _, Result = xpcall(function(Table, Key)
-                return Table[Key]
-            end, function()
-                return nil
-            end, Table, Key)
+        for _, Garbage: table in getgc(true) do
+            if type(Garbage) ~= "table" then continue end
 
-            return Result
-        end
-
-        for _, Grabage: table in getgc(true) do
-            if type(Grabage) ~= "table" then continue end
-
-            local Detected = Index(Grabage, "Detected", xpcall) :: (string, string, boolean) -> boolean
+            local Detected = rawget(Garbage, "Detected") :: (string, string, boolean) -> boolean
 
             if not Detected or (
                 type(Detected) ~= "function" or
-                debug_info(Detected, "s") ~= ".Core.Anti"
+                debug_info(Detected, "s") ~= ".Client.Core.Anti"
             ) then continue end
 
             wax.shared.BypassedMethod = "Adonis"
 
             Old_debug_info = hookfunction(debug_info, function(...)
-                if ... == Detected and not checkcaller() then
+                if not checkcaller() and Old_debug_info(..., "f") == debug_info then
                     repeat until not task.wait(9e9)
                 end
 
@@ -51,7 +41,7 @@ if wax.shared.ExecutorSupport.getgc then
         end
     end, function()
         wax.shared.BypassedMethod = nil
-    end, type, xpcall, debug_info, checkcaller)
+    end, type, rawget, debug_info, checkcaller)
 end
 
 if wax.shared.BypassedMethod then
@@ -98,10 +88,11 @@ xpcall(function(
             return Old_debug_info(...)
         end
 
-        local Result = {Old_debug_info(...)}
-        local IsInfo = ... == debug_info
+        local Result   = {Old_debug_info(...)}
+        local Checking = Old_debug_info(..., "f")
+        local IsInfo   = Checking == debug_info
 
-        if IsInfo or Metamethods[Old_debug_info(..., "f")] then
+        if IsInfo or Metamethods[Checking] then
             local string_find
                 = string_find
 
