@@ -335,6 +335,20 @@ for RefId, Closure in ClosureBindings do
     end
 end
 
+local Global_wax = {
+    -- From AOT variable imports
+    version = WaxVersion,
+    envname = EnvName,
+
+    shared = SharedEnvironment,
+
+    -- "Real" globals instead of the env set ones
+    script = script,
+    require = require,
+
+    argument = __argument
+}
+
 local function LoadScript(scriptRef, ...)
     local Args = {...}
 
@@ -350,9 +364,20 @@ local function LoadScript(scriptRef, ...)
 
             getgenv().MFeeeLoaded  = false
             getgenv().MFeeeLoading = false
+
+            if SharedEnvironment.ScreenGui then
+                SharedEnvironment.ScreenGui:Destroy()
+            end
+
+            if shared.Connect then
+                shared.Connect:DisconnectAll()
+            end
+
+            table.clear(Global_wax)
+            table.clear(SharedEnvironment)
         end
 
-        print(string.format("[%*] %* %*"), EnvName, Title, Text)
+        print(string.format("[%*] %* %*", EnvName, Title, Text))
 
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title    = Title,
@@ -394,16 +419,21 @@ local function LoadScript(scriptRef, ...)
         end
 
         -- Join the processed error stack
-        return table.concat(newStack, "\n")
+        return table.concat(newStack, "\n    ")
     end
+
+    local scriptRefId = ScriptClosureRefIds[scriptRef]
+    if not scriptRefId then
+        error("Error: scriptRefId not found in ScriptClosureRefIds! This script instance was not properly registered.", 2)
+    end
+
+    local wax, script, require = ImportGlobals(scriptRefId)
 
     -- Modify xpcall usage
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
-        local Globals = {ImportGlobals(scriptRef)}
-
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
             return FormatError(debug.traceback(msg, 2))
-        end, shared, Globals[1], Globals[2], Globals[3], unpack(Args))
+        end, shared, wax, script, require, unpack(Args))
 
         if not RunSuccess then
             Defer(OnError)
@@ -411,12 +441,10 @@ local function LoadScript(scriptRef, ...)
         end
         return
     else
-        local Globals = {ImportGlobals(scriptRef)}
-
         -- Module script logic
         local PCallReturn
         local RunSuccess, ErrorMessage = xpcall(function(Args)
-            PCallReturn = {Closure(shared, Globals[1], Globals[2], Globals[3], unpack(Args))}
+            PCallReturn = {Closure(shared, wax, script, require, unpack(Args))}
         end, function(msg)
             return FormatError(debug.traceback(msg, 2))
         end, Args)
@@ -451,20 +479,6 @@ function ImportGlobals(refId)
 
         return unpack(PCallReturn)
     end
-
-    local Global_wax = {
-        -- From AOT variable imports
-        version = WaxVersion,
-        envname = EnvName,
-
-        shared = SharedEnvironment,
-
-        -- "Real" globals instead of the env set ones
-        script = script,
-        require = require,
-
-        argument = __argument
-    }
 
     local Global_script = ScriptRef
 
