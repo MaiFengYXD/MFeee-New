@@ -112,7 +112,7 @@ function UiManager:CreateWindow()
         ShowCustomCursor = UiManager.shared.CustomCursor
     })
 
-    UiManager.Library.KeybindFrame.Visible = UiManager.shared.KeybindFrame
+    -- UiManager.Library.KeybindFrame.Visible = UiManager.shared.KeybindFrame
 
     return UiManager.Window, (function()
         UiManager.CreateWindow = function() end
@@ -1043,13 +1043,13 @@ function UiManager:CreateUniversalTabs()
     return UiManager.MiscTab, UiManager.InfoTab
 end
 
-UiManager.SaveManager:SetLibrary  (UiManager.Library)
-UiManager.SaveManager:SetFolder   ("MFeee-New")
-UiManager.SaveManager:SetSubFolder(wax.shared.ScriptFolder)
+-- UiManager.SaveManager:SetLibrary  (UiManager.Library)
+-- UiManager.SaveManager:SetFolder   ("MFeee-New")
+-- UiManager.SaveManager:SetSubFolder(wax.shared.ScriptFolder)
 
-UiManager.ThemeManager:SetLibrary (UiManager.Library)
-UiManager.ThemeManager:SetFolder  ("MFeee-New")
+-- UiManager.ThemeManager:SetLibrary (UiManager.Library)
+-- UiManager.ThemeManager:SetFolder  ("MFeee-New")
 
-wax.AddOnUnload(UiManager.Library.Unload, UiManager.Library)
+-- wax.AddOnUnload(UiManager.Library.Unload, UiManager.Library)
 
 return UiManager
