@@ -1,8 +1,8 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
 --!nonstrict
 
-local string_match, string_format, table_insert, table_find, table_concat
-    = string.match, string.format, table.insert, table.find, table.concat
+local string_match, string_format, table_insert, table_find
+    = string.match, string.format, table.insert, table.find
 
 local luau = require("@lune/luau")
 local roblox = require("@lune/roblox")
@@ -118,23 +118,7 @@ local function BundleModel(modelData: string | {roblox.Instance}, envName: strin
 
             if CompileSuccess then
                 -- Optimize for maximum speed by tuning parameter variables
-                local ClosureTemplate = [[
-function(shared, wax, script, require, ...)
-%s
-    end]]
-
-                -- Add the indents to the script source for better readability
-                local ClosureLines = {}
-                for Line in ScriptSource:gmatch("([^\n]*)(\n?)") do
-                    table_insert(ClosureLines, Line == "" and "" or `        {Line}`)
-                end
-
-                if ClosureLines[#ClosureLines] == "" then
-                    ClosureLines[#ClosureLines] = nil
-                end
-
-                -- Format the closure with the indents
-                local ClosureWrapper = string_format(ClosureTemplate, table_concat(ClosureLines, "\n"))
+                local ClosureWrapper = `function(shared, wax, script, require, ...)\n{ScriptSource}\nend`
 
                 -- We're using `FunctionsReturnRaw` on LuaEncode later, this will set the return
                 -- to the raw value, which is the script closure
@@ -217,7 +201,6 @@ function(shared, wax, script, require, ...)
     local SerializedClosureBindings = LuaEncode(OrderedBindings, {
         Prettify = Prettify,
         FunctionsReturnRaw = true, -- For Script.Source function closures
-        ExtraNewlineAfterComma = true,
     })
 
     local CodegenOutput = StringUtils.Replace(InitScriptTemplate, {
