@@ -132,27 +132,24 @@ function Connect:UnbindAction(Index: string)
     ActionConnections[Index] = nil
 end
 
-wax.AddOnUnload(function()
-    local Connect, Disconnect, pcall, task_cancel, coroutine_close
-        = Connect, Disconnect, pcall, task_cancel, coroutine_close
-
-    local         DisconnectSignal,         StopThread,         UnbindRenderStep,         UnbindAction
-        = Connect.DisconnectSignal, Connect.StopThread, Connect.UnbindRenderStep, Connect.UnbindAction
+function Connect:DisconnectAll()
+    local      DisconnectSignal,      StopThread,      UnbindRenderStep,      UnbindAction
+        = self.DisconnectSignal, self.StopThread, self.UnbindRenderStep, self.UnbindAction
 
     for Index in Connections do
-        DisconnectSignal(Connect, Index)
+        DisconnectSignal(self, Index)
     end
 
     for Index in Threads do
-        StopThread(Connect, Index)
+        StopThread(self, Index)
     end
 
     for Index in RenderConnections do
-        UnbindRenderStep(Connect, Index)
+        UnbindRenderStep(self, Index)
     end
 
     for Index in ActionConnections do
-        UnbindAction(Connect, Index)
+        UnbindAction(self, Index)
     end
 
     for _, Connection in UnnamedConnections do
@@ -163,6 +160,10 @@ wax.AddOnUnload(function()
         pcall(coroutine_close, Thread)
         pcall(task_cancel, Thread)
     end
+end
+
+wax.AddOnUnload(function()
+    Connect:DisconnectAll()
 end)
 
 return Connect
