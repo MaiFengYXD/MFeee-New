@@ -11,10 +11,10 @@ local UserInputService = shared.UserInputService :: UserInputService
 
 --// I used a custom event system to prevent "tables cannot be cyclic" errors
 type EventStore = typeof(setmetatable({
+    Events  = {} :: {Function},
     OnEvent = function(self: EventStore, Callback: Function): () end,
-    Fire    = function(self: EventStore, ...: any): () end,
-    Clear   = function(self: EventStore): () end,
-    Events  = {} :: {Function}
+    Fire    = function(self: EventStore, ...:      any):      () end,
+    Clear   = function(self: EventStore):                     () end
 }, {__mode  = "v"}))
 
 local GetDarkerColor: (Original: Color3, Alpha: number?) -> Color3,
