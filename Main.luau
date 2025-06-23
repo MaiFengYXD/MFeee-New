@@ -1,5 +1,11 @@
+--!optimize 2
+
 local game, Instance_new
     = game, Instance.new
+
+if type(getgenv) ~= "function" then
+    return game:GetService("Players").LocalPlayer:Kick("This script only supports exploit environments.")
+end
 
 local StarterGui   = game:GetService("StarterGui")
 local SoundService = game:GetService("SoundService")
@@ -27,17 +33,25 @@ local ContentProvider = game:GetService("ContentProvider")
 task.spawn(ContentProvider.PreloadAsync, ContentProvider, {"rbxassetid://4590662766"})
 
 local loadstring = (loadstring or load) :: any
-local HttpGet    = (HttpGet or HttpGetAsync) :: any
+local HttpGet    = (secret_get or HttpGet or HttpGetAsync) :: any
 
 if not loadstring then
     return Notify(
         "Loading Stopped!",
-        "Error: missing 'loadstring' and 'load' function. Please try to download and execute the latest release"
+        "Error: missing 'loadstring' function. Please try to download and execute the latest release"
     )
 end
 
 if not (HttpGet or pcall(function(game)
-    local Function = game.HttpGet or game.HttpGetAsync
+    local function __index(self, Key: string): any
+        local Success, Result = pcall(function(self, Key)
+            return self[Key]
+        end, self, Key)
+
+        return Success and Result or nil
+    end
+
+    local Function = __index(game, "secret_get") or __index(game, "HttpGet") or __index(game, "HttpGetAsync")
     assert(type(Function == "function"))
 
     HttpGet = function(Url: string): string
@@ -46,7 +60,7 @@ if not (HttpGet or pcall(function(game)
 end, game)) then
     return Notify(
         "Loading Stopped!", 
-        "Error: missing 'HttpGet' and 'HttpGetAsync' function. Please try to download and execute the latest release"
+        "Error: missing 'HttpGet' function. Please try to download and execute the latest release"
     )
 end
 
@@ -59,6 +73,7 @@ for _, Url in {
     local Content = HttpGet(Url)
 
     if Content ~= "404: Not Found" and Content ~= "Not Found" then
+        getgenv().HttpGet = HttpGet
         return loadstring(Content)("FromHttpGet")
     end
 end
