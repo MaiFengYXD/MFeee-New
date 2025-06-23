@@ -4,11 +4,14 @@
 return [[
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
+type ClosureBindings  = {(table, table, table, Function, ...any) -> (...any)}
+type ObjectDictionary = {number | {string} | {ObjectDictionary}}
+
 -- Holds direct closure data
-local ClosureBindings = ${ClosureBindings} :: {[number]: (table, table, table, Function, ...any) -> (...any)} -- [RefId] = Closure
+local ClosureBindings = ${ClosureBindings} :: ClosureBindings -- [RefId] = Closure
 
 -- Holds the actual DOM data
-local ObjectTree = ${ObjectTree}
+local ObjectTree = ${ObjectTree} :: {ObjectDictionary}
 
 -- Misc AOT variable imports
 local WaxVersion = "${Version}"
@@ -27,7 +30,6 @@ local __argument = ...
 
 local table_insert = table.insert
 local table_remove = table.remove
-local table_freeze = table.freeze
 
 local coroutine_wrap = coroutine.wrap
 
