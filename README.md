@@ -55,6 +55,14 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
 
 ---
 
+## 🙏Credits:
++ **richie0866** - [AcrylicBlur.luau](./Src/Utils/Gui/AcrylicBlur.luau)
++ **deividcomsono** - [Lucide.luau](./Src/Utils/Gui/Lucide.luau)
++ **NOVEIGMA** - [Prediction.luau](./Src/Utils/Prediction.luau)
++ **7GrandDadPGN** - [Prediction.luau](./Src/Utils/Prediction.luau)
+
+---
+
 ## 📝License:
 ```txt
 MIT License
