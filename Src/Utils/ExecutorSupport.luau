@@ -398,11 +398,11 @@ Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: t
 end, nil, true)
 
 Test("gethui", {}, {}, function()
-    local HiddenUi = gethui()
+    local HiddenUI = gethui()
 
-    assert(typeof(HiddenUi) == "Instance", `Failed to get hidden UI (expected type 'Instance', got type '{typeof(HiddenUi)}')`)
-    assert(HiddenUi:IsA("CoreGui") or HiddenUi:IsA("PlayerGui"), `Failed to get hidden UI (expected class 'CoreGui' or 'PlayerGui', got class '{HiddenUi.ClassName}')`)
-    assert(HiddenUi ~= game:GetService("CoreGui") and HiddenUi ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
+    assert(typeof(HiddenUI) == "Instance", `Failed to get hidden UI (expected type 'Instance', got type '{typeof(HiddenUI)}')`)
+    assert(HiddenUI:IsA("CoreGui") or HiddenUI:IsA("PlayerGui"), `Failed to get hidden UI (expected class 'CoreGui' or 'PlayerGui', got class '{HiddenUI.ClassName}')`)
+    assert(HiddenUI ~= game:GetService("CoreGui") and HiddenUI ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
 end, function()
     local CanAccessCoreGui = pcall(function()
         local CoreGui = game:GetService("CoreGui")
