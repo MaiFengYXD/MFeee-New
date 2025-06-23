@@ -5,7 +5,7 @@ return [[
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
 -- Holds direct closure data
-local ClosureBindings = ${ClosureBindings} :: {[number]: () -> (...any)} -- [RefId] = Closure
+local ClosureBindings = ${ClosureBindings} :: {[number]: (table, table, table, Function, ...any) -> (...any)} -- [RefId] = Closure
 
 -- Holds the actual DOM data
 local ObjectTree = ${ObjectTree}
@@ -210,7 +210,7 @@ local function CreateRef(className, name, parent)
     local Ref = {}
     local RefMetatable = {}
 
-    RefMetatable.__metatable = false
+    RefMetatable.__metatable = "This metatable is locked"
 
     RefMetatable.__index = function(_, index)
         if index == "ClassName" then -- First check "properties"
@@ -362,8 +362,11 @@ local function LoadScript(scriptRef, ...)
 
             pcall(pcall, SharedEnvironment.Unload)
 
-            getgenv().MFeeeLoaded  = false
-            getgenv().MFeeeLoading = false
+            local Global = getgenv and getgenv() or Global_wax.Global
+            if Global then
+                Global.MFeeeLoaded  = false
+                Global.MFeeeLoading = false
+            end
 
             if SharedEnvironment.ScreenGui then
                 SharedEnvironment.ScreenGui:Destroy()
