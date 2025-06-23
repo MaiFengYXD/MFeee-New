@@ -1,6 +1,6 @@
 --[[
     Source: https://devforum.roblox.com/t/predict-projectile-ballistics-including-gravity-and-motion/1842434
-    Credit: 7GrandDadPGN
+    Credit: NOVEIGMA, 7GrandDadPGN
 
     ~~Thank you NOVEIGMA, I successfully used it on Aimbot! ^^~~
 --]]
