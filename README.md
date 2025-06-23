@@ -10,7 +10,7 @@
 ## 💾Load:
 
 ```luau
-(loadstring or load)(game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))("FromHttpGet")
+(loadstring or load)(game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))()
 ```
 
 [**[Main.luau](./Main.luau)**]  [**[Distribution](./Distribution)**]  [**[Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**]
