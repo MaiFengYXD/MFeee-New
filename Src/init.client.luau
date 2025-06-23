@@ -317,15 +317,15 @@ end)
 --// Loader //
 wax.shared.ScriptVersion = "Build 1"
 
-wax.shared.UiManager = require("Utils/Gui/UIManager")
-wax.shared.Window    = wax.shared.UiManager:CreateWindow()
+wax.shared.UIManager = require("Utils/Gui/UIManager")
+wax.shared.Window    = wax.shared.UIManager:CreateWindow()
 
 require(`Places/Loader/{wax.shared.ScriptFolder}`)
 
-wax.shared.UiManager:CreateUniversalTabs()
+wax.shared.UIManager:CreateUniversalTabs()
 
-wax.shared.UiManager.SaveManager :LoadAutoloadConfig()
-wax.shared.UiManager.ThemeManager:LoadDefault()
+wax.shared.UIManager.SaveManager :LoadAutoloadConfig()
+wax.shared.UIManager.ThemeManager:LoadDefault()
 
 Global.MFeeeLoaded  = true
 Global.MFeeeLoading = false
@@ -336,7 +336,7 @@ task.spawn(pcall, function()
     local Version   = Global.HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
     assert(Version ~= wax.shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
 
-    wax.shared.UiManager:Notify({
+    wax.shared.UIManager:Notify({
         Title       = wax.shared.Translations.GetTranslation("Version Mismatch"),
         Description = wax.shared.Translations.GetTranslation("The script version is outdated, please update it!"),
         Time        = 15
@@ -346,7 +346,7 @@ end)
 task.spawn(pcall, function()
     assert(wax.shared.BypassedMethod)
 
-    wax.shared.UiManager:Notify({
+    wax.shared.UIManager:Notify({
         Title       = wax.shared.Translations.GetTranslation("Bypassed Anticheat"),
         Description = string.format(wax.shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), wax.shared.BypassedMethod),
         Time        = 4

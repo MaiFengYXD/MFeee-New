@@ -753,7 +753,7 @@ local Aimbot = {
         end
     end
 
-    local AimbotKeybind = wax.shared.UiManager.Options.AimbotKeybind
+    local AimbotKeybind = wax.shared.UIManager.Options.AimbotKeybind
     local GetState      = AimbotKeybind.GetState
 
     local StepThread: thread?

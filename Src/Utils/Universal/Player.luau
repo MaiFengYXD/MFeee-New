@@ -40,7 +40,7 @@ local Universal = {}
 local Inf = (1 / 0)
 local Nan = (0 / 0)
 
-local Toggles = wax.shared.UiManager.Library.Toggles
+local Toggles = wax.shared.UIManager.Library.Toggles
 
 local ControlModule = require("../Universal/ControlModule")
 local GetMoveVector = ControlModule.GetMoveVector
