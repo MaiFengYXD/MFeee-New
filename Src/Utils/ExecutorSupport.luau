@@ -3,7 +3,7 @@ require("LiteralBlank")
 local pcall, xpcall, error, type, print, string_find, string_sub, table_clear, table_insert, task_defer
     = pcall, xpcall, error, type, print, string.find, string.sub, table.clear, table.insert, task.defer
 
-local Global = getgenv()
+local Global = wax.Global
 
 --// Prepare Environment //
 local ExecutorSupport = {
@@ -238,7 +238,7 @@ Test("getnamecallmethod", {}, {}, function()
 end)
 
 --// Closures //
-Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: ((Function, Function) -> Function))
+Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: typeof(hookfunction))
     local Test = ({
         function(Arg)
             return Arg == "Hello " and "World!" or 456
@@ -296,7 +296,7 @@ Test("iscached", {}, {"table: cache key: iscached"}, function()
 end)
 
 --// Instance //
-Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: (RBXScriptConnection) -> Table)
+Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: typeof(getconnections))
     local Returns = {
         Enabled = "boolean",
         ForeignState = "boolean",
@@ -312,7 +312,7 @@ Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: (RBXScrip
 
     --// Create a RBXScriptConnection and get its connections
     game.ChildAdded:Once(function() end)
-    local Connection = RealFunction(game.ChildAdded)[1]
+    local Connection = RealFunction(game.ChildAdded)[1] :: any
 
     for Key, Type in Returns do
         assert(Connection[Key] ~= nil, `Failed to get connection property {Key}`)
@@ -393,7 +393,7 @@ end, function()
     end
 end)
 
-Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: (Part1: BasePart, Part2: BasePart, State: number) -> nil)
+Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: typeof(firetouchinterest))
     --/ nope cause firetouchinterest only works on server-side BasePart
 end, nil, true)
 
@@ -440,37 +440,36 @@ Test("getgc", {}, {}, function()
     end
 
     for _, Garbage in getgc() do
-        if Garbage == Placeholder then
-            IsWorking = true
-            break
-        end
+        if Garbage ~= Placeholder then continue end
+
+        IsWorking = true
+        break
     end
 
     assert(IsWorking, "Failed to get a grabage function")
 
-    IsWorking = false
+    IsWorking   = false
     Placeholder = {} :: any
 
     for _, Garbage in getgc(true) do
-        if Garbage == Placeholder then
-            IsWorking = true
-            break
-        end
+        if Garbage ~= Placeholder then continue end
+
+        IsWorking = true
+        break
     end
 
     assert(IsWorking, "Failed to get a garbage table")
 end)
 
 --// Miscellaneous //
-Test("queue_on_teleport", {}, {"queueonteleport", "table: syn key: queue_on_teleport", "table: fluxus key: queue_on_teleport"}, function(RealFunction: (string) -> nil)
-    xpcall(RealFunction, function(Message)
-        return assert(false, `Failed to queue on teleport due to {Message}`)
-    end, "return 1")
+Test("queue_on_teleport", {}, {"queueonteleport", "table: syn key: queue_on_teleport", "table: fluxus key: queue_on_teleport"}, function(RealFunction: typeof(queue_on_teleport))
+    local Success, Message = (pcall :: (Function, ...any) -> (boolean, string))(RealFunction, "return 1")
+    assert(Success, `Failed to queue on teleport due to {Message}`)
     --/ There's only this much I can do
 end, nil, true)
 
-Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "table: syn key: write_clipboard", "table: Clipboard key: set"}, function(RealFunction: (string) -> nil)
-    --/ nope cause it involves managing the user's clipboard (it may be impolite and cannot verify if it works)
+Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "table: syn key: write_clipboard", "table: Clipboard key: set"}, function(RealFunction: typeof(toclipboard))
+    --/ nope
 end, nil, true)
 
 Test("mousemoverel", {}, {}, function()
