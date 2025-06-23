@@ -12,11 +12,15 @@ export type array = Array
 export type Hash = {[string]: any}
 export type hash = Hash
 
+export type ContentId = typeof(`rbxassetid://{123}`)
+export type RobloxId  = typeof(`rbxasset://somepath/something`)
+
 declare class DataModel extends DataModel
     function HttpGet(self, url: string): string
     function HttpPost(self, url: string, data: string, contentType: string?): string
     function HttpGetAsync(self, url: string): string
     function GetObjects(self, localFilePath: string): {[number]: any}
+    function secret_get(self, Url: string): string
 end
 
 declare game: DataModel
@@ -79,6 +83,9 @@ declare function randomstring(length: number?): string
 declare function getrainbowcolor(RainbowSpeed: number | nil): Color3
 declare function HttpGet(url: string): string
 declare function HttpGetAsync(url: string): string
+declare function secret_get(Url: string): string
+declare function getfflag(Flag: string): boolean | "false" | "true"
+declare function setfflag(Flag: string, Value: "false" | "true"): ()
 
 -- \\ Metatable // --
 declare function getrawmetatable(object: any): {[string]: any}
@@ -95,6 +102,8 @@ declare function firetouchtransmitter(toucher: BasePart, toTouch: BasePart, Stat
 declare function fireproximityprompt(object: ProximityPrompt, distance: number?): ()
 declare function getcallbackvalue(object: Instance, property: string): Function?
 declare function isnetworkowner(object: Instance): boolean
+declare function getactors(): {Actor}
+declare function run_on_actor(Actor: Actor, Code: string): ()
 declare class ConnectionGarbage
     Enabled: boolean
     ForeignState: boolean
