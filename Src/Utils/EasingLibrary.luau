@@ -75,7 +75,10 @@ function EasingLibrary:PlayTween(Index: string?, Tween: Tween | TweenBase): Stor
         Tween = Tween,
 
         OnCompleted = Tween.Completed:Once(function()
-            self.RunningTween[Index] = Destroy(self.RunningTween[Index].Tween)
+            local Running = self.RunningTween[Index]
+            if not Running then return end
+
+            self.RunningTween[Index] = Destroy(Running.Tween)
         end)
     } :: StoredTween
 
@@ -88,7 +91,7 @@ function EasingLibrary:Ease(
     Target:    Instance & any,
     Property:  string | {[string]: any},
     EndValue:  any,
-    Index:     string?,
+    Index:     string | any,
     Duration:  number | nil,
     Mode:      string | Enum.EasingStyle | nil,
     Direction: string | Enum.EasingDirection | nil
