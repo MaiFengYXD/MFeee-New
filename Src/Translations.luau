@@ -14,14 +14,14 @@ if Language ~= "en" then
     local Thread = task.spawn(function()
         print(`[MFeee~ New] Fetching translations for {Language}...`)
 
-        Success, Result = pcall(function()
-            local UrlContent = game:HttpGet(`https://raw.githubusercontent.com/MaiFengYXD/Translations/refs/heads/main/Translations/{Language}.json`)
+        Success, Result = pcall(function(HttpGet)
+            local UrlContent = HttpGet(`https://raw.githubusercontent.com/MaiFengYXD/Translations/refs/heads/main/Translations/{Language}.json`)
             if not (UrlContent:find("{") and UrlContent:find("}")) then
                 error("Translations raw page error or HttpGet problem, please report it!", 19998)
             end
 
             return shared.HttpService:JSONDecode(UrlContent)
-        end)
+        end, wax.Global.HttpGet)
     end)
 
     repeat
