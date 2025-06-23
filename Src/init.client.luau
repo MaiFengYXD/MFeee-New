@@ -31,12 +31,13 @@ require("Utils/Services"):GetServices({
 shared.Speaker = shared.Players.LocalPlayer
 
 if type(getgenv) ~= "function" then
-    shared.Speaker:Kick("This script doesn't support non-executor environments.");return
+    shared.Speaker:Kick("This script only supports exploit environments.");return
 elseif shared.Workspace.DistributedGameTime < 1 then
     task.wait(1 - shared.Workspace.DistributedGameTime)
 end
 
 local Global = getgenv()
+wax.Global   = Global
 
 local function Notify(Title: string, Text: string)
     print(`[MFeee~ New] {Title} {Text}`)
@@ -56,6 +57,30 @@ if Global.MFeeeLoading then Notify("Loading Stopped!", "Error: already loading."
 
 Global.MFeeeLoading = true
 Global.MFeeeLoaded  = false
+
+if not Global.HttpGet then
+    local HttpGet = secret_get or HttpGet or HttpGetAsync
+    if not HttpGet then
+        pcall(function(game)
+            local function __index(self, Key: string): any
+                local Success, Result = pcall(function(self, Key)
+                    return self[Key]
+                end, self, Key)
+
+                return Success and Result or nil
+            end
+
+            local Function = __index(game, "secret_get") or __index(game, "HttpGet") or __index(game, "HttpGetAsync")
+            assert(type(Function == "function"))
+
+            HttpGet = function(Url: string): string
+                return Function(game, Url)
+            end
+        end, game)
+    end
+
+    Global.HttpGet = HttpGet
+end
 
 task.spawn(shared.ContentProvider.PreloadAsync, shared.ContentProvider, {
     "rbxassetid://103134660123798",
@@ -308,7 +333,7 @@ Global.MFeeeLoading = false
 task.spawn(pcall, function()
     assert(wax.shared.argument ~= "FromHttpGet")
 
-    local Version   = game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
+    local Version   = Global.HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
     assert(Version ~= wax.shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
 
     wax.shared.UiManager:Notify({
