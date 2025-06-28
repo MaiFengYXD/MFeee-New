@@ -1,6 +1,4 @@
-require("../LiteralBlank")
-
-if wax.shared.ExecutorSupport.require then
+if shared.ExecutorSupport.require then
     local OriginControlModule = shared.Speaker:WaitForChild("PlayerScripts", 3):WaitForChild("PlayerModule", 3):WaitForChild("ControlModule", 3)
 
     if OriginControlModule then
