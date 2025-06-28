@@ -1,7 +1,7 @@
 --!optimize 2
 
-local game, Instance_new
-    = game, Instance.new
+local game, Instance_new, type
+    = game, Instance.new, type
 
 if type(getgenv) ~= "function" then
     return game:GetService("Players").LocalPlayer:Kick("This script only supports exploit environments.")
@@ -32,7 +32,7 @@ end
 local ContentProvider = game:GetService("ContentProvider")
 task.spawn(ContentProvider.PreloadAsync, ContentProvider, {"rbxassetid://4590662766"})
 
-local loadstring = (loadstring or load) :: any
+local loadstring = (loadstring or load) :: (string) -> Function
 local HttpGet    = (secret_get or HttpGet or HttpGetAsync) :: any
 
 if not loadstring then
@@ -64,21 +64,43 @@ end, game)) then
     )
 end
 
-for _, Url in {
+local request = (request or http_request or http.request or syn.request or fluxus.request) :: typeof(request)
+local Urls = {
     "https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Distribution/Script-Minified.luau",
     "https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Distribution/Script.luau",
     "https://github.com/MaiFengYXD/MFeee-New/releases/latest/download/Script-Minified.luau",
     "https://github.com/MaiFengYXD/MFeee-New/releases/latest/download/Script.luau"
-} do
-    local Content = HttpGet(Url)
+}
 
-    if Content ~= "404: Not Found" and Content ~= "Not Found" then
-        getgenv().HttpGet = HttpGet
-        return loadstring(Content)("FromHttpGet")
+if type(request) == "function" then
+    local StatusCode
+
+    for _, Url in Urls do
+        local Response = request({Url = Url})
+        local Status   = Response.StatusCode
+
+        if Status == 200 or Status == 304 then
+            return loadstring(Response.Body)("FromHttpGet")
+        end
+
+        StatusCode = Status
     end
+
+    return Notify(
+        "Loading Stopped!",
+        `Error: cannot download the script due to Http error "{StatusCode}"`
+    )
+end
+
+for _, Url in Urls do
+    local Content = HttpGet(Url)
+    if Content == "404: Not Found" or Content == "Not Found" then continue end
+
+    getgenv().HttpGet = HttpGet
+    return loadstring(Content)("FromHttpGet")
 end
 
 return Notify(
     "Loading Stopped!",
-    "Error: cannot download the script due to \"404: Not Found\""
+    "Error: cannot download the script due to \"404: Not Found\" and Http error"
 )
