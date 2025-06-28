@@ -1,10 +1,10 @@
 --[[
-Extended from NPCHandler.luau
+    Extended from NPCHandler.luau
 
-Including:
-+ Entities
- L Npcs
-+ Players (characters)
+    Including:
+    + Entities
+    L Npcs
+    + Players (characters)
 --]]
 
 --// Local Caches //
