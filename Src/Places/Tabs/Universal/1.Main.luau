@@ -1,1 +1,1 @@
-return wax.shared.UIManager:CreateMainTab()
+return shared.UIManager:AddMainTab()
