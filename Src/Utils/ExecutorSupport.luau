@@ -1,7 +1,5 @@
-require("LiteralBlank")
-
-local pcall, xpcall, error, type, print, string_find, string_sub, table_clear, table_insert, task_defer
-    = pcall, xpcall, error, type, print, string.find, string.sub, table.clear, table.insert, task.defer
+local pcall, xpcall, error, typeof, print, string_find, string_sub, table_clear, table_insert, task_spawn
+    = pcall, xpcall, error, typeof, print, string.find, string.sub, table.clear, table.insert, task.spawn
 
 local Global = wax.Global
 
@@ -16,28 +14,28 @@ local OutputList = {}
 local Grabages   = {} :: {Function}
 
 local function assert<T>(Assertion: T, Message: string?): (nil)
-    --/ Set to 19998 for disabling traceback
+    -- Set to 19998 for disabling traceback
     return if Assertion then nil else error(Message, 19998)
 end
 
 local function Test(
-    Name:     string,
-    Requires: {string?},
-    Aliases:  {string?},
+    Name:         string,
+    Requires:     {string?},
+    Aliases:      {string?},
     TestFunction: (...any) -> (nil),
-    Fix: ((nil) -> (nil)) | nil,
-    CannotTest: boolean   | nil
-): (nil)
+    Fix:          ((nil) -> (nil)) | nil,
+    CannotTest:   boolean   | nil
+): ()
     ExecutorSupport.TotalTestes += 1
 
     local Success:    boolean,
           TestResult: string?
 
-    local IsFixable = type(Fix) == "function"
+    local IsFixable = typeof(Fix) == "function"
 
     local function GoSummary()
         for _, Function in Grabages do
-            task_defer(pcall, Function)
+            task_spawn(pcall, Function)
         end
 
         local RealSuccess = Success or IsFixable
@@ -47,8 +45,9 @@ local function Test(
 
         table_insert(OutputList, `> {Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"} [{Name}]{not Success and ` - {TestResult}` or ""}`)
 
-        task_defer(table_clear, Requires)
-        task_defer(table_clear, Aliases)
+        task_spawn(table_clear, Requires)
+        task_spawn(table_clear, Aliases)
+        task_spawn(table_clear, Grabages)
     end
 
     local function TryToFix(ErrorMessage: string): string?
@@ -60,18 +59,33 @@ local function Test(
         return if FixSuccess then `{ErrorMessage}, but it can be fixed` else ErrorMessage
     end
 
-    local RequirementValidated = true
+    local function GetRealFunction(Description: string): Function?
+        local _, Table = string_find(Description, "table: ")
+        local Key      = string_find(Description, "key: ")
 
-    for _, Requirement in Requires do
-        if type(Global[Requirement]) == "function" then continue end
+        if not (Table and Key) then
+            local GlobalFunction = Global[Description]
+            return typeof(GlobalFunction) == "function" and GlobalFunction or nil
+        end
 
-        RequirementValidated = false
-        Success    = false
-        TestResult = `Missing requirement '{Requirement}'`
-        break
+        local TableName = string_sub(Description, Table + 1, Key - 2)
+        local KeyName   = string_sub(Description, Key + 5)
+
+        local TableFunction = if typeof(Global[TableName]) == "table" then Global[TableName][KeyName] else nil
+        local RealFunction  = if typeof(TableFunction) == "function" then TableFunction else nil
+
+        return RealFunction
     end
 
-    if not RequirementValidated then
+    for _, Requirement in Requires :: array do
+        local Function = GetRealFunction(Requirement)
+        local Tested   = ExecutorSupport[Requirement]
+
+        if Function and (if Tested ~= nil then Tested else true) then continue end
+
+        Success    = false
+        TestResult = TryToFix(`Missing requirement '{Requirement}'`)
+
         return GoSummary()
     end
 
@@ -80,29 +94,13 @@ local function Test(
 
     if not RealFunction then
         for _, Alias in (Aliases :: {string}) do
-            local _, Table = string_find(Alias, "table: ")
-            local Key      = string_find(Alias, "key: ")
-
-            if Table and Key then
-                local TableName = string_sub(Alias, Table + 1, Key - 2)
-                local KeyName   = string_sub(Alias, Key + 5)
-
-                local TableFunction = if type(Global[TableName]) == "table" then Global[TableName][KeyName] else nil
-                RealFunction = if type(TableFunction) == "function" then TableFunction else nil
-
-                if not RealFunction then continue
-                else break end
-            end
-
-            if type(Global[Alias]) ~= "function" then continue end
-
-            RealFunction = Global[Alias]
-            break
+            RealFunction = GetRealFunction(Alias)
+            if RealFunction then break end
         end
 
         if not RealFunction then
             Success    = false
-            TestResult = TryToFix(`Missing function '{Name}' and its aliases`) :: string
+            TestResult = TryToFix(`Missing function '{Name}' and its aliases`)
 
             return GoSummary()
         end
@@ -188,12 +186,12 @@ Test("hookmetamethod", {}, {}, function()
         Object, MetaTable = nil, nil
     end)
 
-    --// Original meta methods
-    MetaTable.__index = function(_, Key)
+    -- Original meta methods
+    function MetaTable.__index(_, Key)
         return Key == "Banana" and 123 or "Hello "
     end
 
-    MetaTable.__namecall = function(_, Arg)
+    function MetaTable.__namecall(_, Arg)
         return Arg == "Orange" and 456 or "World!"
     end
 
@@ -202,7 +200,7 @@ Test("hookmetamethod", {}, {}, function()
         ["__namecall"]: (any, Arg: string?) -> string | number
     }
 
-    --// Hook and store references from the original meta method
+    -- Hook and store references from the original meta method
     Originals.__index    = hookmetamethod(Object, "__index"   , function(_, Key)
         return Key == "Banana" and "Hello " or 123
     end)
@@ -211,15 +209,15 @@ Test("hookmetamethod", {}, {}, function()
         return Arg == "Orange" and "World!" or 456
     end)
 
-    --// Test hooked meta methods
+    -- Test hooked meta methods
     assert(Object.Banana           == "Hello " and Object.Orange           == 123, "Failed to hook (__index)")
     assert(Object:OhTest("Orange") == "World!" and Object:OhTest("Banana") == 456, "Failed to hook (__namecall)")
 
-    --// Test original references
+    -- Test original references
     assert(Originals.__index   (nil, "Banana") == 123 and Originals.__index   (nil, "Orange") == "Hello ", "Failed to get original reference (__index)")
     assert(Originals.__namecall(nil, "Orange") == 456 and Originals.__namecall(nil, "Banana") == "World!", "Failed to get original reference (__namecall)")
 
-    --// Hook back original meta methods and test again
+    -- Hook back original meta methods and test again
     hookmetamethod(Object, "__index"   , Originals.__index)
     hookmetamethod(Object, "__namecall", Originals.__namecall)
 
@@ -232,9 +230,8 @@ Test("getnamecallmethod", {}, {}, function()
         game:HelloWorld() 
     end)
 
-    local Method = tostring(getnamecallmethod())
-
-    assert(Method == "HelloWorld", `Failed to get __namecall method (expected 'HelloWorld', got '{Method}')`)
+    local Method = `{getnamecallmethod()}`
+    assert(Method == "HelloWorld", `Failed to get __namecall method ("HelloWorld" expected, got "{Method}")`)
 end)
 
 --// Closures //
@@ -245,7 +242,7 @@ Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: 
         end
     })[1]
 
-    --// Hook function and store reference to the original function
+    -- Hook function and store reference to the original function
     local Original = RealFunction(Test, function(Arg)
         return Arg == "Hello " and 456 or "World!"
     end)
@@ -253,7 +250,7 @@ Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: 
     assert(Test    ("Hello ") == 456      and Test    (123) == "World!", "Failed to hook function")
     assert(Original("Hello ") == "World!" and Original(123) == 456     , "Failed to get original reference")
 
-    --// Hook back the original function and test again
+    -- Hook back the original function and test again
     RealFunction(Test, Original)
 
     assert(Test("Hello ") == "World!" and Test(123) == 456, "Failed to restore original reference")
@@ -261,38 +258,32 @@ end)
 
 Test("checkcaller", {}, {}, function()
     local IsCaller = checkcaller()
-    assert(IsCaller == true, `Failed to check caller (expected true, got {tostring(IsCaller)}`)
+    assert(IsCaller == true, `Failed to check caller (true expected, got {tostring(IsCaller)}`)
 end)
 
 Test("getcallingscript", {}, {}, function()
-    local Calling = getcallingscript()
-    assert(Calling == nil, `Failed to get calling script (expected nil, got {typeof(Calling) == "Instance" and Calling:GetFullName() or tostring(Calling)})`)
+    local Calling = getcallingscript() :: BaseScript & any
+
+    if typeof(Calling) == "Instance" then
+        assert(Calling:IsA("LocalScript"), `Failed to get calling script (LocalScript expected, got {Calling.ClassName})`)
+        assert(not Calling:IsDescendantOf(game), `Failed to get calling script, your executor cannot execute scripts safely (FullName "" expected, got "{Calling:GetFullName()}")`)
+    elseif Calling ~= nil then
+        assert(false, `Failed to get calling script, (Instance | nil expected, got {typeof(Calling)})`)
+    end
 end)
 
 --// Cache //
-Test("cloneref", {}, {"clonereference"}, function()
+Test("cloneref", {}, {"clonereference"}, function(RealFunction: typeof(cloneref))
     local Part = Instance.new("Part")
     table_insert(Grabages, function()
         Part:Destroy()
     end)
 
-    local Cloned = cloneref(Part) :: Part
-
+    local Cloned = RealFunction(Part) :: Part
     assert(Cloned ~= Part, "Failed to clone reference (clone is same as original)")
 
     Cloned.Name = "ClonedPart"
     assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
-end)
-
-Test("iscached", {}, {"table: cache key: iscached"}, function()
-    local Part = Instance.new("Part")
-    table_insert(Grabages, function()
-        Part:Destroy()
-    end)
-
-    assert(cache.iscached(Part), "Failed to check if part is cached")
-    cache.invalidate(Part)
-    assert(not cache.iscached(Part), "Failed to invalidate cache for part")
 end)
 
 --// Instance //
@@ -310,30 +301,37 @@ Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: typeof(ge
         Enable = "function"
     }
 
-    --// Create a RBXScriptConnection and get its connections
-    game.ChildAdded:Once(function() end)
-    local Connection = RealFunction(game.ChildAdded)[1] :: any
+    -- Create a RBXScriptConnection and get its connections
+    game.Changed:Once(function() end)
+    local Connection = RealFunction(game.Changed)[1] :: any
 
     for Key, Type in Returns do
         assert(Connection[Key] ~= nil, `Failed to get connection property {Key}`)
-        assert(type(Connection[Key]) == Type, `Failed to get connection property {Key} (expected '{Type}', got '{type(Connection[Key])}')`)
+        assert(typeof(Connection[Key]) == Type, `Failed to get connection property {Key} ({Type} expected, got {typeof(Connection[Key])})`)
     end
 end)
 
 Test("fireproximityprompt", {}, {}, function()
     local Prompt = Instance.new("ProximityPrompt", shared.Workspace) :: any & Instance
+    local Event  = Instance.new("BindableEvent")
 
-    local function DestroyPrompt()
+    table_insert(Grabages, function()
+        Prompt:Destroy()
+    end)
+
+    table_insert(Grabages, function()
+        Event:Destroy()
+    end)
+
+    Prompt.Triggered:Once(function()
         Prompt = Prompt:Destroy()
-    end
+        Event:Fire(true)
+    end)
 
-    table_insert(Grabages, DestroyPrompt)
-    Prompt.Triggered:Once(DestroyPrompt)
+    task.delay(0.1, Event.Fire, Event, false)
+    task_spawn(fireproximityprompt, Prompt)
 
-    fireproximityprompt(Prompt)
-
-    task.wait(0.1)
-    assert(Prompt == nil, "Failed to fire proximity prompt")
+    assert(Event.Event:Wait() and Prompt == nil, "Failed to fire proximity prompt (timed out)")
 end, function()
     local      IsA,            Once, shared
         = game.IsA, game.Close.Once, shared
@@ -355,12 +353,12 @@ end, function()
             if Firing[Prompt] then return false end
 
             assert((Prompt :: any) ~= nil, "missing argument #1 to 'fireproximityprompt' (userdata expected)")
-            assert(type(Prompt) == "userdata", `invalid argument #1 to 'fireproximityprompt' (userdata expected, got {type(Prompt)})`)
-            assert(IsA(Prompt, "ProximityPrompt"), `invalid argument #1 to 'fireproximityprompt' (expected ProximityPrompt, got {Prompt.ClassName})`)
+            assert(typeof(Prompt) == "userdata", `invalid argument #1 to 'fireproximityprompt' (userdata expected, got {typeof(Prompt)})`)
+            assert(IsA(Prompt, "ProximityPrompt"), `invalid argument #1 to 'fireproximityprompt' (ProximityPrompt expected, got {Prompt.ClassName})`)
 
             Firing[Prompt] = true
 
-            if type(Distance) ~= "number" or not shared.Speaker.Character or Distance ~= Distance then
+            if typeof(Distance) ~= "number" or not shared.Speaker.Character or Distance ~= Distance then
                 Distance = Inf
             end
 
@@ -394,27 +392,47 @@ end, function()
 end)
 
 Test("firetouchinterest", {}, {"firetouchtransmitter"}, function(RealFunction: typeof(firetouchinterest))
-    --/ nope cause firetouchinterest only works on server-side BasePart
+    -- nope 'cause firetouchinterest only works on FE BaseParts
 end, nil, true)
 
 Test("gethui", {}, {}, function()
     local HiddenUI = gethui()
 
-    assert(typeof(HiddenUI) == "Instance", `Failed to get hidden UI (expected type 'Instance', got type '{typeof(HiddenUI)}')`)
-    assert(HiddenUI:IsA("CoreGui") or HiddenUI:IsA("PlayerGui"), `Failed to get hidden UI (expected class 'CoreGui' or 'PlayerGui', got class '{HiddenUI.ClassName}')`)
-    assert(HiddenUI ~= game:GetService("CoreGui") and HiddenUI ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
+    assert(typeof(HiddenUI) == "Instance", `Failed to get hidden UI (Instance expected, got {typeof(HiddenUI)})`)
+    assert(HiddenUI:IsA("CoreGui") or HiddenUI:IsA("PlayerGui"), `Failed to get hidden UI (CoreGui | PlayerGui expected, got {HiddenUI.ClassName})`)
+
+    local CoreGui = game:GetService("CoreGui")
+    table_insert(Grabages, function()
+        CoreGui = nil
+    end)
+
+    assert(HiddenUI ~= CoreGui and HiddenUI ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
 end, function()
+    local GarbageFunction
     local CanAccessCoreGui = pcall(function()
         local CoreGui = game:GetService("CoreGui")
+        function GarbageFunction()
+            CoreGui = nil
+        end
+
         CoreGui:FindFirstChild("")
     end)
+
+    GarbageFunction()
+
+    local CoreGui = game:GetService("CoreGui")
     local Gui = ExecutorSupport.cloneref and cloneref(
-        CanAccessCoreGui and game:GetService("CoreGui") or shared.PlayerGui
+        CanAccessCoreGui and CoreGui or shared.PlayerGui
     ) or shared.PlayerGui
+
+    CoreGui = nil
 
     function Global.gethui(): CoreGui | PlayerGui
         return Gui
     end
+
+    -- These `CoreGui = nil` statements are to against anti-cheat,
+    -- see https://github.com/ethanm2502/anti-coregui for details
 end)
 
 --// Environment //
@@ -435,9 +453,11 @@ end)
 Test("getgc", {}, {}, function()
     local IsWorking = false
 
-    local function Placeholder()
+    local function Placeholder(...)
         --/ Just a placeholder
     end
+
+    Placeholder("EpicFunction")
 
     for _, Garbage in getgc() do
         if Garbage ~= Placeholder then continue end
@@ -461,25 +481,148 @@ Test("getgc", {}, {}, function()
     assert(IsWorking, "Failed to get a garbage table")
 end)
 
+--// Actors //
+shared.WorkingActors   = {}
+shared.GameUsingActors = false
+
+local function CommuniticationChannelTest()
+    local ChannelId, Event = create_comm_channel()
+
+    assert(typeof(ChannelId) == "number" or typeof(ChannelId) == "string", `Failed to create a communitication channel (value #1: number | string expected, got {typeof(ChannelId)})`)
+    assert(typeof(Event) == "Instance", `Failed to create a communitication channel (value #2: Instance expected, got {typeof(Event)})`)
+    assert(Event:IsA("BindableEvent"), `Failed to create a communitication channel (value #2: BindableEvent expected, got {Event.ClassName})`)
+
+    local Received = get_comm_channel(ChannelId)
+    assert(Received == Event, "Failed to get the communitication channel")
+
+    local Relay = Instance.new("BindableEvent")
+    table_insert(Grabages, function()
+        Relay:Destroy()
+    end)
+
+    Received.Event:Once(function()
+        Relay:Fire(true)
+    end)
+
+    task_spawn(Event.Fire, Event)
+    task.delay(0, Relay.Fire, Relay, false)
+
+    assert(Relay.Event:Wait(), "Failed to receive the communitication channel event (timed out)")
+end
+
+Test("create_comm_channel", {"get_comm_channel"}, {}, CommuniticationChannelTest)
+Test("get_comm_channel", {"create_comm_channel"}, {}, CommuniticationChannelTest)
+
+Test("getactors", {"run_on_actor", "create_comm_channel", "get_comm_channel"}, {}, function()
+    local      IsA, string_format, task_spawn, task_delay, Instance_new
+        = game.IsA, string.format, task_spawn, task.delay, Instance.new
+
+    local Actors = getactors()
+
+    local WorkingActors = {}
+    local Wait = game.Close.Wait
+
+    for _, Actor in Actors do
+        assert(typeof(Actor) == "Instance" and IsA(Actor, "Actor"), `Failed to get a valid Actor Instance (got {typeof(Actor)})`)
+
+        local ChannelId, Event = create_comm_channel()
+        local Relay = Instance_new("BindableEvent")
+
+        table_insert(Grabages, function()
+            Relay:Destroy()
+        end)
+
+        Event.Event:Once(function(Success)
+            Relay:Fire(Success)
+        end)
+
+        task_spawn(run_on_actor, Actors[1], string_format([[
+            get_comm_channel(%*):Fire(pcall(function()
+                game.Close:ConnectParallel(function() end)
+            end))
+        ]], typeof(ChannelId) == "number" and ChannelId or `"{ChannelId}"`))
+
+        task_delay(0, Relay.Fire, Relay, false)
+
+        if Wait(Relay.Event) then
+            table_insert(WorkingActors, Actor)
+        end
+    end
+
+    shared.GameUsingActors = #WorkingActors > 0
+    shared.WorkingActors   = WorkingActors
+end, function()
+    local      IsA, table_insert
+        = game.IsA, table_insert
+
+    local Instances = {} :: array
+
+    if getinstances then
+        for _, Instance in getinstances() do
+            table_insert(Instances, Instance)
+        end
+    else
+        for _, Instance in game:GetDescendants() do
+            table_insert(Instances, Instance)
+        end
+
+        if getnilinstances then
+            for _, Instance in getnilinstances() do
+                table_insert(Instances, Instance)
+            end
+        end
+    end
+
+    local Actors = {}
+
+    for _, Object in Instances do
+        if not IsA(Object, "Actor") then continue end
+        table_insert(Actors, Object)
+    end
+
+    function Global.getactors()
+        return Actors
+    end
+end)
+
+Test("run_on_actor", {"create_comm_channel", "get_comm_channel"}, {}, function()
+    local ChannelId, Event = create_comm_channel()
+    local Relay = Instance.new("BindableEvent")
+
+    table_insert(Grabages, function()
+        Relay:Destroy()
+    end)
+
+    Event.Event:Once(function()
+        Relay:Fire(true)
+    end)
+
+    task_spawn(run_on_actor, Instance.new("Actor"), string.format([[
+        pcall(function()
+            get_comm_channel(%*):Fire(true)
+        end)
+    ]], typeof(ChannelId) == "number" and ChannelId or `"{ChannelId}"`))
+
+    task.delay(0, Relay.Fire, Relay, false)
+    assert(Relay.Event:Wait(), "Failed to run on actor (timed out)")
+end)
+
 --// Miscellaneous //
 Test("queue_on_teleport", {}, {"queueonteleport", "table: syn key: queue_on_teleport", "table: fluxus key: queue_on_teleport"}, function(RealFunction: typeof(queue_on_teleport))
-    local Success, Message = (pcall :: (Function, ...any) -> (boolean, string))(RealFunction, "return 1")
+    local Success, Message = pcall(RealFunction :: any, "return 1")
     assert(Success, `Failed to queue on teleport due to {Message}`)
-    --/ There's only this much I can do
+    -- There's only this much I can do
 end, nil, true)
 
 Test("toclipboard", {}, {"setclipboard", "write_clipboard", "setrbxclipboard", "table: syn key: write_clipboard", "table: Clipboard key: set"}, function(RealFunction: typeof(toclipboard))
-    --/ nope
+    -- Cannot test, so just verify existence
 end, nil, true)
 
 Test("mousemoverel", {}, {}, function()
-    --/ idk
+    -- Cannot test, so just verify existence
 end, nil, true)
 
 Test("Drawing", {}, {}, function()
-    local typeof
-        = typeof
-
     local Properties = {
         Color = "Color3",
         Filled = "boolean",
@@ -503,18 +646,20 @@ Test("Drawing", {}, {}, function()
     end)
 
     for Property, Type in Properties do
-        assert(typeof(Circle[Property]) ~= "string", `Failed to get property '{Property}' (got unexpected type string)`)
-        assert(typeof(Circle[Property]) == Type, `Failed to get property '{Property}' (expected type '{Type}', got type '{typeof(Circle[Property])}')`)
+        assert(typeof(Circle[Property]) == Type, `Failed to get property '{Property}' ({Type} expected, got {typeof(Circle[Property])})`)
     end
 
     xpcall(Circle.Remove, function()
-        assert(false, "Failed to test")
+        assert(false, "Failed to remove the drawing")
     end, Circle)
 end)
 
 --// Summary //
 do
-    local FileSystem = {
+    --// SupportFileSystem
+    local FileSystemSupport = 0
+
+    for _, Function in {
         "makefolder",
         "isfolder",
         "delfolder",
@@ -522,15 +667,25 @@ do
         "isfile",
         "readfile",
         "delfile"
-    }
-
-    local FileSystemSupport = 0
-
-    for _, Function in FileSystem do
+    } do
         FileSystemSupport += ExecutorSupport[Function] and 1 or 0
     end
 
-    ExecutorSupport.SupportFileSystem = FileSystemSupport == #FileSystem
+    ExecutorSupport.SupportFileSystem = FileSystemSupport == 7
+
+    --// SupportActors
+    local ActorsSupport = 0
+
+    for _, Function in {
+        "create_comm_channel",
+        "get_comm_channel",
+        "getactors",
+        "run_on_actor"
+    } do
+        ActorsSupport += ExecutorSupport[Function] and 1 or 0
+    end
+
+    ExecutorSupport.SupportActors = ActorsSupport == 4
 end
 
 table_insert(OutputList, "----------------")
