@@ -1,6 +1,6 @@
 <div align="center">
     <h1>🎉MFeee~ New🎉</h1>
-    🚀<b>A Free Open-source and Fastest Roblox Script Hub</b>🚀
+    🚀<b>A Free Open-source and Fast Roblox Script Hub</b>🚀
     <br>
     🌏<b>Translated 24 Languages</b> <s>(not finished lol)</s>🌏
 </div>
@@ -13,7 +13,7 @@
 (loadstring or load)(game:HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/Main.luau"))()
 ```
 
-[**[Main.luau](./Main.luau)**]  [**[Distribution](./Distribution)**]  [**[Releases](https://github.com/MaiFengYXD/MFeee-New/releases)**]
+[[Main.luau](./Main.luau)]  [[Distribution](./Distribution)]  [[Releases](https://github.com/MaiFengYXD/MFeee-New/releases)]
 
 ---
 
@@ -24,11 +24,11 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
 
 1. Download and extract **[Rokit](https://github.com/rojo-rbx/rokit/releases)** appropriate for your OS
 2. Navigate to the **extracted folder** and run:
-    ```
+    ```sh
     rokit self-install
     ```
 3. Install tools:
-    ```
+    ```sh
     rokit trust rojo-rbx/rojo
     rokit trust seaofvoices/darklua
     rokit trust lune-org/lune
@@ -40,7 +40,7 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
     rokit list
     ```
 4. Go to the **repository folder** you just **cloned** (or **downloaded**). Then, run:
-    ```
+    ```sh
     lune run Build bundle
     ```
 5. Check the `Tests` folder for the build output.
@@ -52,14 +52,15 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
 + **~~🔪Murder Mystery 2 (WIP🔥)~~**
 + **~~🔫Weaponry (WIP🔥)~~**
 + **🧩And 10 Billion+ Games (Universal)**
+> The strikethrough means not yet implemented, not abandoned.
 
 ---
 
-## 🙏Credits:
-+ **richie0866** - [AcrylicBlur.luau](./Src/Utils/Gui/AcrylicBlur.luau)
-+ **deividcomsono** - [Lucide.luau](./Src/Utils/Gui/Lucide.luau)
-+ **NOVEIGMA** - [Prediction.luau](./Src/Utils/Prediction.luau)
-+ **7GrandDadPGN** - [Prediction.luau](./Src/Utils/Prediction.luau)
+## 🌹Credits:
++ **richie0866**  [[AcrylicBlur.luau](./Src/Gui/AcrylicBlur.luau)]
++ **deividcomsono**  [[Lucide.luau](./Src/Gui/Lucide.luau)]
++ **NOVEIGMA**  [[Prediction.luau](./Src/Utils/Prediction.luau)]
++ **7GrandDadPGN**  [[Prediction.luau](./Src/Utils/Prediction.luau)]
 
 ---
 
