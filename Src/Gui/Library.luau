@@ -1,8 +1,8 @@
 local error, xpcall, string_find, debug_traceback, string_gsub, string_sub, task_defer, task_spawn, task_delay, table_clear
     = error, xpcall, string.find, debug.traceback, string.gsub, string.sub, task.defer, task.spawn, task.delay, table.clear
 
-local pcall, typeof, setmetatable, randomstring, Instance_new, table_insert, Enum: typeof(Enum)
-    = pcall, typeof, setmetatable, randomstring, Instance.new, table.insert, Enum
+local pcall, typeof, setmetatable, randomstring, Instance_new, table_insert, table_concat, table_find, Enum
+    = pcall, typeof, setmetatable, randomstring, Instance.new, table.insert, table.concat, table.find, Enum
 
 local      GetPropertyChangedSignal,      GetAttribute,      SetAttribute
     = game.GetPropertyChangedSignal, game.GetAttribute, game.SetAttribute
@@ -17,10 +17,10 @@ type EventStore = typeof(setmetatable({
     Clear   = function(self: EventStore):                     () end
 }, {__mode  = "v"}))
 
-local GetDarkerColor: (Original: Color3, Alpha: number?) -> Color3,
-      GetBrightColor: (Original: Color3, Alpha: number?) -> Color3,
+local GetDarkerColor:   (Original: Color3, Alpha: number?) -> Color3,
+      GetBrighterColor: (Original: Color3, Alpha: number?) -> Color3,
 
-      SafeCallback:   (Callback: Function, ...any) -> (boolean, ...any),
+      SafeCallback:   (Callback:    Function?,   ...any) -> (boolean, ...any),
       IsHoverInput:   (InputObject: InputObject, OnlyMouse: boolean?) -> boolean,
       IsClickInput:   (InputObject: InputObject, IncludeM1: boolean?, IncludeM2: boolean?) -> boolean,
 
@@ -44,7 +44,7 @@ do
         return Lerp(Original, Dark, Alpha or 0.5)
     end
 
-    function GetBrightColor(Original: Color3, Alpha: number?): Color3
+    function GetBrighterColor(Original: Color3, Alpha: number?): Color3
         return Lerp(Original, Bright, Alpha or 0.5)
     end
 
@@ -58,7 +58,7 @@ do
             local _, Index  = string_find(Traceback, ":%d+ ")
 
             Error ..= ` - {string_gsub(string_sub(Traceback, (Index or 0) + 1), " :", ":")}`
-            task_defer(error, Error)
+            task_spawn(error, Error)
 
             return Error
         end, ...)
@@ -125,9 +125,9 @@ local OnEvent, Fire, Disconnect, Wait;do
 end
 
 local GetAsset = require("Lucide").GetAsset
-local Validate = wax.shared.Validate
+local Validate = shared.Validate
 
-local EasingLibrary = wax.shared.EasingLibrary
+local EasingLibrary = shared.EasingLibrary
 local Ease = EasingLibrary.Ease :: (
     self:      typeof(EasingLibrary),
     Target:    Instance,
@@ -145,7 +145,7 @@ local Ease = EasingLibrary.Ease :: (
 local Connect    = shared.Connect
 local GiveSignal = Connect.GiveSignal
 
-local GetTranslation = wax.shared.Translations.GetTranslation :: (string) -> string
+local GetTranslation = shared.Translations.GetTranslation :: (string) -> string
 
 type CustomCursorStyle = (
     | "Crosshair"
@@ -186,7 +186,7 @@ local Library = {
     CustomCursorStyle = "Crosshair" :: CustomCursorStyle,
     CustomCursorId    = "rbxasset://SystemCursors/Arrow" :: RobloxId | ContentId,
 
-    WindowSize      = wax.shared.DeviceType == "Mobile" and UDim2.fromOffset(480, 300) or UDim2.fromOffset(720, 500),
+    WindowSize      = shared.DeviceType == "Mobile" and UDim2.fromOffset(480, 300) or UDim2.fromOffset(720, 500),
     WindowSizeEvent = CreateEventStore(),
 
     DPIScale = 1,
@@ -202,13 +202,13 @@ local Library = {
     NotificationSideEvent = CreateEventStore(),
 
     Scheme = {
-        BackgroundColor = Color3.fromHex("#121E2E"),
-        PrimaryColor    = Color3.fromHex("#1F3246"),
-        SecondaryColor  = Color3.fromHex("#3B5878"),
-        AccentColor     = Color3.fromHex("#62a8fe"),
-        OutlineColor    = Color3.fromHex("#0A141F"),
-        FontColor       = Color3.fromHex("#FFFFFF"),
-        RiskyColor      = Color3.fromHex("#C02020"),
+        BackgroundColor = Color3.fromHex("080c0f"),
+        PrimaryColor    = Color3.fromHex("0b1719"),
+        SecondaryColor  = Color3.fromHex("0b9b8a"),
+        AccentColor     = Color3.fromHex("67ddab"),
+        OutlineColor    = Color3.fromHex("909090"),
+        FontColor       = Color3.fromHex("FFFFFF"),
+        RiskyColor      = Color3.fromHex("f65938"),
 
         Font = Font.new("rbxasset://fonts/families/BuilderSans.json", Enum.FontWeight.SemiBold)
     },
@@ -233,14 +233,15 @@ local Library = {
     TwoColumnGroupboxes      = false,
     TwoColumnGroupboxesEvent = CreateEventStore(),
 
+    FocusedContextMenu = CreateEventStore(),
+
     ClipsSafeArea = false,
+    AlwaysOnTop   = false,
+    UIActivated   = false
 }
 
 local InstanceTemplates = {
     Frame = {
-        BorderSizePixel = 0
-    },
-    CanvasGroup = {
         BorderSizePixel = 0
     },
     UIListLayout = {
@@ -262,7 +263,7 @@ local InstanceTemplates = {
 
     ScrollingFrame = {
         BorderSizePixel = 0,
-        ScrollBarThickness = 0,
+        ScrollBarTransparency = 0,
         CanvasSize = UDim2.fromScale(0, 0)
     },
 
@@ -315,10 +316,10 @@ end
 
 function ElementTemplates.NotificationArray()
     return {
-        "",
-        5,
-        Library.NotificationSound,
-        Library.NotificationSide
+        [1] = "",
+        [2] = 5,
+        [3] = Library.NotificationSound,
+        [4] = Library.NotificationSide
     } :: NotificationInfoArray
 end
 
@@ -329,12 +330,31 @@ function ElementTemplates.Window()
         DPIScale          = Library.DPIScale,
         NotificationSide  = Library.NotificationSide,
         NotificationSound = Library.NotificationSound,
-        ShowCustomCursor  = false
+        ShowCustomCursor  = false,
+        AlwaysOnTop       = false,
+        UIActivated       = false
     } :: WindowInfo
 end
 
 function ElementTemplates.Dropdown()
-    return {} :: DropdownInfo
+    return {
+        Text            = GetTranslation("Dropdown"),
+        Values          = {""},
+        Default         = "",
+        Disabled        = false,
+        DisabledValues  = {},
+        Visible         = true,
+        Risky           = false,
+        Tooltip         = nil,
+        DisabledTooltip = nil,
+        AllowNull       = false,
+        Multi           = false,
+        SpecialType     = nil,
+        ExcludeSpeaker  = true,
+        Searchable      = false,
+        Compact         = false,
+        Callback        = function() end
+    } :: DropdownInfo
 end
 
 function ElementTemplates.Toggle()
@@ -345,32 +365,66 @@ function ElementTemplates.Toggle()
         Visible         = true,
         Risky           = false,
         Tooltip         = nil,
-        DisabledTooltip = nil
+        DisabledTooltip = nil,
+        Callback        = function() end
     } :: ToggleInfo
 end
 
-local ViewportSize = shared.Camera.ViewportSize
-
-Library.MaxSizeX = ViewportSize.X
-Library.MaxSizeY = ViewportSize.Y
-
-if Library.WindowSize.X.Offset > Library.MaxSizeX then
-    Library.WindowSize = UDim2.fromOffset(Library.MaxSizeX, Library.WindowSize.Y.Offset)
-    Library.MinSizeX   = Library.MaxSizeX
+function ElementTemplates.Button()
+    return {} :: ButtonInfo
 end
 
-if Library.WindowSize.Y.Offset > Library.MaxSizeY then
-    Library.WindowSize = UDim2.fromOffset(Library.WindowSize.X.Offset, Library.MaxSizeY)
-    Library.MinSizeY   = Library.MaxSizeY
+function ElementTemplates.Slider()
+    return {} :: SliderInfo
 end
 
-if Library.WindowSize.X.Offset > 720 then
-    Library.TwoColumnGroupboxes = true
+function ElementTemplates.Input()
+    return {} :: InputInfo
+end
+
+function ElementTemplates.Label()
+    return {} :: LabelInfo
+end
+
+function ElementTemplates.KeyPicker()
+    return {} :: KeyPickerInfo
+end
+
+function ElementTemplates.ColorPicker()
+    return {} :: ColorPickerInfo
+end
+
+local Camera = shared.Camera :: Camera
+
+do
+    local Workspace    = shared.Workspace
+    local ViewportSize = Camera.ViewportSize
+
+    Library.MaxSizeX = ViewportSize.X
+    Library.MaxSizeY = ViewportSize.Y
+
+    if Library.WindowSize.X.Offset > Library.MaxSizeX then
+        Library.WindowSize = UDim2.fromOffset(Library.MaxSizeX, Library.WindowSize.Y.Offset)
+        Library.MinSizeX   = Library.MaxSizeX
+    end
+
+    if Library.WindowSize.Y.Offset > Library.MaxSizeY then
+        Library.WindowSize = UDim2.fromOffset(Library.WindowSize.X.Offset, Library.MaxSizeY)
+        Library.MinSizeY   = Library.MaxSizeY
+    end
+
+    if Library.WindowSize.X.Offset > 720 then
+        Library.TwoColumnGroupboxes = true
+    end
+
+    GiveSignal(Connect, "LibraryCamera", Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
+        Camera = Workspace.CurrentCamera
+    end)
 end
 
 --// Helpers //
-local math_clamp
-    = math.clamp
+local math_clamp, math_min
+    = math.clamp, math.min
 
 local InputChanged   = UserInputService.InputChanged
 local WindowFocused  = UserInputService.WindowFocused
@@ -421,11 +475,16 @@ local function Fill(
 end
 
 local function Create(ClassName: string, Properties: hash | Instance | any): Instance
-    local Instance = Instance_new(ClassName)
-    local Template = InstanceTemplates[ClassName]
+    -- It always use Frame instead of CanvasGroup 'cause the CanvasGroup works bad
+    local Instance = Instance_new(ClassName ~= "CanvasGroup" and ClassName or "Frame")
+    local Template = InstanceTemplates[ClassName ~= "CanvasGroup" and ClassName or "Frame"]
 
     if Template then
         Fill(Instance, Template, __newindex, typeof)
+    end
+
+    if ClassName == "CanvasGroup" then
+        __newindex(Instance, "ClipsDescendants", true)
     end
 
     if typeof(Properties) == "table" then
@@ -437,7 +496,7 @@ local function Create(ClassName: string, Properties: hash | Instance | any): Ins
     return Instance
 end
 
-local function GetUnscaledTextBounds(TextElement: TextLabel | TextButton, Latitude: "X" | "Y"): Vector2 | number
+local function GetUnscaledTextBounds(TextElement: TextLabel | TextButton, Latitude: "X" | "Y" | nil): Vector2 | number
     local TextBounds = TextElement.TextBounds / Library.DPIScale
 
     return (
@@ -457,18 +516,28 @@ local function GetUnscaledContentSize(UIListLayout: UIListLayout, Latitude: "X" 
     )
 end
 
-local function UpdateWithContentSize(Frame: ScrollingFrame | Frame, UIListLayout: UIListLayout, Offset: UDim2?)
+local function UpdateWithContentSize(
+    Frame:        ScrollingFrame | Frame,
+    UIListLayout: UIListLayout,
+    Offset:       UDim2?,
+    MaxSize:      number?
+)
     local ExtraOffset = Offset or UDim2.fromScale(0, 0)
+    local MaxSizeY    = MaxSize or (1 / 0)
+
     local Key = Frame.ClassName == "ScrollingFrame" and "CanvasSize" or "Size"
 
     local function Update()
-        local CurrentSize = (Frame :: any)[Key];
+        local Frame: any, Key: string
+            = Frame,      Key
 
-        (Frame :: any)[Key] = UDim2.new(
+        local CurrentSize = Frame[Key] :: UDim2
+
+        Frame[Key] = UDim2.new(
             CurrentSize.X.Scale,
             CurrentSize.X.Offset,
             CurrentSize.Y.Scale,
-            GetUnscaledContentSize(UIListLayout, "Y") :: number
+            math_min(GetUnscaledContentSize(UIListLayout, "Y") :: number, MaxSizeY)
         ) + ExtraOffset
     end
 
@@ -476,26 +545,43 @@ local function UpdateWithContentSize(Frame: ScrollingFrame | Frame, UIListLayout
     Update()
 end
 
-local function ToContentId(Original: string | number): string?
+local function ToContentId(Original: string | number): string
     return Original and (
         typeof(Original) == "string" and (Original :: string) or `rbxassetid://{Original}`
-    ) or nil
+    ) or ""
+end
+
+local function MakeRotatable(
+    Target:    ImageButton,
+    Bounding:  (TextButton | ImageButton)?,
+    Callback:  Function?,
+    Increment: number?
+): () -> ()
+    local Id = randomstring(20)
+
+    local TheIncrement = Increment or 180
+    local NextRotation = Target.Rotation
+
+    local function Rotate()
+        NextRotation += TheIncrement
+        Ease(EasingLibrary, Target, "Rotation", NextRotation, Id, 0.25)
+        SafeCallback(Callback)
+    end
+
+    GiveSignal(Connect, Id, (Bounding or Target).Activated, Rotate)
+    return Rotate
 end
 
 local function MakeDraggable(
     Target:          GuiObject | typeof(table.create(2, Create("Frame") :: GuiObject)),
     Bounding:        GuiObject,
     Event:           EventStore?,
-    Offset:          UDim2?,
-    Transparency1:   number?,
-    Transparency2:   number?,
-    TransparencyKey: string?
+    Offset:          UDim2?
 )
     local Target1: GuiObject,
           Target2: GuiObject?
 
     local ExtraOffset = Offset or UDim2.fromScale(0, 0)
-    local Key = TransparencyKey or "BackgroundTransparency"
 
     if typeof(Target) == "table" then
         Target1 = (Target :: {GuiObject})[1]
@@ -506,8 +592,6 @@ local function MakeDraggable(
 
     local DragId1 = randomstring(26)
     local DragId2 = randomstring(27)
-    local DragId3 = randomstring(28)
-    local DragId4 = randomstring(29)
 
     local IsDragging = false
     SetAttribute(Target1, "IsDragging", GetAttribute(Target1, "IsDragging") or false)
@@ -522,9 +606,6 @@ local function MakeDraggable(
 
         local StartPosition = InputObject.Position
         local FramePosition = Target1.Position
-
-        local OldTransparency1 = (Target1 :: any)[Key]
-        local OldTransparency2 = Target2 and (Target2 :: any)[Key]
 
         local Changed, Ended, Focused1, Focused2
 
@@ -541,7 +622,7 @@ local function MakeDraggable(
         Changed = GiveSignal(Connect, nil, InputChanged, function(Input: InputObject)
             if not IsHoverInput(Input) then return end
 
-            local Delta    = Input.Position - StartPosition
+            local Delta    = (Input.Position - StartPosition) / Library.DPIScale
             local Position = FramePosition + UDim2.fromOffset(Delta.X, Delta.Y)
 
             Ease(EasingLibrary, Target1, "Position", Position, DragId1, 0.25, "Quintic")
@@ -556,42 +637,21 @@ local function MakeDraggable(
         Ended = GiveSignal(Connect, nil, GetPropertyChangedSignal(InputObject, "UserInputState"), function()
             if InputObject.UserInputState ~= End then return end
 
-            if Transparency1 then
-                Ease(EasingLibrary, Target1, Key, OldTransparency1, DragId3, 0.25, "Quintic")
-            end
-
-            if Transparency2 and Target2 then
-                Ease(EasingLibrary, Target2, Key, OldTransparency2, DragId4, 0.25, "Quintic")
-            end
-
             DisconnectAll()
         end)
 
         Focused1 = GiveSignal(Connect, nil, WindowFocused,  DisconnectAll)
         Focused2 = GiveSignal(Connect, nil, TextboxFocused, DisconnectAll)
-
-        if Transparency1 then
-            Ease(EasingLibrary, Target1, Key, Transparency1, DragId3, 0.25, "Quintic")
-        end
-
-        if Transparency2 and Target2 then
-            Ease(EasingLibrary, Target2, Key, Transparency2, DragId4, 0.25, "Quintic")
-        end
     end)
 end
 
 local function MakeResizable(
     Target:          GuiObject | typeof(table.create(2, Create("Frame") :: GuiObject)),
     Bounding:        GuiObject,
-    Event:           EventStore?,
-    Transparency1:   number?,
-    Transparency2:   number?,
-    TransparencyKey: string?
+    Event:           EventStore?
 )
     local Target1: GuiObject,
           Target2: GuiObject?
-
-    local Key = TransparencyKey or "BackgroundTransparency"
 
     if typeof(Target) == "table" then
         Target1 = (Target :: {GuiObject})[1]
@@ -602,8 +662,6 @@ local function MakeResizable(
 
     local ResizeId1 = randomstring(30)
     local ResizeId2 = randomstring(31)
-    local ResizeId3 = randomstring(32)
-    local ResizeId4 = randomstring(33)
 
     local IsResizing = false
     SetAttribute(Target1, "IsDragging", GetAttribute(Target1, "IsDragging") or false)
@@ -618,9 +676,6 @@ local function MakeResizable(
 
         local StartPosition = InputObject.Position
         local FrameSize     = Target1.Size
-
-        local OldTransparency1 = (Target1 :: any)[Key]
-        local OldTransparency2 = Target2 and (Target2 :: any)[Key]
 
         local Changed, Ended, Focused1, Focused2
 
@@ -637,7 +692,7 @@ local function MakeResizable(
         Changed = GiveSignal(Connect, nil, InputChanged, function(Input: InputObject)
             if not IsHoverInput(Input) then return end
 
-            local Delta = Input.Position - StartPosition
+            local Delta = (Input.Position - StartPosition) / Library.DPIScale
             local Size  = UDim2.fromOffset(
                 math_clamp(FrameSize.X.Offset + Delta.X, Library.MinSizeX, Library.MaxSizeX),
                 math_clamp(FrameSize.Y.Offset + Delta.Y, Library.MinSizeY, Library.MaxSizeY)
@@ -654,28 +709,11 @@ local function MakeResizable(
 
         Ended = GiveSignal(Connect, nil, GetPropertyChangedSignal(InputObject, "UserInputState"), function()
             if InputObject.UserInputState ~= End then return end
-
-            if Transparency1 then
-                Ease(EasingLibrary, Target1, Key, OldTransparency1, ResizeId3, 0.25, "Quintic")
-            end
-
-            if Transparency2 and Target2 then
-                Ease(EasingLibrary, Target2, Key, OldTransparency2, ResizeId4, 0.25, "Quintic")
-            end
-
             DisconnectAll()
         end)
 
         Focused1 = GiveSignal(Connect, nil, WindowFocused,  DisconnectAll)
         Focused2 = GiveSignal(Connect, nil, TextboxFocused, DisconnectAll)
-
-        if Transparency1 then
-            Ease(EasingLibrary, Target1, Key, Transparency1, ResizeId3, 0.25, "Quintic")
-        end
-
-        if Transparency2 and Target2 then
-            Ease(EasingLibrary, Target2, Key, Transparency2, ResizeId4, 0.25, "Quintic")
-        end
     end)
 end
 
@@ -693,10 +731,10 @@ local ScreenGui = Create("ScreenGui", {
     AutoLocalize = false,
     DisplayOrder = 2^31 - 3,
     Name = randomstring(),
-    Parent = wax.shared.ScreenGui
+    Parent = shared.ScreenGui
 }) :: ScreenGui
 
-local NotificationArea = Create("CanvasGroup", {
+local NotificationArea = Create("Frame", {
     BackgroundTransparency = 1,
     Size = UDim2.fromScale(1, 1),
     Parent = ScreenGui,
@@ -721,6 +759,7 @@ Library.NotificationArea = NotificationArea
 Library.NotificationList = NotificationList
 
 --// Library __newindex
+local Library__newindexFunction
 local Library__newindex = {} :: {[any]: any};do
     local Left   = Enum.HorizontalAlignment.Left
     local Right  = Enum.HorizontalAlignment.Right
@@ -741,16 +780,39 @@ local Library__newindex = {} :: {[any]: any};do
     local UseCheckboxEvent         = Library.UseCheckboxEvent
     local TwoColumnGroupboxesEvent = Library.TwoColumnGroupboxesEvent
 
-    local PreRender   = shared.RunService.PreRender
-    local MouseCanvas = Create("CanvasGroup", {
+    local MouseIconEnabled = UserInputService:GetPropertyChangedSignal("MouseIconEnabled")
+    local MouseIcon        = UserInputService:GetPropertyChangedSignal("MouseIcon")
+
+    local MouseFrame = Create("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Size = UDim2.fromOffset(25, 25),
         Position = UDim2.fromScale(0.5, 0.5),
         Parent = ScreenGui
-    }) :: CanvasGroup
+    }) :: Frame
 
-    local MouseMoveSignal, MouseIconSignal
+    Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(0, 2, 1, 0),
+        Parent = MouseFrame
+    })
+
+    Create("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.new(0, 2, 1, 0),
+        Rotation = 90,
+        Parent = MouseFrame
+    })
+
+    local MouseMoveSignal, MouseIconEnabledSignal, MouseIconSignal
+
+    local SupportOnTopOfCoreBlur = pcall(function()
+        Instance.new("ScreenGui").OnTopOfCoreBlur = true
+    end)
 
     function Library__newindex.NotificationSide(Side: NotificationSide)
         local IsCenter = string_find(Side, "Center")
@@ -765,6 +827,13 @@ local Library__newindex = {} :: {[any]: any};do
             IsCenter and Center2 or
             Bottom
         )
+    end
+
+    function Library__newindex.NotificationSound(SoundId: string | number)
+        SoundId = ToContentId(SoundId) :: string
+        if typeof(SoundId) ~= "string" then return end
+
+        Library.NotificationSound = SoundId :: string
     end
 
     function Library__newindex.NotificationDirection(Direction: NotificationDirection)
@@ -788,8 +857,9 @@ local Library__newindex = {} :: {[any]: any};do
     function Library__newindex.ShowCustomCursor(Enabled: boolean)
         if MouseMoveSignal then MouseMoveSignal = Disconnect(MouseMoveSignal) end
         if MouseIconSignal then MouseIconSignal = Disconnect(MouseIconSignal) end
+        if MouseIconEnabledSignal then MouseIconEnabledSignal = Disconnect(MouseIconEnabledSignal) end
 
-        MouseCanvas.GroupTransparency = Enabled and 0 or 1
+        MouseFrame.Parent = Enabled and ScreenGui or nil
 
         if not Enabled then
             UserInputService.MouseIconEnabled = true
@@ -797,35 +867,21 @@ local Library__newindex = {} :: {[any]: any};do
         end
 
         if Library.CustomCursorStyle == "Crosshair" then
-            Create("Frame", {
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundTransparency = 1,
-                Position = UDim2.fromScale(0.5, 0.5),
-                Size = UDim2.new(0, 2, 1, 0),
-                Parent = MouseCanvas
-            })
-
-            Create("Frame", {
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                BackgroundTransparency = 1,
-                Position = UDim2.fromScale(0.5, 0.5),
-                Size = UDim2.new(0, 2, 1, 0),
-                Rotation = 90,
-                Parent = MouseCanvas
-            })
-
             MouseMoveSignal = GiveSignal(Connect, nil, InputChanged, function(InputObject: InputObject)
-                if not IsHoverInput(InputObject, true) then return end
-                __newindex(MouseCanvas, "Position", UDim2.fromOffset(InputObject.Position.X, InputObject.Position.Y))
+                if not IsHoverInput(InputObject) then return end
+                __newindex(MouseFrame, "Position", UDim2.fromOffset(InputObject.Position.X, InputObject.Position.Y))
             end)
 
-            MouseIconSignal = GiveSignal(Connect, nil, PreRender, function()
+            MouseIconEnabledSignal = GiveSignal(Connect, nil, MouseIconEnabled, function()
                 __newindex(UserInputService, "MouseIconEnabled", false)
             end)
         else
-            MouseIconSignal = GiveSignal(Connect, nil, PreRender, function()
-                __newindex(UserInputService, "MouseIconEnabled", true)
+            MouseIconSignal = GiveSignal(Connect, nil, MouseIcon, function()
                 __newindex(UserInputService, "MouseIcon", Library.CustomCursorId)
+            end)
+
+            MouseIconEnabledSignal = GiveSignal(Connect, nil, MouseIconEnabled, function()
+                __newindex(UserInputService, "MouseIconEnabled", true)
             end)
         end
     end
@@ -841,7 +897,18 @@ local Library__newindex = {} :: {[any]: any};do
         ScreenGui.ClipToDeviceSafeArea = Enabled
     end
 
-    local WindowSize = Library__newindex.WindowSize
+    function Library__newindex.AlwaysOnTop(Enabled: boolean)
+        if not SupportOnTopOfCoreBlur then return end
+
+        shared.ScreenGui.OnTopOfCoreBlur = Enabled
+        ScreenGui.OnTopOfCoreBlur = Enabled
+    end
+
+    function Library__newindex.UIActivated(Enabled: boolean)
+        for _, Window in Library.Windows do
+            Window.BaseCanvas.Active = Enabled
+        end
+    end
 
     local function UpdateTheme(...)
         for Instance: any, Properties in Library.ThemeRegistry do
@@ -871,7 +938,7 @@ local Library__newindex = {} :: {[any]: any};do
             SizeY = Library.MaxSizeY
         end
 
-        WindowSize(UDim2.fromOffset(SizeX, SizeY)) 
+        Library__newindexFunction(Library, "WindowSize", UDim2.fromOffset(SizeX, SizeY)) 
     end
 
     Library__newindex[Scheme] = {}
@@ -884,6 +951,41 @@ local Library__newindex = {} :: {[any]: any};do
         Library__newindex[Key] = UpdateSize
     end
 end
+
+do
+    local rawset
+        = rawset
+
+    function Library__newindexFunction(self: typeof(Library) & table, Key: string, Value: any)
+        local __newindex = Library__newindex
+
+        rawset(self, Key, Value)
+
+        if self == Library and __newindex[Key] then
+            __newindex[Key](Value)
+        elseif __newindex[self] and __newindex[self][Key] then
+            __newindex[self][Key](Value)
+        end
+    end
+end
+
+GiveSignal(Connect, "LibrarySizes", Camera:GetPropertyChangedSignal("ViewportSize"), function()
+    local CurrentSize = Camera.ViewportSize
+
+    local SizeX = CurrentSize.X
+    local SizeY = CurrentSize.Y
+
+    Library.MaxSizeX = SizeX
+    Library.MaxSizeY = SizeY
+
+    Library.MinSizeX = math_min(SizeX, Library.MinSizeX)
+    Library.MinSizeY = math_min(SizeY, Library.MinSizeY)
+
+    Library__newindexFunction(Library, "WindowSize", UDim2.fromOffset(
+        math_min(SizeX, Library.WindowSize.X.Offset),
+        math_min(SizeY, Library.WindowSize.Y.Offset)
+    ))
+end)
 
 --// Types
 type BooleanCallback = (Value: boolean) -> ()
@@ -917,7 +1019,7 @@ type Notification = {
     TitleLabel: TextLabel,
     TitleLine:  Frame,
     TextLabel:  TextLabel,
-    TimeBar:    CanvasGroup,
+    TimeBar:    Frame,
     Bar:        Frame,
     Resize:     (self: Notification) -> ()
 }
@@ -928,20 +1030,22 @@ type WindowInfo = {
     DPIScale:          number,
     NotificationSide:  NotificationSide,
     NotificationSound: string,
-    ShowCustomCursor:  boolean
+    ShowCustomCursor:  boolean,
+    AlwaysOnTop:       boolean,
+    UIActivated:       boolean
 }
 
 type Window = {
     CurrentTab:        Tab?,
     Tabs:              {Tab},
     UIScale:           UIScale,
-    BaseCanvas:        CanvasGroup,
-    BaseShadow:        CanvasGroup,
-    LeftPanel:         CanvasGroup,
+    BaseCanvas:        Frame,
+    BaseShadow:        Frame,
+    LeftPanel:         Frame,
     TitleContainer:    Frame,
     TabsScrolling:     ScrollingFrame,
     TabsContainer:     Frame,
-    RightPanel:        CanvasGroup,
+    RightPanel:        Frame,
     ContentsContainer: ScrollingFrame,
     Collapsed:         boolean,
     CollapsedEvent:    EventStore,
@@ -978,12 +1082,28 @@ type Groupbox = typeof(setmetatable({
     Elements    = {}     :: {AllGroupboxes},
 }, {__index     = BaseGroupboxes}))
 
+type BaseInstance<Element> = typeof(setmetatable({}, {
+    __index    = game :: Element, -- wtf I can cast game into Element 'cause they are related
+    __newindex = function(self: BaseInstance<Element> & table, Key: string, Value: any): () end
+}))
+
 type DropdownInfo = {
-
-}
-
-type Dropdown = {
-
+    Text:            string,
+    Values:          array,
+    Default:         any | array,
+    Disabled:        boolean,
+    DisabledValues:  array,
+    Visible:         boolean,
+    Risky:           boolean,
+    Tooltip:         string?,
+    DisabledTooltip: string?,
+    AllowNull:       boolean,
+    Multi:           boolean,
+    SpecialType:     "Players" | "Teams" | nil,
+    ExcludeSpeaker:  boolean,
+    Searchable:      boolean,
+    Compact:         boolean,
+    Callback:        (Value: any | array) -> ()
 }
 
 type ToggleInfo = {
@@ -994,8 +1114,59 @@ type ToggleInfo = {
     Risky:           boolean,
     Tooltip:         string?,
     DisabledTooltip: string?,
-    Callback:        BooleanCallback,
-    Changed:         BooleanCallback
+    Callback:        BooleanCallback
+}
+
+type ButtonInfo = {
+
+}
+
+type SliderInfo = {
+
+}
+
+type InputInfo = {
+
+}
+
+type LabelInfo = {
+
+}
+
+type KeyPickerInfo = {
+
+}
+
+type ColorPickerInfo = {
+
+}
+
+type Dropdown = {
+    Groupbox:        Groupbox,
+    Num:             number,
+    LayoutOrder:     number,
+    Index:           string,
+    Text:            string,
+    Value:           any | array,
+    Values:          array,
+    Disabled:        boolean,
+    DisabledValues:  array,
+    Visible:         boolean,
+    Risky:           boolean,
+    Tooltip:         string?,
+    DisabledTooltip: string?,
+    Callback:        {(Value: any | array) -> ()},
+    Type:            "Dropdown",
+    Container:       Frame,
+    Holder:          TextButton,
+    HolderText:      TextLabel,
+    HolderImage:     ImageLabel,
+    Title:           TextLabel,
+    MenuContainer:   Frame,
+    ContextMenu:     ScrollingFrame,
+    Update:          (self: Dropdown) -> (),
+    Trigger:         (self: Dropdown,            Value: any | array)        -> (),
+    OnChanged:       (self: Dropdown, Callback: (Value: any | array) -> ()) -> ()
 }
 
 type Toggle = typeof(setmetatable({
@@ -1011,10 +1182,9 @@ type Toggle = typeof(setmetatable({
     Tooltip          = nil      :: string?,
     DisabledTooltip  = nil      :: string?,
     Callback         = {}       :: {BooleanCallback},
-    Changed          = {}       :: {BooleanCallback},
     Type             = "Toggle" :: "Toggle",
     Addons           = {}       :: {AllAddons},
-    Container        = game     :: CanvasGroup,
+    Container        = game     :: Frame,
     Holder           = game     :: TextButton,
     Title            = game     :: TextLabel,
     Switch           = game     :: Frame,
@@ -1023,24 +1193,10 @@ type Toggle = typeof(setmetatable({
     CheckImage       = game     :: ImageLabel,
     Update           = function(self: Toggle): () end,
     Trigger          = function(self: Toggle, Value:    boolean):         () end,
-    OnChanged        = function(self: Toggle, Changed:  BooleanCallback): () end,
-    OnCallback       = function(self: Toggle, Callback: BooleanCallback): () end
+    OnChanged        = function(self: Toggle, Callback: BooleanCallback): () end
 }, {__index = BaseAddons}))
 
-type ToggleInstance = typeof(setmetatable({}, {
-    __index    = setmetatable({}, {}) :: Toggle,
-    __newindex = function(self: ToggleInstance & table, Key: string, Value: any): () end
-}))
-
-type ButtonInfo = {
-
-}
-
 type Button = {
-
-}
-
-type SliderInfo = {
 
 }
 
@@ -1048,15 +1204,7 @@ type Slider = {
 
 }
 
-type InputInfo = {
-
-}
-
 type Input = {
-
-}
-
-type LabelInfo = {
 
 }
 
@@ -1064,15 +1212,7 @@ type Label = typeof(setmetatable({
 
 }, {__index = BaseAddons}))
 
-type KeyPickerInfo = {
-
-}
-
 type KeyPicker = {
-
-}
-
-type ColorPickerInfo = {
 
 }
 
@@ -1123,11 +1263,10 @@ function Library:Notify(...: NotificationInfo): Notification
         Parent = NotificationArea
     })
 
-    local Background = Create("Frame", {
+    local Background = Create("CanvasGroup", {
         BackgroundColor3 = "BackgroundColor",
         Size = UDim2.fromScale(1, 1),
         Position = UDim2.new(1, 8, 0, 0),
-        ClipsDescendants = true,
         Parent = Container
     }) :: Frame
 
@@ -1193,8 +1332,8 @@ function Library:Notify(...: NotificationInfo): Notification
         local Title      = self.TitleLabel
         local Text       = self.TextLabel
 
-        local TitleBounds = Title.TextBounds
-        local TextBounds  = Text.TextBounds
+        local TitleBounds = GetUnscaledTextBounds(Title) :: Vector2
+        local TextBounds  = GetUnscaledTextBounds(Text) :: Vector2
 
         Title.Size = UDim2.fromOffset(TitleBounds.X, TitleBounds.Y)
         Text.Size  = UDim2.fromOffset(TextBounds.X, TextBounds.Y)
@@ -1214,13 +1353,13 @@ function Library:Notify(...: NotificationInfo): Notification
             Ease(EasingLibrary, Background, "Position", UDim2.new(1, 8, 0, 0), Background, 0.4)
         end)
     else
-        local TimeBar = Create("CanvasGroup", {
+        local TimeBar = Create("Frame", {
             BackgroundColor3 = function()
                 return GetDarkerColor(self.Scheme.PrimaryColor, 0.2)
             end,
             Size = UDim2.new(1, 0, 0, 4),
             Parent = Background
-        }) :: CanvasGroup
+        }) :: Frame
 
         local Bar = Create("Frame", {
             BackgroundColor3 = function()
@@ -1246,17 +1385,20 @@ end
 function Library:CreateWindow(WindowInfo: WindowInfo): Window
     Validate(WindowInfo, ElementTemplates.Window())
 
-    for Property, Value in WindowInfo :: any do
-        if Property == "DPIScale" then
-            Library.DPIScale = Value
-        elseif Property == "NotificationSide" then
-            Library.NotificationSide  = Value
-        elseif Property == "NotificationSound" then
-            Library.NotificationSound = Value
-        elseif Property == "ShowCustomCursor" then
-            Library.ShowCustomCursor  = Value
-        end
+    local function Config(Property: string)
+        local Value = WindowInfo[Property]
+        if Value == nil then return end
+
+        Library__newindexFunction(self, Property, Value)
     end
+
+    Config("UIActivated")
+    Config("DPIScale")
+    Config("NotificationSide")
+    Config("NotificationSound")
+    Config("ShowCustomCursor")
+    Config("AlwaysOnTop")
+    Config("UIActivated")
 
     local Window = {
         CurrentTab = nil :: Tab?,
@@ -1264,25 +1406,26 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
     } :: Window
 
     local BaseCanvas = Create("CanvasGroup", {
+        Active = WindowInfo.UIActivated,
         BackgroundTransparency = 1,
         Size = Library.WindowSize,
         Position = UDim2.fromScale(0.5, 0.5),
         ZIndex = 2,
         Parent = ScreenGui
-    }) :: CanvasGroup
+    }) :: Frame
 
     BaseCanvas.Position -= UDim2.fromOffset(
         BaseCanvas.Size.X.Offset / 2,
         BaseCanvas.Size.Y.Offset / 2
     )
 
-    local BaseShadow = Create("CanvasGroup", {
+    local BaseShadow = Create("Frame", {
         BackgroundTransparency = 0.5,
         BackgroundColor3 = Color3.new(),
         Size = BaseCanvas.Size,
         Position = BaseCanvas.Position + UDim2.fromOffset(2, 2),
         Parent = ScreenGui
-    }) :: CanvasGroup
+    }) :: Frame
 
     Create("UICorner", BaseCanvas)
     Create("UICorner", BaseShadow)
@@ -1300,12 +1443,12 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
         Size = UDim2.new(0, 200, 1, 0),
         ZIndex = 2,
         Parent = BaseCanvas
-    }) :: CanvasGroup
+    }) :: Frame
 
     Create("UICorner", LeftPanel)
     Window.LeftPanel = LeftPanel
 
-    local TitleContainer = Create("Frame", {
+    local TitleContainer = Create("CanvasGroup", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 40),
         Parent = LeftPanel
@@ -1335,7 +1478,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
         Parent = LeftPanel
     }) :: ScrollingFrame
 
-    local TabsContainer = Create("Frame", {
+    local TabsContainer = Create("CanvasGroup", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(4, 0),
         Size = UDim2.fromScale(1, 1),
@@ -1354,7 +1497,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
         Parent = LeftPanel
     })
 
-    local ComponentsContainer = Create("Frame", {
+    local ComponentsContainer = Create("CanvasGroup", {
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 1, -40),
         Size = UDim2.new(1, 0, 0, 40),
@@ -1366,7 +1509,9 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
         Position = UDim2.fromOffset(192, 0),
         Size = UDim2.new(1, -192, 1, 0),
         Parent = BaseCanvas
-    }) :: CanvasGroup
+    }) :: Frame
+
+    Create("UICorner", RightPanel)
 
     Create("UIPadding", {
         PaddingLeft = UDim.new(0, 8),
@@ -1414,10 +1559,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
                 BaseShadow
             } :: {GuiObject},
             ResizeArea :: GuiObject,
-            WindowSizeEvent,
-            0.5,
-            1,
-            "GroupTransparency"
+            WindowSizeEvent
         )
     end
 
@@ -1434,38 +1576,13 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
             Parent = ComponentsContainer
         }) :: ImageButton
 
-        local Collapsed  = false
         Window.Collapsed = false
 
-        if Random.new():NextNumber(1, 2) > 1 then
-            --/ Do funny rotation
-            local NextRotation = 0
-
-            GiveSignal(Connect, nil, CollapseButton.Activated, function()
-                NextRotation += 180
-                if NextRotation > 360 then
-                    NextRotation -= 360
-                end
-
-                Collapsed = not Collapsed
-                Window.Collapsed = Collapsed
-
-                if CollapseButton.Rotation > 360 then
-                    CollapseButton.Rotation -= 360
-                end
-
-                Ease(EasingLibrary, CollapseButton, "Rotation", NextRotation, CollapseButton, 0.25)
-                Fire(CollapsedEvent, Collapsed)
-            end)
-        else
-            GiveSignal(Connect, nil, CollapseButton.Activated, function()
-                Collapsed = not Collapsed
-                Window.Collapsed = Collapsed
-
-                Ease(EasingLibrary, CollapseButton, "Rotation", Collapsed and 180 or 0, CollapseButton, 0.25)
-                Fire(CollapsedEvent, Collapsed)
-            end)
-        end
+        MakeRotatable(CollapseButton, nil, function()
+            local Collapsed  = not Window.Collapsed
+            Window.Collapsed = Collapsed
+            Fire(CollapsedEvent, Collapsed)
+        end)
     end
 
     local MinimizedEvent = CreateEventStore();do
@@ -1510,20 +1627,14 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
             NeedToBeDraggable,
             TitleContainer :: GuiObject,
             nil,
-            UDim2.fromOffset(2, 2),
-            0.5,
-            1,
-            "GroupTransparency"
+            UDim2.fromOffset(2, 2)
         )
 
         MakeDraggable(
             NeedToBeDraggable,
             WindowIcon,
             nil,
-            UDim2.fromOffset(2, 2),
-            0.5,
-            1,
-            "GroupTransparency"
+            UDim2.fromOffset(2, 2)
         )
     end
 
@@ -1565,16 +1676,15 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
             Window = self,
             Id = tick(),
             Num = NumTabs + 1,
-            LayoutOrder = 1 - NumTabs,
+            LayoutOrder = NumTabs,
             Focused = false,
             Groupboxes = {}
         } :: Tab
 
-        local Holder = Create("Frame", {
+        local Holder = Create("CanvasGroup", {
             BackgroundTransparency = 1,
             BackgroundColor3 = "AccentColor",
             Size = UDim2.new(1, 0, 0, 35),
-            ClipsDescendants = true,
             LayoutOrder = Tab.LayoutOrder,
             Parent = self.TabsScrolling
         }) :: Frame
@@ -1664,13 +1774,13 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
 
         UpdateWithContentSize(Container, UIListLayout)
 
-        local LeftContainer = Create("Frame", {
+        local LeftContainer = Create("CanvasGroup", {
             BackgroundTransparency = 1,
             Size = UDim2.fromScale(1, 0),
             Parent = Container
         }) :: Frame
 
-        local RightContainer = Create("Frame", {
+        local RightContainer = Create("CanvasGroup", {
             BackgroundTransparency = 1,
             Size = UDim2.fromScale(1, 0),
             Parent = Container
@@ -1709,11 +1819,11 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
                 Side = Side,
                 Tab = self,
                 Num = NumGroupboxes + 1,
-                LayoutOrder = 1 - NumGroupboxes,
+                LayoutOrder = NumGroupboxes,
                 Elements = {}
             }, {__index = BaseGroupboxes}) :: Groupbox
 
-            local Container = Create("Frame", {
+            local Container = Create("CanvasGroup", {
                 BackgroundColor3 = function()
                     return GetDarkerColor(Library.Scheme.PrimaryColor, 0.2)
                 end,
@@ -1740,7 +1850,7 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
             if Title then
                 Container.Size = UDim2.new(1, 0, 0, 30)
 
-                local TitleContainer = Create("Frame", {
+                local TitleContainer = Create("CanvasGroup", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 30),
                     Parent = Container
@@ -1798,18 +1908,188 @@ function Library:CreateWindow(WindowInfo: WindowInfo): Window
     return Window
 end
 
-function BaseGroupboxes.AddDropdown(self: Groupbox)
+function BaseGroupboxes.AddDropdown(self: Groupbox, Index: string, DropdownInfo: DropdownInfo): BaseInstance<Dropdown>
+    local      GetChildren,      IsA,      Destroy
+        = game.GetChildren, game.IsA, game.Destroy
 
+    Validate(DropdownInfo, ElementTemplates.Dropdown())
+    local NumElements = #self.Elements
+
+    local Dropdown = {
+        Groupbox = self,
+        Num = NumElements + 1,
+        LayoutOrder = NumElements,
+        Index = Index,
+        Text = DropdownInfo.Text,
+        Value = DropdownInfo.Default,
+        Values = DropdownInfo.Values,
+        Disabled = DropdownInfo.Disabled,
+        DisabledValues = DropdownInfo.DisabledValues,
+        Visible = DropdownInfo.Visible,
+        Risky = DropdownInfo.Risky,
+        Tooltip = DropdownInfo.Tooltip,
+        DisabledTooltip = DropdownInfo.DisabledTooltip,
+        Callback = {DropdownInfo.Callback},
+        Type = "Dropdown" :: "Dropdown"
+    } :: Dropdown
+
+    local GroupboxContainer = self.Container
+
+    local DropdownContainer = Create("CanvasGroup", {
+        BackgroundColor3 = function()
+            return GetDarkerColor(Library.Scheme.PrimaryColor, 0.3)
+        end,
+        Size = UDim2.new(1, 0, 0, DropdownInfo.Compact and 30 or 56),
+        LayoutOrder = Dropdown.LayoutOrder,
+        Parent = GroupboxContainer
+    }) :: Frame
+
+    local Holder = Create("TextButton", {
+        Active = not Dropdown.Disabled,
+        BackgroundColor3 = function()
+            return GetDarkerColor(Library.Scheme.PrimaryColor, 0.15)
+        end,
+        Size = UDim2.new(1, -12, 0, 24),
+        Position = UDim2.fromOffset(6, DropdownInfo.Compact and 3 or 27),
+        Parent = DropdownContainer,
+        ZIndex = 3
+    }) :: TextButton
+
+    local AdornmentContainer = Create("CanvasGroup", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        Parent = Holder
+    })
+
+    Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 4),
+        PaddingRight = UDim.new(0, 4),
+        Parent = AdornmentContainer
+    })
+
+    local HolderText = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        TextTransparency = 0.33,
+        TextSize = 16,
+        TextXAlignment = TextLeft,
+        Parent = AdornmentContainer
+    }) :: TextLabel
+
+    local Asset = GetAsset("chevron-down")
+    local function Rotate()
+        --/ A placeholder
+    end
+
+    if Asset then
+        local HolderImage = Create("ImageLabel", {
+            Image = Asset.Url,
+            ImageRectSize = Asset.ImageRectSize,
+            ImageRectOffset = Asset.ImageRectOffset,
+            Position = UDim2.new(1, -18, 0, 3),
+            Size = UDim2.fromOffset(18, 18),
+            Parent = AdornmentContainer
+        })
+
+        Rotate = MakeRotatable(HolderImage :: ImageButton, Holder)
+        Dropdown.HolderImage = HolderImage :: ImageLabel
+    end
+
+    Dropdown.Container  = DropdownContainer
+    Dropdown.Holder     = Holder
+    Dropdown.HolderText = HolderText
+
+    local Title = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -12, 0, 26), 
+        Position = UDim2.fromOffset(6, 3),
+        Text = Dropdown.Text,
+        TextSize = 18,
+        TextTransparency = 0.3,
+        TextXAlignment = TextLeft,
+        TextColor3 = Dropdown.Risky and "RiskyColor" or "FontColor",
+        Parent = DropdownContainer,
+        ZIndex = 2
+    }) :: TextLabel
+
+    local TextBounds = GetUnscaledTextBounds(Title, "X") :: number
+
+    if DropdownInfo.Compact then
+        Holder.Size     = UDim2.new(1, -TextBounds - 6, 1, -6)
+        Holder.Position = UDim2.fromOffset(TextBounds + 12, 0)
+    end
+
+    Dropdown.Title = Title
+
+    if typeof(Dropdown.Value) == "table" then
+        local Values    = Dropdown.Values
+        local ValueList = {}
+
+        for _, Value in Dropdown.Value :: array do
+            if not table_find(Values, Value) then continue end
+            table_insert(ValueList, `{Value}`)
+        end
+
+        HolderText.Text = table_concat(ValueList, ", ")
+    else
+        HolderText.Text = `{Dropdown.Value}`
+    end
+
+    Create("UICorner", DropdownContainer)
+
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = Holder
+    })
+
+    local ContextMenuContainer = Create("CanvasGroup", {
+        AnchorPoint = Vector2.new(0, 1),
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 0),
+        Parent = Holder
+    }) :: Frame
+
+    local ContextMenu = Create("ScrollingFrame", {
+        BackgroundColor3 = function()
+            return GetBrighterColor(DropdownContainer.BackgroundColor3, 0.2)
+        end,
+        Size = UDim2.fromScale(1, 1),
+        Parent = ContextMenuContainer
+    }) :: ScrollingFrame
+
+    Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = ContextMenuContainer
+    })
+
+    local UIListlayout = Create("UIListLayout", ContextMenu) :: UIListLayout
+
+    UpdateWithContentSize(ContextMenu, UIListlayout)
+    UpdateWithContentSize(ContextMenuContainer, UIListlayout, nil, 120)
+
+    OnEvent(Library.FocusedContextMenu, function(Focused: GuiObject)
+        if Focused == ContextMenu then return end
+
+        ContextMenuContainer.Size = UDim2.fromScale(1, 0)
+        Rotate()
+    end)
+
+    Dropdown.MenuContainer = ContextMenuContainer
+    Dropdown.ContextMenu   = ContextMenu
+
+    function Dropdown:Update()
+
+    end
 end
 
-function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: ToggleInfo): ToggleInstance
+function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: ToggleInfo): BaseInstance<Toggle>
     Validate(ToggleInfo, ElementTemplates.Toggle())
     local NumElements = #self.Elements
 
     local Toggle = setmetatable({
         Groupbox = self,
         Num = NumElements + 1,
-        LayoutOrder = 1 - NumElements,
+        LayoutOrder = NumElements,
         Index = Index,
         Text = ToggleInfo.Text,
         Value = ToggleInfo.Default,
@@ -1819,7 +2099,6 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
         Tooltip = ToggleInfo.Tooltip,
         DisabledTooltip = ToggleInfo.DisabledTooltip,
         Callback = {ToggleInfo.Callback},
-        Changed = {ToggleInfo.Changed},
         Type = "Toggle" :: "Toggle",
         Addons = {}
     }, {__index = BaseAddons}) :: Toggle
@@ -1833,22 +2112,23 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
         Size = UDim2.new(1, 0, 0, 30),
         LayoutOrder = Toggle.LayoutOrder,
         Parent = GroupboxContainer
-    }) :: CanvasGroup
+    }) :: Frame
 
     local Holder = Create("TextButton", {
         Active = not Toggle.Disabled,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -6, 1, -6),
+        Size = UDim2.new(1, -12, 1, -6),
+        Position = UDim2.fromOffset(6, 3),
         Parent = ToggleContainer,
         ZIndex = 3
     }) :: TextButton
 
     local Title = Create("TextLabel", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -12, 1, 0),
-        Position = UDim2.fromOffset(6, 0),
+        Size = UDim2.new(1, -12, 1, -6),
+        Position = UDim2.fromOffset(6, 3),
         Text = Toggle.Text,
-        TextSize = 20,
+        TextSize = 18,
         TextTransparency = 0.3,
         TextXAlignment = TextLeft,
         TextColor3 = Toggle.Risky and "RiskyColor" or "FontColor",
@@ -1863,13 +2143,12 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
     Toggle.Holder    = Holder
     Toggle.Title     = Title
 
-    local Switch = Create("Frame", {
+    local Switch = Create("CanvasGroup", {
         BackgroundColor3 = function()
-            return GetBrightColor(ToggleContainer.BackgroundColor3, 0.1)
+            return GetBrighterColor(ToggleContainer.BackgroundColor3, 0.1)
         end,
         Size = UDim2.fromOffset(36, 18),
         Position = UDim2.new(1, -42, 0, 6),
-        ClipsDescendants = true,
         Parent = ToggleContainer
     }) :: Frame
 
@@ -1895,13 +2174,13 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
     Toggle.Switch = Switch
     Toggle.Ball   = Ball
 
-    local Checkbox = Create("Frame", {
+    local Checkbox = Create("CanvasGroup", {
         BackgroundColor3 = function()
-            return GetBrightColor(ToggleContainer.BackgroundColor3, 0.1)
+            return GetBrighterColor(ToggleContainer.BackgroundColor3, 0.1)
         end,
         AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.fromOffset(0, 4),
         Size = UDim2.fromOffset(18, 18),
-        ClipsDescendants = true,
         Parent = ToggleContainer
     }) :: Frame
 
@@ -1915,7 +2194,7 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
     local Asset = GetAsset("check")
 
     if Asset then
-        local CheckImage = Create("ImageLabel", {
+        Toggle.CheckImage = Create("ImageLabel", {
             Image = Asset.Url,
             ImageRectSize = Asset.ImageRectSize,
             ImageRectOffset = Asset.ImageRectOffset,
@@ -1924,8 +2203,6 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
             Position = UDim2.fromOffset(2, 2),
             Parent = Checkbox
         }) :: ImageLabel
-
-        Toggle.CheckImage = CheckImage
     end
 
     Toggle.Checkbox = Checkbox
@@ -1961,10 +2238,12 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
                 return GetDarkerColor(Container.BackgroundColor3, 0.1)
             end
 
+            ThemeRegistry[Ball].BackgroundColor3     = "OutlineColor"
             ThemeRegistry[Title].TextTransparency    = 0.55
             ThemeRegistry[Switch].BackgroundColor3   = SwitchColor
             ThemeRegistry[Checkbox].BackgroundColor3 = CheckboxColor
 
+            Ease(EasingLibrary, Ball, "BackgroundColor3", Scheme.OutlineColor, Ball, 0.25)
             Ease(EasingLibrary, Title, "TextTransparency", 0.55, Title, 0.25)
             Ease(EasingLibrary, Switch, "BackgroundColor3", SwitchColor(), Switch, 0.25)
             Ease(EasingLibrary, Checkbox, "BackgroundColor3", CheckboxColor(), Checkbox, 0.25)
@@ -1974,11 +2253,15 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
         end
 
         local SwitchColor = function()
-            return Value and GetDarkerColor(Scheme.AccentColor, 0.1) or GetBrightColor(Container.BackgroundColor3, 0.1)
+            return Value and GetDarkerColor(Scheme.AccentColor, 0.1) or GetBrighterColor(Container.BackgroundColor3, 0.1)
         end
 
         local CheckboxColor = function()
-            return Value and GetDarkerColor(Scheme.AccentColor, 0.1) or GetBrightColor(Container.BackgroundColor3, 0.1)
+            return Value and GetDarkerColor(Scheme.AccentColor, 0.1) or GetBrighterColor(Container.BackgroundColor3, 0.1)
+        end
+
+        local BallColor = function()
+            return Value and GetDarkerColor(Scheme.OutlineColor, 0.1) or Scheme.OutlineColor
         end
 
         ThemeRegistry[Title].TextTransparency    = Value and 0.1 or 0.3
@@ -1988,23 +2271,16 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
         Ease(EasingLibrary, Title, "TextTransparency", Value and 0.1 or 0.3, Title, 0.25)
         Ease(EasingLibrary, Switch, "BackgroundColor3", SwitchColor(), Switch, 0.25)
         Ease(EasingLibrary, Checkbox, "BackgroundColor3", CheckboxColor(), Checkbox, 0.25)
-        Ease(EasingLibrary, Ball, "Position", UDim2.fromOffset(Value and 19 or 1, 1), Ball, 0.25)
+        Ease(EasingLibrary, Ball, "BackgroundColor3", BallColor(), Ball, 0.25)
+        Ease(EasingLibrary, Ball, "Position", UDim2.fromOffset(Value and 19 or 1, 1), Ball.Name, 0.25)
 
         if CheckImage then Ease(EasingLibrary, CheckImage, "ImageTransparency", Value and 0 or 1, CheckImage, 0.25) end
     end
 
     function Toggle:Trigger(Value: boolean)
         for _, Callback in self.Callback do
-            task_spawn(Callback, Value)
+            task_spawn(SafeCallback, Callback, Value)
         end
-
-        for _, Changed in self.Changed do
-            task_spawn(Changed, Value)
-        end
-    end
-
-    function Toggle:OnChanged(Changed: BooleanCallback)
-        table_insert(self.Changed, Changed)
     end
 
     function Toggle:OnCallback(Callback: BooleanCallback)
@@ -2024,8 +2300,8 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
     end
 
     OnEvent(Library.UseCheckboxEvent, function(UseCheckbox: boolean)
-        Ease(EasingLibrary, Checkbox, "Position", UDim2.fromScale(UseCheckbox and 1 or 0, 0), Checkbox, 0.4)
-        Ease(EasingLibrary, Switch, "Position", UDim2.new(1, UseCheckbox and 0 or 42, 0, 0), Switch, 0.4)
+        Ease(EasingLibrary, Checkbox, "Position", UDim2.new(UseCheckbox and 1 or 0, UseCheckbox and 4 or 0, 0, 4), Checkbox, 0.25)
+        Ease(EasingLibrary, Switch, "Position", UDim2.new(1, UseCheckbox and 0 or 42, 0, 0), Switch, 0.25)
     end)
 
     GiveSignal(Connect, nil, Holder.Activated, function()
@@ -2037,67 +2313,49 @@ function BaseGroupboxes.AddToggle(self: Groupbox, Index: string, ToggleInfo: Tog
 
     SetValue(Toggle.Value)
 
-    local function __newindex(self: ToggleInstance & table, Key: string, Value: any)
+    local function __newindex(self: BaseInstance<Toggle> & table, Key: string, Value: any)
         if Key == "Value" then
-            return SetValue(Value)
+            SetValue(Value)
         elseif Toggle[Key] then
             Toggle[Key] = Value
             Toggle:Update()
         else
-            rawset(self :: table, Key, Value)
+            rawset(self, Key, Value)
         end
     end
 
     return setmetatable({}, {
-        __index    = Toggle,
+        __index    = Toggle :: any,
         __newindex = __newindex
     })
 end
 
-function BaseGroupboxes.AddButton(self: Groupbox)
+function BaseGroupboxes.AddButton(self: Groupbox, ButtonInfo: ButtonInfo)
 
 end
 
-function BaseGroupboxes.AddSlider(self: Groupbox)
+function BaseGroupboxes.AddSlider(self: Groupbox, SliderInfo: SliderInfo)
 
 end
 
-function BaseGroupboxes.AddInput(self: Groupbox)
+function BaseGroupboxes.AddInput(self: Groupbox, InputInfo: InputInfo)
 
 end
 
-function BaseGroupboxes.AddLabel(self: Groupbox)
+function BaseGroupboxes.AddLabel(self: Groupbox, LabelInfo: LabelInfo)
 
 end
 
-function BaseAddons.AddKeyPicker(self: Toggle | Label)
+function BaseAddons.AddKeyPicker(self: Toggle | Label, KeyPickerInfo: KeyPickerInfo)
 
 end
 
-function BaseAddons.AddColorPicker(self: Toggle | Label)
+function BaseAddons.AddColorPicker(self: Toggle | Label, ColorPickerInfo: ColorPickerInfo)
 
 end
 
 --// Finalizer //
-return (function(
-    rawset:            typeof(rawset),
-    Library__newindex: typeof(Library__newindex)
-)
-    local function __newindex(self, Key, Value)
-        local Library__newindex
-            = Library__newindex
-
-        rawset(self, Key, Value)
-
-        if self == Library and Library__newindex[Key] then
-            Library__newindex[Key](Value)
-        elseif Library__newindex[self] and Library__newindex[self][Key] then
-            Library__newindex[self][Key](Value)
-        end
-    end
-
-    return setmetatable({}, {
-        __index    = Library,
-        __newindex = __newindex
-    })
-end)(rawset, Library__newindex) 
+return setmetatable({}, {
+    __index    = Library,
+    __newindex = Library__newindexFunction
+})
