@@ -2,7 +2,7 @@ local Translations = {
     Reverse = {}
 }
 
-local Language = wax.shared.Language
+local Language = shared.Language
 
 if Language ~= "en" then
     local task_wait
@@ -38,10 +38,10 @@ if Language ~= "en" then
         Translations[Language] = Result
     else
         if Result:find("HttpGet is not a valid member of") then
-            Result = "HttpGet doesn't exist!"
+            Result = "Missing 'HttpGet' function!"
         end
 
-        wax.shared.MiniNotify("Translations:", `Failed to fetch translations for {Language} due to {Result}`)
+        shared.MiniNotify("Translations:", `Failed to fetch translations for {Language} due to "{Result}"`)
     end
 end
 
