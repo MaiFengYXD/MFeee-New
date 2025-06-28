@@ -12,7 +12,7 @@ end
 
 local Universal = {}
 
-local EasingLibrary = wax.shared.EasingLibrary
+local EasingLibrary = shared.EasingLibrary
 local RunningTween  = EasingLibrary.RunningTween
 local Ease = EasingLibrary.Ease
 
