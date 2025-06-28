@@ -1,1 +1,1 @@
-return wax.shared.UIManager:CreatePlayerTab()
+return shared.UIManager:CreatePlayerTab()
