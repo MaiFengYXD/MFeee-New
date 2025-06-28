@@ -1,7 +1,10 @@
 local pcall, task
     = pcall, task
 
-if not game:IsLoaded() then
+if type(getgenv) ~= "function" then
+    task.spawn(error, "This script only supports exploit environments.")
+    return
+elseif not game:IsLoaded() then
     game.Loaded:Wait()
     task.wait(1)
 end
@@ -9,7 +12,7 @@ end
 wax.Unloaded = false
 
 --// Pre-Checks //
-require("Utils/Services"):GetServices({
+require("@self/Utils/Services"):GetServices({
     "ContextActionService",
     "MarketplaceService",
     "CollectionService",
@@ -30,9 +33,7 @@ require("Utils/Services"):GetServices({
 
 shared.Speaker = shared.Players.LocalPlayer
 
-if type(getgenv) ~= "function" then
-    shared.Speaker:Kick("This script only supports exploit environments.");return
-elseif shared.Workspace.DistributedGameTime < 1 then
+if shared.Workspace.DistributedGameTime < 1 then
     task.wait(1 - shared.Workspace.DistributedGameTime)
 end
 
@@ -46,11 +47,11 @@ local function Notify(Title: string, Text: string)
         Title    = Title,
         Text     = Text,
         Button1  = "Close",
-        Duration = 30
+        Duration = 15
     })
 end
 
-wax.shared.MiniNotify = Notify
+shared.MiniNotify = Notify
 
 if Global.MFeeeLoaded  then Notify("Loading Stopped!", "Error: already loaded.") ;return end
 if Global.MFeeeLoading then Notify("Loading Stopped!", "Error: already loading.");return end
@@ -99,11 +100,11 @@ shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (functio
     return PlayerGui
 end)(game.IsA, game.Close.Wait, shared.Speaker.ChildAdded)
 
-wax.shared.Emoji           = require("Utils/ArtEmoji")
-wax.shared.ExecutorSupport = require("Utils/ExecutorSupport")
-wax.shared.FileHelper      = require("Utils/FileHelper")
+shared.Emoji           = require("@self/Utils/ArtEmoji")
+shared.ExecutorSupport = require("@self/Utils/ExecutorSupport")
+shared.FileHelper      = require("@self/Utils/FileHelper")
 
-require("Utils/Bypass")
+require("@self/Utils/Bypass")
 
 do
     local table_insert, table_clear, unpack
@@ -114,11 +115,11 @@ do
     function wax.Unload()
         if wax.Unloaded then return end
 
-        local pcall, task_defer
-            = pcall, task.defer
+        local pcall, task_spawn
+            = pcall, task.spawn
 
         for _, Bundled in OnUnloadFunctions do
-            task_defer(pcall, Bundled[1], unpack(Bundled[2]))
+            task_spawn(pcall, Bundled[1], unpack(Bundled[2]))
         end
         OnUnloadFunctions = table_clear(OnUnloadFunctions)
 
@@ -169,12 +170,12 @@ do
         ScreenGui.Parent               = Global.gethui()
     end
 
-    wax.shared.ScreenGui = ScreenGui
+    shared.ScreenGui = ScreenGui
 
     local tonumber, string_match, table_sort
         = tonumber, string.match, table.sort
 
-    function wax.shared.Sequencing(Table: table): table
+    function shared.Sequencing(Table: table): table
         local tonumber, string_match
             = tonumber, string_match
 
@@ -191,7 +192,7 @@ do
     local type
         = type
 
-    function wax.shared.Validate(Target: table, Template: table): table
+    function shared.Validate(Target: table, Template: table): table
         if type(Target) ~= "table" then
             return Template
         end
@@ -241,37 +242,37 @@ do
         for _, OS in OSList do
             if OS ~= Platform then continue end
 
-            wax.shared.DeviceType = Type
+            shared.DeviceType = Type
             break
         end
     end
 
-    wax.shared.ScriptName    = "Universal"
-    wax.shared.ScriptFolder  = "Universal"
-    wax.shared.ScriptDisplay = "Universal"
+    shared.ScriptName    = "Universal"
+    shared.ScriptFolder  = "Universal"
+    shared.ScriptDisplay = "Universal"
 
-    local Mappings = require("Mappings")
+    local Mappings = require("@self/Mappings")
     local Mapping  = Mappings[game.PlaceId]
 
     if Mapping then
-        wax.shared.ScriptName    = Mapping.Name
-        wax.shared.ScriptFolder  = Mapping.Folder
-        wax.shared.ScriptDisplay = Mapping.Display
+        shared.ScriptName    = Mapping.Name
+        shared.ScriptFolder  = Mapping.Folder
+        shared.ScriptDisplay = Mapping.Display
     end
 end
 
 --// Start to Load //
-wax.shared.TempStorage = {}
+shared.TempStorage = {}
 
 task.spawn(function()
     while not (pcall(function()
-        wax.shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
-    end) and wax.shared.GameName) and task.wait(0.5) do end
+        shared.GameName = shared.MarketplaceService:GetProductInfo(game.PlaceId).Name
+    end) and shared.GameName) and task.wait(0.5) do end
 end)
 
 shared.Camera = shared.Workspace.CurrentCamera
 
-wax.shared.AllowedLanguages = {
+shared.AllowedLanguages = {
     -- ["am"] = "አማርኛ",
     -- ["ar"] = "العربية",
     -- ["az"] = "Azərbaycan dili",
@@ -299,12 +300,12 @@ wax.shared.AllowedLanguages = {
     ["zh-hant"] = "繁體中文"
 }
 
-wax.shared.Language = wax.shared.FileHelper:CheckFile("MFeee-New/Language.txt", "en", wax.shared.AllowedLanguages)
+shared.Language = shared.FileHelper:CheckFile("MFeee-New/Language.txt", "en", shared.AllowedLanguages)
 
-wax.shared.Translations  = require("Translations")
-wax.shared.EasingLibrary = require("Utils/EasingLibrary")
+shared.Translations  = require("@self/Translations")
+shared.EasingLibrary = require("@self/Utils/EasingLibrary")
 
-shared.Connect = require("Utils/Connect")
+shared.Connect = require("@self/Utils/Connect")
 
 shared.Connect:GiveSignal(nil, shared.Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
     shared.Camera = shared.Workspace.CurrentCamera
@@ -315,40 +316,40 @@ shared.Connect:GiveSignal(nil, shared.Players:GetPropertyChangedSignal("LocalPla
 end)
 
 --// Loader //
-wax.shared.ScriptVersion = "Build 1"
+shared.ScriptVersion = "Build 1"
 
-wax.shared.UIManager = require("Utils/Gui/UIManager")
-wax.shared.Window    = wax.shared.UIManager:CreateWindow()
+shared.UIManager = require("@self/Gui/UIManager")
+shared.Window    = shared.UIManager:Init()
 
-require(`Places/Loader/{wax.shared.ScriptFolder}`)
+require(`@self/Places/Loader/{shared.ScriptFolder}`)
 
-wax.shared.UIManager:CreateUniversalTabs()
+shared.UIManager:AddUniversalTabs()
 
-wax.shared.UIManager.SaveManager :LoadAutoloadConfig()
-wax.shared.UIManager.ThemeManager:LoadDefault()
+shared.UIManager.SaveManager :LoadAutoloadConfig()
+shared.UIManager.ThemeManager:LoadDefault()
 
 Global.MFeeeLoaded  = true
 Global.MFeeeLoading = false
 
 task.spawn(pcall, function()
-    assert(wax.shared.argument ~= "FromHttpGet")
+    assert(wax.argument[1] ~= "FromHttpGet")
 
     local Version   = Global.HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
-    assert(Version ~= wax.shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
+    assert(Version ~= shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
 
-    wax.shared.UIManager:Notify({
-        Title       = wax.shared.Translations.GetTranslation("Version Mismatch"),
-        Description = wax.shared.Translations.GetTranslation("The script version is outdated, please update it!"),
+    shared.UIManager:Notify({
+        Title       = shared.Translations.GetTranslation("Version Mismatch"),
+        Description = shared.Translations.GetTranslation("The script version is outdated, please update it!"),
         Time        = 15
     })
 end)
 
 task.spawn(pcall, function()
-    assert(wax.shared.BypassedMethod)
+    assert(shared.BypassedMethod)
 
-    wax.shared.UIManager:Notify({
-        Title       = wax.shared.Translations.GetTranslation("Bypassed Anticheat"),
-        Description = string.format(wax.shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), wax.shared.BypassedMethod),
+    shared.UIManager:Notify({
+        Title       = shared.Translations.GetTranslation("Bypassed Anticheat"),
+        Description = string.format(shared.Translations.GetTranslation("MFeee~ New has bypassed %s anti-hook anti-cheat"), shared.BypassedMethod),
         Time        = 4
     })
 end)
