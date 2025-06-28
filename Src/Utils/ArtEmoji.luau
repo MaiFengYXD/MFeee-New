@@ -1,7 +1,7 @@
 local Random = Random.new()
 
 print(({
-    --/ https://patorjk.com/software/taag
+    -- https://patorjk.com/software/taag
     [[
 
                  .-.                                
@@ -234,7 +234,7 @@ local EmojiList = {
     ["12 25"] = "🎄"
 } :: {[string?]: string}
 
-if wax.shared.Language == "zh-cn" then
+if shared.Language == "zh-cn" then
     EmojiList["01 26"] = "🥣" --/ 2026
     EmojiList["02 16"] = "🧨" --/ 2026
     EmojiList["03 03"] = "🏮" --/ 2026
