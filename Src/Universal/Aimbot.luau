@@ -1,10 +1,10 @@
 --[[
-Rewrite 2
+    Rewrite 2
 
-Including:
-+ Fov
-+ Aimbot
-+ SilentAim
+    Including:
+    + Fov
+    + Aimbot
+    + SilentAim
 --]]
 
 --// Setting Up //
@@ -131,13 +131,9 @@ do
     local typeof,      IsDescendantOf
         = typeof, game.IsDescendantOf
 
-    local iscached = (if wax.shared.ExecutorSupport.iscached then
-        cache.iscached
-    else function(Object: Instance): boolean return true end) :: (Object: Instance) -> boolean
-
     function IsValid(Object: Instance, Parent: Instance?): false | Instance
         return if (
-            iscached(Object) and typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
+            typeof(Object) == "Instance" and IsDescendantOf(Object :: Instance, Parent or Workspace)
         ) then Object else false
     end
 
@@ -283,12 +279,11 @@ do
     end
 
     function IsOutOfRange(Origin: Vector3 | nil, Target: Vector3): boolean
-        local IsWithinFov = true
+        local IsWithinFov = Fov.Enabled
 
         if Fov.Enabled then
-            IsWithinFov = false
-
             local ScreenPosition, IsOnScreen = WorldToViewportPoint(Camera, Target)
+
             if IsOnScreen then
                 local Position2D = Vector3ToVector2(ScreenPosition)
                 local NumSides   = Fov.NumSides
@@ -422,7 +417,7 @@ end
 
 --// Fov //
 Fov = {
-    Replaced = not wax.shared.ExecutorSupport.Drawing :: boolean,
+    Replaced = not shared.ExecutorSupport.Drawing :: boolean,
 
     Enabled  = false :: boolean,
     Visible  = true  :: boolean,
@@ -470,6 +465,8 @@ Fov = {
     local GetMouseLocation = UserInputService.GetMouseLocation
     local MouseEnabled     = UserInputService.MouseEnabled
 
+    local MouseMove = (shared.Speaker :: Player):GetMouse().Move
+
     shared.Connect:GiveSignal("AimbotMouseEnabledChanged1", UserInputService:GetPropertyChangedSignal("MouseEnabled"):Connect(function()
         MouseEnabled = UserInputService.MouseEnabled
     end))
@@ -487,15 +484,23 @@ Fov = {
         local Circle  = Fov.Circle.Object  :: CircleDrawing
         local Outline = Fov.Outline.Object :: CircleDrawing
 
+        local function UpdatePosition()
+            local Position = GetMousePosition()
+
+            Fov.Position     = Position
+            Circle.Position  = Position
+            Outline.Position = Position
+        end
+
+        UpdatePosition()
+
         shared.Connect:GiveSignal("AimbotFovUpdate", shared.RunService.PreRender:Connect(function()
             --/ Upvalues -> local values
             local Fov, Circle, Outline
                 = Fov, Circle, Outline
 
             local Visible  = Fov.Enabled and Fov.Visible
-            local Position = GetMousePosition()
 
-            Fov.Position = Position
 
             local CircleThickness = Fov.Circle.Thickness
 
@@ -507,7 +512,6 @@ Fov = {
             )
             Circle.Filled       = Fov.Filled
             Circle.NumSides     = Fov.NumSides
-            Circle.Position     = Position
             Circle.Radius       = Fov.Radius
             Circle.Thickness    = CircleThickness
             Circle.Transparency = 1 - Fov.Circle.Transparency
@@ -517,12 +521,13 @@ Fov = {
             Outline.Color        = Fov.Outline.Rainbow and getrainbowcolor(Fov.Outline.RainbowSpeed) or Fov.Outline.Color
             Outline.Filled       = false
             Outline.NumSides     = Fov.NumSides
-            Outline.Position     = Position
             Outline.Radius       = Fov.Radius
             Outline.Thickness    = Fov.Outline.Thickness + CircleThickness
             Outline.Transparency = 1 - Fov.Outline.Transparency
             Outline.Visible      = Visible
         end))
+
+        shared.Connect:GiveSignal("AimbotMouseMove", MouseMove:Connect(UpdatePosition))
 
         wax.AddOnUnload(Circle .Remove, Circle)
         wax.AddOnUnload(Outline.Remove, Outline)
@@ -548,7 +553,7 @@ Fov = {
         local ScreenGui = New("ScreenGui", {
             DisplayOrder = 1e8,
             IgnoreGuiInset = true,
-            Parent = gethui()
+            Parent = wax.shared.ScreenGui
         }) :: ScreenGui
 
         pcall(function()
@@ -569,8 +574,20 @@ Fov = {
             Parent = CircleFrame
         })
 
-        local OutlineFrame = CircleFrame:Clone()
-        local Outline      = OutlineFrame:FindFirstChildOfClass("UIStroke") :: UIStroke
+        local OutlineFrame  = CircleFrame:Clone()
+        OutlineFrame.Parent = ScreenGui
+        local Outline       = OutlineFrame:FindFirstChildOfClass("UIStroke") :: UIStroke
+
+        local function UpdatePosition()
+            local Position       = GetMousePosition()
+            local UDim2_Position = UDim2_fromOffset(Position.X, Position.Y)
+
+            Fov.Position          = Position
+            CircleFrame.Position  = UDim2_Position
+            OutlineFrame.Position = UDim2_Position
+        end
+
+        UpdatePosition()
 
         shared.Connect:GiveSignal("AimbotFovUpdate", shared.RunService.PreRender:Connect(function()
             --/ Upvalues -> local values
@@ -578,15 +595,11 @@ Fov = {
                 = Fov, CircleFrame, OutlineFrame, Circle, Outline
 
             local Visible  = Fov.Enabled and Fov.Visible
-            local Position = GetMousePosition()
-
-            Fov.Position = Position
 
             local Diameter         = Fov.Radius * 2
             local CircleThickness  = Fov.Circle.Thickness
             local OutlineThickness = CircleThickness + Fov.Outline.Thickness
             local OutlineOffset    = OutlineThickness / 2
-            local UDim2_Position   = UDim2_fromOffset(Position.X, Position.Y)
 
             local CircleColor  = (
                 Fov.Circle.Rainbow and getrainbowcolor(Fov.Circle.RainbowSpeed) or
@@ -595,17 +608,15 @@ Fov = {
             )
 
             --/ CircleFrame
-            CircleFrame.Position = UDim2_Position
-            CircleFrame.Size     = UDim2_fromOffset(Diameter, Diameter)
-            CircleFrame.Visible  = Visible
+            CircleFrame.Size    = UDim2_fromOffset(Diameter, Diameter)
+            CircleFrame.Visible = Visible
 
             CircleFrame.BackgroundColor3 = CircleColor
             CircleFrame.BackgroundTransparency = Fov.Filled and 0 or 1
 
             --/ OutlineFrame
-            OutlineFrame.Position = UDim2_Position
-            OutlineFrame.Size     = UDim2_fromOffset(Diameter - OutlineOffset, Diameter - OutlineOffset)
-            OutlineFrame.Visible  = Visible
+            OutlineFrame.Size    = UDim2_fromOffset(Diameter - OutlineOffset, Diameter - OutlineOffset)
+            OutlineFrame.Visible = Visible
 
             --/ Circle
             Circle.Color        = CircleColor
@@ -618,10 +629,7 @@ Fov = {
             Outline.Transparency = Fov.Outline.Transparency
         end))
 
-        wax.AddOnUnload(function()
-            ScreenGui:Destroy() --/ Don't use (ScreenGui.Destroy, ScreenGui)
-        end)
-        ScreenGui = nil :: any
+        shared.Connect:GiveSignal("AimbotMouseMove", MouseMove:Connect(UpdatePosition))
     end
 end
 
@@ -729,9 +737,9 @@ local Aimbot = {
     end
 
     --// Main Logics //
-    local Support_mousemoverel = wax.shared.ExecutorSupport.mousemoverel
+    local Support_mousemoverel = shared.ExecutorSupport.mousemoverel
 
-    local EasingLibrary = wax.shared.EasingLibrary
+    local EasingLibrary = shared.EasingLibrary
     local CancelTween   = EasingLibrary.RunningTween
     local Ease          = EasingLibrary.Ease
 
@@ -753,7 +761,7 @@ local Aimbot = {
         end
     end
 
-    local AimbotKeybind = wax.shared.UIManager.Options.AimbotKeybind
+    local AimbotKeybind = shared.UIManager.KeyPickers.AimbotKeybind
     local GetState      = AimbotKeybind.GetState
 
     local StepThread: thread?
@@ -798,6 +806,7 @@ end
 --// SilentAim //
 local SilentAim = {
     WallBang = false :: boolean,
+    Jitter   = 0     :: number,
 
     Hooks  = {
         FindPartOnRay               = true :: boolean,
@@ -811,11 +820,11 @@ local SilentAim = {
         ViewportPointToRay = true :: boolean
     }
 };if (
-    wax.shared.ExecutorSupport.getcallingscript and
-    wax.shared.ExecutorSupport.checkcaller and (
-        wax.shared.ExecutorSupport.hookfunction or (
-            wax.shared.ExecutorSupport.hookmetamethod and
-            wax.shared.ExecutorSupport.getnamecallmethod
+    shared.ExecutorSupport.getcallingscript and
+    shared.ExecutorSupport.checkcaller and (
+        shared.ExecutorSupport.hookfunction or (
+            shared.ExecutorSupport.hookmetamethod and
+            shared.ExecutorSupport.getnamecallmethod
         )
     )
 ) then
@@ -917,8 +926,8 @@ local SilentAim = {
     end
 
     local Hooks = {};do --// Hooks
-        local typeof, Ray_new, CFrame_lookAt, Vector3_zero
-            = typeof, Ray.new, CFrame.lookAt, Vector3.zero
+        local typeof, Ray_new, CFrame_lookAt, Vector3_zero, Vector3_new
+            = typeof, Ray.new, CFrame.lookAt, Vector3.zero, Vector3.new
 
         local GetClosestPointOnSurface;do
             local Part = Instance.new("Part")
@@ -939,6 +948,18 @@ local SilentAim = {
             )
         end
 
+        local Random     = Random.new()
+        local NextNumber = Random.NextNumber
+
+        local function Jitter(Origin: Vector3): Vector3
+            local Jitter = SilentAim.Jitter
+            return Jitter > 0 and Origin * Vector3_new(
+                NextNumber(Random, 0, Jitter),
+                NextNumber(Random, 0, Jitter),
+                NextNumber(Random, 0, Jitter)
+            ) or Origin
+        end
+
         local function FindPartOnRay(Arguments: {any}): nil | array
             local Filtered = Arguments[2]
 
@@ -952,7 +973,7 @@ local SilentAim = {
             if SilentAim.WallBang then
                 return {
                     Target,
-                    Target.Position,
+                    Jitter(Target.Position),
                     GetClosestPointOnSurface(Target, Origin)
                 } :: array
             end
@@ -962,7 +983,7 @@ local SilentAim = {
                 EndPoint = EasyPredict(Origin, Target)
             end
 
-            Arguments[1] = Ray_new(Origin, EndPoint)
+            Arguments[1] = Ray_new(Origin, Jitter(EndPoint))
             return
         end
 
@@ -975,7 +996,7 @@ local SilentAim = {
                 EndPoint = EasyPredict(Origin, Target) or EndPoint
             end
 
-            Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
+            Arguments[2] = Jitter(CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude)
             return
         end
 
@@ -996,7 +1017,7 @@ local SilentAim = {
                 Arguments[3] = RaycastParams
             end
 
-            Arguments[2] = CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude
+            Arguments[2] = Jitter(CFrame_lookAt(Origin, EndPoint).LookVector * Arguments[2].Magnitude)
             return
         end
 
@@ -1012,7 +1033,7 @@ local SilentAim = {
 
             return {Ray_new(
                 Origin + (Arguments[3] and Direction.LookVector * Arguments[3] or Vector3_zero),
-                Direction.LookVector
+                Jitter(Direction.LookVector)
             )}
         end
 
@@ -1045,22 +1066,22 @@ local SilentAim = {
         ViewportPointToRay: (self: Camera, number, number, Depth: number) -> Ray
     }
 
-    local Support_hookfunction = wax.shared.ExecutorSupport.hookfunction
+    local Support_hookfunction   = shared.ExecutorSupport.hookfunction
     local Support_hookmetamethod = (
-        wax.shared.ExecutorSupport.hookmetamethod and
-        wax.shared.ExecutorSupport.getnamecallmethod
+        shared.ExecutorSupport.hookmetamethod and
+        shared.ExecutorSupport.getnamecallmethod
     )
 
     local function GetHook(Function: Function, Method: 
-        "FindPartOnRay" |
-        "FindPartOnRayWithWhitelist" |
-        "FindPartOnRayWithIgnoreList" |
+        | "FindPartOnRay"
+        | "FindPartOnRayWithWhitelist"
+        | "FindPartOnRayWithIgnoreList"
 
-        "Ray" |
-        "Raycast" |
+        | "Ray"
+        | "Raycast"
 
-        "ScreenPointToRay" |
-        "ViewportPointToRay"
+        | "ScreenPointToRay"
+        | "ViewportPointToRay"
     , Custom: Function?): Function
         local checkcaller, getcallingscript, unpack
             = checkcaller, getcallingscript, unpack
@@ -1068,9 +1089,10 @@ local SilentAim = {
         local Hook  = Hooks[Method]
         local Hooks = SilentAim.Hooks
 
-        return hookfunction(Function, Custom or function(self: Instance, ...: any): any
-            if checkcaller() then return Old[Method](...)
-            elseif not Hooks[Method] then return Old[Method](...) end
+        local OldFunction
+        OldFunction = hookfunction(Function, Custom or function(self: Instance, ...: any): any
+            if checkcaller() then return OldFunction(...)
+            elseif not Hooks[Method] then return OldFunction(...) end
 
             local Calling = getcallingscript()
             if Calling then
@@ -1078,15 +1100,17 @@ local SilentAim = {
                     "ControlModule",
                     "ControlScript"
                 } do
-                    if Calling.Name == Name then return Old[Method](...) end
+                    if Calling.Name == Name then return OldFunction(...) end
                 end
             end
 
             local Arguments = {...}
             local Result    = Hook(Arguments)
 
-            return if Result then unpack(Result) else Old[Method](self, Arguments)
+            return if Result then unpack(Result) else OldFunction(self, Arguments)
         end)
+
+        return OldFunction
     end
 
     local FunctionAndMethods = {
@@ -1111,11 +1135,12 @@ local SilentAim = {
                 local Hooks  = SilentAim.Hooks
                 local Hooks_ = Hooks
 
-                Old.__namecall = hookmetamethod(game, "__namecall", function(self: Object, ...: any) 
+                local __namecall
+                __namecall = hookmetamethod(game, "__namecall", function(self: Object, ...: any) 
                     local Method = getnamecallmethod()
 
-                    if not Hooks[Method] then return Old.__namecall(self, ...)
-                    elseif checkcaller() then return Old.__namecall(self, ...) end
+                    if not Hooks[Method] then return __namecall(self, ...)
+                    elseif checkcaller() then return __namecall(self, ...) end
 
                     local Calling = getcallingscript()
                     if Calling then
@@ -1123,15 +1148,17 @@ local SilentAim = {
                             "ControlModule",
                             "ControlScript"
                         } do
-                            if Calling.Name == Name then return Old.__namecall(self, ...) end
+                            if Calling.Name == Name then return __namecall(self, ...) end
                         end
                     end
 
                     local Arguments = {...}
                     local Result    = Hooks_[Method](Arguments)
 
-                    return if Result then unpack(Result) else Old.__namecall(self, unpack(Arguments))
+                    return if Result then unpack(Result) else __namecall(self, unpack(Arguments))
                 end)
+
+                Old.__namecall = __namecall
             else
                 hookmetamethod(game, "__namecall", Old.__namecall)
                 Old.__namecall = nil :: any
@@ -1149,9 +1176,10 @@ local SilentAim = {
                         local Hook  = Hooks.Ray
                         local Hooks = SilentAim.Hooks
 
-                        Old.Ray = GetHook(Function, Method, function(Origin: Vector3, Direction: Vector3): Ray
-                            if checkcaller() then return Old.Ray(Origin, Direction)
-                            elseif not Hooks.Ray then return Old.Ray(Origin, Direction) end
+                        local Ray
+                        Ray = GetHook(Function, Method, function(Origin: Vector3, Direction: Vector3): Ray
+                            if checkcaller() then return Ray(Origin, Direction)
+                            elseif not Hooks.Ray then return Ray(Origin, Direction) end
 
                             local Calling = getcallingscript()
                             if Calling then
@@ -1159,15 +1187,17 @@ local SilentAim = {
                                     "ControlModule",
                                     "ControlScript"
                                 } do
-                                    if Calling.Name == Name then return Old.Ray(Origin, Direction) end
+                                    if Calling.Name == Name then return Ray(Origin, Direction) end
                                 end
                             end
 
                             local Arguments = {Origin, Direction}
                             Hook(Arguments)
 
-                            return Old.Ray(unpack(Arguments))
+                            return Ray(unpack(Arguments))
                         end)
+
+                        Old.Ray = Ray
                     else
                         Old[Method] = GetHook(Function, Method :: any)
                     end
