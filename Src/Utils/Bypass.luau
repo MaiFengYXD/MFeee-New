@@ -1,18 +1,18 @@
 local debug_info, checkcaller, xpcall
     = debug.info, checkcaller, xpcall
 
-wax.shared.BypassedMethod = nil
+shared.BypassedMethod = nil
 
 if not (
-    wax.shared.ExecutorSupport.hookfunction and
-    wax.shared.ExecutorSupport.checkcaller
+    shared.ExecutorSupport.hookfunction and
+    shared.ExecutorSupport.checkcaller
 ) then
     return {}
 end
 
 local Old_debug_info
 
-if wax.shared.ExecutorSupport.getgc then
+if shared.ExecutorSupport.getgc then
     xpcall(function(
         type:        typeof(type),
         rawget:      typeof(rawget),
@@ -29,7 +29,7 @@ if wax.shared.ExecutorSupport.getgc then
                 debug_info(Detected, "s") ~= ".Client.Core.Anti"
             ) then continue end
 
-            wax.shared.BypassedMethod = "Adonis"
+            shared.BypassedMethod = "Adonis"
 
             Old_debug_info = hookfunction(debug_info, function(...)
                 if not checkcaller() and Old_debug_info(..., "f") == debug_info then
@@ -40,11 +40,11 @@ if wax.shared.ExecutorSupport.getgc then
             end)
         end
     end, function()
-        wax.shared.BypassedMethod = nil
+        shared.BypassedMethod = nil
     end, type, rawget, debug_info, checkcaller)
 end
 
-if wax.shared.BypassedMethod then
+if shared.BypassedMethod then
     return {}
 end
 
@@ -123,7 +123,7 @@ xpcall(function(
         return unpack(Result)
     end)
 end, function()
-    wax.shared.BypassedMethod = nil
+    shared.BypassedMethod = nil
 end, xpcall, debug_info, checkcaller, string.find, unpack)
 
 return {}
