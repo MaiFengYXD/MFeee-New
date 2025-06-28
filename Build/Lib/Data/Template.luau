@@ -1,17 +1,17 @@
 -- This codegen template *not* be 100% compatible with Lua 5.1x+, MUST just Luau
 -- With that being said, this aint explains the weird cflow in any parts
 
-return [[
+return [=[
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
-
-type ClosureBindings  = {(table, table, table, Function, ...any) -> (...any)}
-type ObjectDictionary = {number | {string} | {ObjectDictionary}}
 
 -- Holds direct closure data
 local ClosureBindings = ${ClosureBindings} :: ClosureBindings -- [RefId] = Closure
 
 -- Holds the actual DOM data
 local ObjectTree = ${ObjectTree} :: {ObjectDictionary}
+
+type ClosureBindings  = {(table, table, table, Function, ...any) -> (...any)}
+type ObjectDictionary = {number | {string} | {ObjectDictionary}}
 
 -- Misc AOT variable imports
 local WaxVersion = "${Version}"
@@ -23,10 +23,7 @@ local EnvName = "${EnvName}"
 local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
     = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
 
-if not require then require = function(...) return nil end;end
-
 local shared: {[any]: any} = shared
-local __argument = ...
 
 local table_insert = table.insert
 local table_remove = table.remove
@@ -39,19 +36,16 @@ local string_gmatch = string.gmatch
 
 -- The Lune runtime has its own `task` impl, but it must be imported by its builtin
 -- module path, "@lune/task"
-if _VERSION and string_sub(_VERSION, 1, 4) == "Lune" then
-    local RequireSuccess, LuneTaskLib = pcall(require, "@lune/task")
-    if RequireSuccess and LuneTaskLib then
-        task = LuneTaskLib
+--[[
+    if _VERSION and string_sub(_VERSION, 1, 4) == "Lune" then
+        local RequireSuccess, LuneTaskLib = pcall(require, "@lune/task")
+        if RequireSuccess and LuneTaskLib then
+            task = LuneTaskLib
+        end
     end
-end
+--]]
 
-local task_defer = task and task.defer
-
--- If we're not running on the Roblox engine, we won't have a `task` global
-local Defer = task_defer or function(f, ...)
-    coroutine_wrap(f)(...)
-end
+local task_defer = task.defer
 
 -- Will be used later for getting flattened globals
 local ImportGlobals: (number) -> (table, table, Function)
@@ -72,7 +66,7 @@ local ScriptClosureRefIds = {} -- [ScriptClosure] = RefId
 local StoredModuleValues = {}
 local ScriptsToRun = {}
 
--- wax.shared __index/__newindex
+-- shared __index/__newindex
 local SharedEnvironment = {} :: any
 
 -- We're creating 'fake' instance refs soley for traversal of the DOM for require() compatibility
@@ -342,13 +336,13 @@ local Global_wax = {
     version = WaxVersion,
     envname = EnvName,
 
-    shared = SharedEnvironment,
+    shared = shared,
 
     -- "Real" globals instead of the env set ones
     script = script,
     require = require,
 
-    argument = __argument
+    argument = {...}
 }
 
 local function LoadScript(scriptRef, ...)
@@ -438,10 +432,10 @@ local function LoadScript(scriptRef, ...)
     if ScriptClassName == "LocalScript" or ScriptClassName == "Script" then
         local RunSuccess, ErrorMessage = xpcall(Closure, function(msg)
             return FormatError(debug.traceback(msg, 2))
-        end, shared, wax, script, require, unpack(Args))
+        end, SharedEnvironment, wax, script, require, unpack(Args))
 
         if not RunSuccess then
-            Defer(OnError)
+            task_defer(OnError)
             error(ErrorMessage, 0) -- Use level 0 to directly throw the fully formatted error
         end
         return
@@ -449,13 +443,13 @@ local function LoadScript(scriptRef, ...)
         -- Module script logic
         local PCallReturn
         local RunSuccess, ErrorMessage = xpcall(function(Args)
-            PCallReturn = {Closure(shared, wax, script, require, unpack(Args))}
+            PCallReturn = {Closure(SharedEnvironment, wax, script, require, unpack(Args))}
         end, function(msg)
             return FormatError(debug.traceback(msg, 2))
         end, Args)
 
         if not RunSuccess then
-            Defer(OnError)
+            task_defer(OnError)
             error(ErrorMessage, 0)
         end
 
@@ -502,11 +496,11 @@ function ImportGlobals(refId)
             end
 
             return LoadScript(module, unpack(Args))
-        elseif ModuleArgType == "string" and string_sub(module, 1, 1) ~= "@" then
-            -- The control flow on this SUCKS
-
+        elseif ModuleArgType == "string" then
             if #module == 0 then
                 error("Attempted to call require with empty string", 2)
+            elseif string_sub(module, 1, 6) == "@self/" then
+                module = string_sub(module, 7)
             end
 
             local CurrentRefPointer = ScriptRef
@@ -566,6 +560,6 @@ function ImportGlobals(refId)
 end
 
 for _, ScriptRef in ScriptsToRun do
-    Defer(LoadScript, ScriptRef)
+    task_defer(LoadScript, ScriptRef)
 end
-]]
+]=]
