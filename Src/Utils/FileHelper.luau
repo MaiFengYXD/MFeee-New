@@ -2,7 +2,7 @@ local string_match, tostring, tonumber, makefolder, writefile, isfolder, isfile,
     = string.match, tostring, tonumber, makefolder, writefile, isfolder, isfile, readfile, type
 
 local FileHelper = {
-    ApiUncompatible = not wax.shared.ExecutorSupport.SupportFileSystem
+    ApiUncompatible = not shared.ExecutorSupport.SupportFileSystem
 }
 
 function FileHelper:CreateFolder(FolderPath: string): string?
