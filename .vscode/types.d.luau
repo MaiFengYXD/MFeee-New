@@ -39,7 +39,13 @@ declare class HttpResponse
     Headers: {[string]: any}
 end
 
--- \\ Scripts // --
+--// Actors //
+declare run_on_actor: (actor: Actor, source: string, ...any) -> (nil)
+declare function getactors(): { Actor }
+declare function create_comm_channel(): (number | string, BindableEvent)
+declare function get_comm_channel(channel: any): BindableEvent
+
+--// Scripts //
 declare function getgc(includeTables: boolean?): array
 declare function getgenv(): { [any]: any }
 declare function getloadedmodules(excludeCore: boolean?): {ModuleScript}
@@ -63,7 +69,7 @@ declare function setidentity(identity: number): ()
 declare function setthreadcontext(identity: number): ()
 declare function require(target: ModuleScript | string, ...: any): any
 
--- \\ Misc // --
+--// Misc //
 declare function identifyexecutor(): (string, string)
 declare function getexecutorname(): (string, string)
 declare function lz4compress(data: string): string
@@ -87,7 +93,7 @@ declare function secret_get(Url: string): string
 declare function getfflag(Flag: string): boolean | "false" | "true"
 declare function setfflag(Flag: string, Value: "false" | "true"): ()
 
--- \\ Metatable // --
+--// Metatable //
 declare function getrawmetatable(object: any): {[string]: any}
 declare function hookmetamethod(object: any, method: string, hook: Function): Function
 declare function getnamecallmethod(): string
@@ -95,15 +101,13 @@ declare function isreadonly(object: any): boolean
 declare function setrawmetatable(object: any, metatable: {[string]: any}): ()
 declare function setreadonly(object: any, readonly: boolean): ()
 
--- \\ Instances // --
+--// Instances //
 declare function fireclickdetector(object: Instance, distance: number?, event: string?): ()
 declare function firetouchinterest(toucher: BasePart, toTouch: BasePart, State0Untouching1Touching: number): ()
 declare function firetouchtransmitter(toucher: BasePart, toTouch: BasePart, State0Untouching1Touching: number): ()
 declare function fireproximityprompt(object: ProximityPrompt, distance: number?): ()
 declare function getcallbackvalue(object: Instance, property: string): Function?
 declare function isnetworkowner(object: Instance): boolean
-declare function getactors(): {Actor}
-declare function run_on_actor(Actor: Actor, Code: string): ()
 declare class ConnectionGarbage
     Enabled: boolean
     ForeignState: boolean
@@ -132,7 +136,7 @@ declare function sethiddenproperty(object: Instance, property: string, value: an
 declare function setrbxclipboard(data: string): boolean
 declare function setscriptable(object: Instance, property: string, value: boolean): boolean
 
--- \\ Input // --
+--// Input //
 declare function isrbxactive(): boolean
 declare function isgameactive(): boolean
 declare function iswindowactive(): boolean
@@ -149,7 +153,7 @@ declare Input: {
     MouseMove: (x: number, y: number) -> ()
 }
 
--- \\ File System // --
+--// File System //
 declare function readfile(path: string): string
 declare function listfiles(path: string): {string}
 declare function writefile(path: string, data: string): ()
@@ -162,7 +166,7 @@ declare function delfolder(path: string): ()
 declare function loadfile(path: string, chunkname: string?): (Function?, string?)
 declare function dofile(path: string): ()
 
--- \\ Console // --
+--// Console //
 declare function rconsoleclear(): ()
 declare function consoleclear(): ()
 declare function rconsolecreate(): ()
@@ -178,7 +182,7 @@ declare function rconsolesettitle(title: string): ()
 declare function rconsolename(title: string): ()
 declare function consolesettitle(title: string): ()
 
--- \\ Closures // --
+--// Closures //
 declare function checkcaller(): boolean
 declare function clonefunction(func: Function): Function
 declare function clonefunc(func: Function): Function
@@ -197,7 +201,7 @@ declare function load(source: string, chunkname: string?): (Function?, string?)
 declare function newcclosure(func: Function): Function
 declare function copyfunction(original: Function): Function
 
--- \\ Cache // --
+--// Cache //
 declare function invalidate(object: Instance): ()
 declare function iscached(object: Instance): boolean
 declare function replace(object: Instance, newObject: Instance): ()
@@ -330,8 +334,7 @@ declare crypt: {
     hash: (data: string, algorithm: string) -> string,
 }
 
--- \\ Luraph Macros // --
-
+--// Luraph Macros //
 declare LPH_OBFUSCATED: boolean
 declare LPH_NO_VIRTUALIZE: (func: Function) -> Function
 declare LPH_ENCFUNC: (func: Function, encKey: string, decKey: string) -> Function
@@ -342,8 +345,7 @@ declare LPH_JIT: (func: Function) -> Function
 declare LPH_NO_UPVALUES: (func: Function) -> Function
 declare LPH_LINE: number
 
--- \\ Luarmor Macros // --
-
+--// Luarmor Macros //
 declare LRM_IsUserPremium: boolean
 declare LRM_LinkedDiscordID: string
 declare LRM_ScriptName: string
@@ -352,8 +354,7 @@ declare LRM_SecondsLeft: number
 declare LRM_UserNote: string
 declare LRM_ScriptVersion: string
 
--- \\ Drawing // --
-
+--// Drawing //
 declare class DrawEntry
     Visible: boolean
     Transparency: number
@@ -507,7 +508,7 @@ declare wax: {
 }
 
 --[==[
---\\ mspaint Addon //--
+--// mspaint Addon //
 type ToggleOptions = {
     Text: string?,
     Default: boolean?,
