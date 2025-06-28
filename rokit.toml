@@ -5,5 +5,5 @@
 
 [tools]
 rojo = "rojo-rbx/rojo@7.5.1"
-darklua = "seaofvoices/darklua@0.16.0"
+darklua = "seaofvoices/darklua@0.16.0" # "MaiFengYXD/darklua@0.16.0-extra" :>
 lune = "lune-org/lune@0.8.9" # lune after 0.8.9 will make bundle script not work
