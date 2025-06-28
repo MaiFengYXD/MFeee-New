@@ -53,7 +53,7 @@ end
 local TargetVelocity = Vector3_new()
 
 local ModalElement, RootPart, LinearVelocity, WorldAttachment;do
-    local ScreenGui = New("ScreenGui", gethui())
+    local ScreenGui = New("ScreenGui", shared.ScreenGui)
 
     ModalElement = New("TextButton", {
         Parent = ScreenGui,
