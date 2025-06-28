@@ -218,7 +218,7 @@ local function new(Radius: number?, Distance: number?)
         }
     end
 
-    local function SetFrame(Frame: Frame | CanvasGroup)
+    local function SetFrame(Frame: Frame)
         local function OnChanged()
             local BlurOffset = GetOffset()
             local Size       = Frame.AbsoluteSize - Vector2_new(BlurOffset, BlurOffset)
