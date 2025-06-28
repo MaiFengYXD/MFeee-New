@@ -1,6 +1,5 @@
 --[[
-    Imagine rewriting UIManager
-    -- MaiFengYXD
+    Imagine rewriting UIManager 🥀
 --]]
 
 --[[
@@ -89,8 +88,206 @@
     ```
 --]]
 
+local pcall, table_find, string_find, string_format
+    = pcall, table.find, string.find, string.format
+
 local UIManager = {}
 
+local Elements = {
+    "Dropdown",
+    "Toggle",
+    "Button",
+    "Slider",
+    "Input",
+    "ColorPicker",
+    "KeyPicker"
+}
 
+local ExecutorSupport = shared.ExecutorSupport
+local EasingLibrary   = shared.EasingLibrary
+local Translations    = shared.Translations
+local FileHelper      = shared.FileHelper
+
+local GetTranslation  = Translations.GetTranslation
+local FromTranslation = Translations.FromTranslation
+
+local DoesntSupport = GetTranslation("Your executor doesn't support this feature (missing function '%*')")
+
+local UpdateSetting: (Key: string, Value: any) -> ()
+
+UIManager.Settings = {
+    NotificationSound   = "Obsidian", -- Obsidian: 4590662766, Linoria: 4590657391
+    NotificationSide    = "TopRight",
+    EasingMode          = "Quartic",
+    EasingDirection     = "Out",
+    ToggleKeybind       = "RightShift",
+    UseCheckbox         = false,
+    CustomCursor        = false,
+    KeybindFrame        = false,
+    AlwaysOnTop         = false,
+    NoNotify            = false,
+    UIActivated         = true,
+    DPIScale            = 1,
+    NotificationVolume  = 200,
+    EasingDuration      = 1,
+    NotificationSoundId = 4590662766
+};do
+    local HttpService = shared.HttpService
+    local JSONDecode  = HttpService.JSONDecode
+    local JSONEncode  = HttpService.JSONEncode
+
+    local WriteFile = FileHelper.WriteFile
+
+    local PreData  = JSONEncode(HttpService, UIManager.Settings)
+    local Settings = FileHelper:CheckFile("MFeee-New/ui.settings.json", PreData)
+
+    local _, Data = xpcall(JSONDecode, function()
+        return {}
+    end, Settings)
+
+    for Key, Value in Data do
+        if UIManager.Settings[Key] == nil then continue end
+        UIManager.Settings[Key] = Value
+    end
+
+    function UpdateSetting(Key: string, Value: any)
+        UIManager.Settings[Key] = Value
+
+        local Success, NewData = pcall(JSONEncode, HttpService, UIManager.Settings)
+        if Success then WriteFile(FileHelper, "MFeee-New/ui.settings.json", NewData) end
+    end
+end
+
+local Library      = require("Library")
+local SaveManager  = require("SaveManager")
+local ThemeManager = require("ThemeManager")
+
+UIManager.Library      = Library
+UIManager.SaveManager  = SaveManager
+UIManager.ThemeManager = ThemeManager
+
+UIManager.Dropdowns = Library.Dropdowns
+UIManager.Toggles   = Library.Toggles
+UIManager.Buttons   = Library.Buttons
+UIManager.Sliders   = Library.Sliders
+UIManager.Inputs    = Library.Inputs
+UIManager.Labels    = Library.Labels
+
+UIManager.KeyPickers   = Library.KeyPickers
+UIManager.ColorPickers = Library.ColorPickers
+
+UIManager.Notify = Library.Notify
+
+function UIManager:Init()
+    local Window = self.Library:CreateWindow({
+        Icon              = 77335290652571,
+        Title             = "MFeee-New",
+        DPIScale          = self.Settings.DPIScale,
+        NotificationSide  = self.Settings.NotificationSide,
+        NotificationSound = self.Settings.NotificationSoundId,
+        ShowCustomCursor  = self.Settings.CustomCursor,
+        AlwaysOnTop       = self.Settings.AlwaysOnTop,
+        UIActivated       = self.Settings.UIActivated
+    })
+
+    self.Window = Window
+    self.Tabs   = Window.Tabs
+
+    return (function(self: typeof(UIManager))
+        function self.Init() end
+        return Window
+    end)(self)
+end
+
+function UIManager:AddMainTab(IgnoredElements: {string}, IgnoredTabs: {string})
+    local UniversalMISC = require("../Universal/MISC")
+
+    local function Create(Self: any, Method: string, Index: string, Data: (hash | string)?): any
+        if Method == "AddTab" then
+            if IgnoredTabs and table_find(IgnoredTabs, Index) then return end
+
+            local Tab = Self[Method](Self, Index, Data)
+            self.Tabs[Index] = Tab
+
+            return Tab
+        elseif IgnoredElements and table_find(IgnoredElements, Index) then
+            return
+        end
+
+        local Element = Self[Method](Self, Index, Data)
+
+        for _, ElementName in Elements do
+            if not string_find(Method, ElementName) then continue end
+
+            self[`{ElementName}s`][Index] = Element
+            break
+        end
+
+        return Element
+    end
+
+    --// Main Tab //
+    local MainTab = Create(self.Window, "AddTab", GetTranslation("Main"), "house")
+
+    --// Common Groupbox
+    local CommonGroupbox = Create(MainTab, "AddLeftGroupbox", GetTranslation("Common"))
+
+    local AntiAFKToggle = Create(CommonGroupbox, "AddToggle", "AntiAFK", {
+        Text = GetTranslation("Anti AFK"),
+        Disabled = not ExecutorSupport.getconnections,
+        DisabledTooltip = string_format(DoesntSupport, "getconnections")
+    })
+
+    local AntiKickToggle = Create(CommonGroupbox, "AddToggle", "AntiKick", {
+        Text = GetTranslation("Anti Kick"),
+        Disabled = not (ExecutorSupport.hookfunction or (ExecutorSupport.getnamecallmethod and ExecutorSupport.hookmetamethod)),
+        DisabledTooltip = string_format(DoesntSupport, "hookfunction or (getnamecallmethod and hookmetamethod)")
+    })
+
+    local AntiLagToggle = Create(CommonGroupbox, "AddToggle", "AntiLag", {
+        Text = GetTranslation("Anti Lag")
+    })
+
+    --// :: TESTS :: //
+    local TestDropdown = Create(CommonGroupbox, "AddDropdown", "TestDropdown", {
+        Text = GetTranslation("Test Dropdown"),
+        Values = {
+            GetTranslation("Option 1"),
+            GetTranslation("Option 2"),
+            GetTranslation("Option 3")
+        },
+        Default = GetTranslation("Option 1")
+    })
+end
+
+function UIManager:AddUniversalTabs(IgnoredElements: {string}, IgnoredTabs: {string})
+    local function Create(Self: any, Method: string, Index: string, Data: (hash | string)?): any
+        if Method == "AddTab" then
+            if table_find(IgnoredTabs, Index) then return end
+
+            local Tab = Self[Method](Self, Index, Data)
+            self.Tabs[Index] = Tab
+
+            return Tab
+        elseif table_find(IgnoredElements, Index) then
+            return
+        end
+
+        local Element = Self[Method](Self, Index, Data)
+
+        for _, ElementName in Elements do
+            if not string_find(Method, ElementName) then continue end
+
+            self[`{ElementName}s`][Index] = Element
+            break
+        end
+
+        return Element
+    end
+
+    --// Settings Tab //
+    local SettingsTab = Create(self.Window, "AddTab", "Settings", "settings")
+
+end
 
 return UIManager
