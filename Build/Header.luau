@@ -17,6 +17,6 @@
     [~] Join our Discord channel: https://discord.gg/YBQUd8X8PK.
 --]]
 
---!nocheck
 --!nolint
+--!nonstrict
 --!optimize 2
