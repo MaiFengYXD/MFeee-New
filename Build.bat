@@ -4,57 +4,95 @@ setlocal enabledelayedexpansion
 set "ColorReset=[0m"
 set "ColorBlue=[34m"
 set "ColorRed=[31m"
+set "ColorGreen=[32m"
+set "ColorYellow=[33m"
 
 set "Info=%ColorBlue%[INFO]%ColorReset%"
 set "Error=%ColorRed%[ERROR]%ColorReset%"
+set "Success=%ColorGreen%[SUCCESS]%ColorReset%"
+set "Warn=%ColorYellow%[WARN]%ColorReset%"
 
 echo %Info% Starting bundle script...
 
-:: Step 1 - Check if Rokit is installed
-where rokit >nul 2>&1
-if %errorlevel% neq 0 (
-    echo %Info% Rokit not found. Preparing installation...
+:: Step 1 - Find or install Rokit
+echo %Info% Searching for Rokit executable...
 
-    :: Set version and download URL
-    set "RokitVersion=v1.0.0"
-    set "RokitZipName=rokit-%RokitVersion%-windows-x86_64.zip"
-    set "RokitDownloadUrl=https://github.com/rojo-rbx/rokit/releases/download/%RokitVersion%/%RokitZipName%"
-    set "CacheZipPath=%TEMP%\%RokitZipName%"
-    set "ExtractDirectory=%TEMP%\RokitTemp"
-    set "RokitExecutable=rokit.exe"
+set "RokitFound="
+set "RokitPath="
 
-    if exist "%CacheZipPath%" (
-        echo %Info% Using cached file: %CacheZipPath%
+:: 1. Check for Rokit in the PATH
+for %%I in (rokit.exe) do (
+    if exist "%%~fI" (
+        set "RokitPath=%%~fI"
+        set "RokitFound=true"
+        echo %Success% Found Rokit in PATH: !RokitPath!
+        goto :SkipInstall
+    )
+)
+
+:: 2. Check for Rokit in the default user installation path
+if not defined RokitFound (
+    set "DefaultRokitPath=%USERPROFILE%\.rokit\bin\rokit.exe"
+    if exist "!DefaultRokitPath!" (
+        set "RokitPath=!DefaultRokitPath!"
+        set "RokitFound=true"
+        echo %Success% Found Rokit in user directory: !RokitPath!
+        goto :SkipInstall
+    )
+)
+
+:: 3. If not found, download and install it
+if not defined RokitFound (
+    echo %Warn% Rokit not found. Preparing to download and install...
+
+    set "RokitZipName=rokit-1.0.0-windows-x86_64.zip"
+    set "ExtractDirectory=%TEMP%\rokit-1.0.0-windows-x86_64"
+    set "RokitDownloadUrl=https://github.com/rojo-rbx/rokit/releases/download/v1.0.0/!RokitZipName!"
+    set "CacheZipPath=%TEMP%\!RokitZipName!"
+    set "RokitInstalledPath=%USERPROFILE%\.rokit\bin\rokit.exe"
+
+    :: Check for cached zip file
+    if exist "!CacheZipPath!" (
+        echo %Info% Using cached zip file: !CacheZipPath!
     ) else (
-        echo %Info% Downloading Rokit from %RokitDownloadUrl%
-        powershell -Command "Invoke-WebRequest -Uri '%RokitDownloadUrl%' -OutFile '%CacheZipPath%'"
-        if not exist "%CacheZipPath%" (
-            echo %Error% Failed to download %RokitZipName%.
+        echo %Info% Downloading Rokit from !RokitDownloadUrl!
+        powershell -Command "Invoke-WebRequest -Uri '!RokitDownloadUrl!' -OutFile '!CacheZipPath!'"
+        if not exist "!CacheZipPath!" (
+            echo %Error% Failed to download !RokitZipName!.
             exit /b 1
         )
     )
 
-    :: Extract ZIP to temporary directory
+    :: Extract ZIP to temporary directory and then move to user directory
     echo %Info% Extracting Rokit...
-    rmdir /s /q "%ExtractDirectory%" 2>nul
-    mkdir "%ExtractDirectory%"
-    powershell -Command "Expand-Archive -Path '%CacheZipPath%' -DestinationPath '%ExtractDirectory%' -Force"
+    rmdir /s /q "!ExtractDirectory!" 2>nul
+    mkdir "!ExtractDirectory!"
+    powershell -Command "Expand-Archive -Path '!CacheZipPath!' -DestinationPath '!ExtractDirectory!' -Force"
 
-    :: Run rokit.exe self-install
-    if exist "%ExtractDirectory%\%RokitExecutable%" (
-        echo %Info% Running rokit.exe self-install...
-        "%ExtractDirectory%\%RokitExecutable%" self-install
-    ) else (
-        echo %Error% rokit.exe not found after extraction.
+    :: Move the executable to the final destination
+    echo %Info% Installing Rokit to user directory...
+    rmdir /s /q "%USERPROFILE%\.rokit\" 2>nul
+    xcopy /s /e /y "!ExtractDirectory!\*" "%USERPROFILE%\.rokit\"
+
+    :: Check if rokit.exe was installed successfully
+    if not exist "!RokitInstalledPath!" (
+        echo %Error% rokit.exe not found after installation.
         exit /b 1
     )
-) else (
-    echo %Info% Rokit is already installed.
+
+    set "RokitPath=!RokitInstalledPath!"
+    echo %Success% Rokit installed successfully at: !RokitPath!
+)
+
+:SkipInstall
+if not defined RokitPath (
+    echo %Error% Rokit executable not found and could not be installed. Exiting.
+    exit /b 1
 )
 
 :: Step 2 - Install tools from rokit.toml
 echo %Info% Installing tools defined in rokit.toml...
-rokit install
+"!RokitPath!" install
 if %errorlevel% neq 0 (
     echo %Error% Failed to install tools from rokit.toml.
     exit /b 1
@@ -88,14 +126,14 @@ set /p "UserOptions=Enter your bundle options: "
 
 :: Step 5 - Run lune with user options
 echo.
-echo %Info% ^> lune run Build bundle %UserOptions%
+echo %Info% ^> lune run Build bundle !UserOptions!
 echo ----------------------------------------
-lune run Build bundle %UserOptions%
+lune run Build bundle !UserOptions!
 if %errorlevel% neq 0 (
     echo %Error% Bundle process failed.
     exit /b 1
 ) else (
-    echo %Info% Bundle completed successfully.
+    echo %Success% Bundle completed successfully.
 )
 
 endlocal
