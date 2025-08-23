@@ -67,7 +67,7 @@ declare function getthreadcontext(): number
 declare function setthreadidentity(identity: number): ()
 declare function setidentity(identity: number): ()
 declare function setthreadcontext(identity: number): ()
-declare function require(target: ModuleScript | string, ...: any): any
+declare function require(target: ModuleScript | string, ...: any): ...any
 
 --// Misc //
 declare function identifyexecutor(): (string, string)
@@ -108,6 +108,7 @@ declare function firetouchtransmitter(toucher: BasePart, toTouch: BasePart, Stat
 declare function fireproximityprompt(object: ProximityPrompt, distance: number?): ()
 declare function getcallbackvalue(object: Instance, property: string): Function?
 declare function isnetworkowner(object: Instance): boolean
+declare function firesignal(Signal: RBXScriptSignal, ...: any): ()
 declare class ConnectionGarbage
     Enabled: boolean
     ForeignState: boolean
@@ -497,15 +498,65 @@ declare bit: {
 }
 
 declare wax: {
-    version: string,
-    envname: string,
-    shared: {[any]: any},
+    version:   string,
+    envname:   string,
+    shared:    table,
+    arguments: array,
 
     script: LuaSourceContainer,
 
     require: (...any) -> ...any,
     [any]: any
 }
+
+export type LocaleID = (
+    | "sq-al"
+    | "ar-001"
+    | "bn-bd"
+    | "nb-no"
+    | "bs-ba"
+    | "bg-bg"
+    | "my-mm"
+    | "zh-cn"
+    | "zh-tw"
+    | "hr-hr"
+    | "cs-cz"
+    | "da-dk"
+    | "nl-nl"
+    | "en-us"
+    | "et-ee"
+    | "fil-ph"
+    | "fi-fi"
+    | "fr-fr"
+    | "ka-ge"
+    | "de-de"
+    | "el-gr"
+    | "hi-in"
+    | "hu-hu"
+    | "id-id"
+    | "it-it"
+    | "ja-jp"
+    | "kk-kz"
+    | "km-kh"
+    | "ko-kr"
+    | "lv-lv"
+    | "lt-lt"
+    | "ms-my"
+    | "pl-pl"
+    | "pt-br"
+    | "ro-ro"
+    | "ru-ru"
+    | "sr-rs"
+    | "si-lk"
+    | "sk-sk"
+    | "sl-sl"
+    | "es-es"
+    | "sv-se"
+    | "th-th"
+    | "tr-tr"
+    | "uk-ua"
+    | "vi-vn"
+)
 
 --[==[
 --// mspaint Addon //
