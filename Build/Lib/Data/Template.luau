@@ -1,7 +1,20 @@
--- This codegen template *not* be 100% compatible with Lua 5.1x+, MUST just Luau
--- With that being said, this aint explains the weird cflow in any parts
+-- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
+
+-- Note: Added this line ↑ to give credit to Latte and hopefully avoid being blacklisted by them
+
+-- +++++++++++++++++++++++++++++++ --
+
+-- This codegen template NOT be 1000000% compatible with Lua 5.1x+, MUST just Luau
+-- With that being said, this aint gonna explains the normal cflow in any pants
 
 return [=[
+if type(setthreadidentity) == "function" then
+    pcall(setthreadidentity, 8)
+end
+
+local pcall, xpcall, task, table, string, game, Enum
+    = pcall, xpcall, task, table, string, game, Enum
+
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
 -- Holds direct closure data
@@ -14,24 +27,23 @@ type ClosureBindings  = {(table, table, table, Function, ...any) -> (...any)}
 type ObjectDictionary = {number | {string} | {ObjectDictionary}}
 
 -- Misc AOT variable imports
-local WaxVersion = "${Version}"
 local EnvName = "${EnvName}"
 
 -- ++++++++ RUNTIME IMPL BELOW ++++++++ --
 
 -- Localizing certain libraries and built-ins for runtime efficiency
-local string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
-    = string, task, setmetatable, error, table, unpack, coroutine, script, type, require, pcall, xpcall, tostring
+local task, setmetatable, error, unpack, typeof, require, tostring
+    = task, setmetatable, error, unpack, typeof, require, tostring
 
 local shared: {[any]: any} = shared
 
 local table_insert = table.insert
 local table_remove = table.remove
+local table_concat = table.concat
+local table_clear  = table.clear
 
-local coroutine_wrap = coroutine.wrap
-
-local string_sub = string.sub
-local string_match = string.match
+local string_sub    = string.sub
+local string_match  = string.match
 local string_gmatch = string.gmatch
 
 -- The Lune runtime has its own `task` impl, but it must be imported by its builtin
@@ -170,7 +182,7 @@ for MethodName, MethodObject in InstanceMethods do
         local Args = {...}
         for ArgIndex, TypeInfo in EvaluatedTypeInfo do
             local RealArg = Args[ArgIndex]
-            local RealArgType = type(RealArg)
+            local RealArgType = typeof(RealArg)
             local ExpectedType, IsOptional = TypeInfo[1], TypeInfo[2]
 
             if RealArg == nil and not IsOptional then
@@ -333,17 +345,17 @@ end
 
 local Global_wax = {
     -- From AOT variable imports
-    version = WaxVersion,
+    version = "${Version}",
     envname = EnvName,
 
     shared = shared,
 
     -- "Real" globals instead of the env set ones
     script = script,
-    require = require,
+    require = if typeof(require) == "function" then require else function(...) end,
 
-    argument = {...}
-}
+    arguments = {...}
+} :: hash
 
 local function LoadScript(scriptRef, ...)
     local Args = {...}
@@ -354,11 +366,11 @@ local function LoadScript(scriptRef, ...)
 
         local Bindable = Instance.new("BindableFunction")
         function Bindable.OnInvoke(Choice)
-            if Choice ~= "Yes" then return end
+            if Choice ~= "Yes" or Global_wax.Unloaded == true then return end
 
             pcall(pcall, SharedEnvironment.Unload)
 
-            local Global = getgenv and getgenv() or Global_wax.Global
+            local Global = Global_wax.Global or getgenv and getgenv()
             if Global then
                 Global.MFeeeLoaded  = false
                 Global.MFeeeLoading = false
@@ -376,16 +388,25 @@ local function LoadScript(scriptRef, ...)
             table.clear(SharedEnvironment)
         end
 
-        print(string.format("[%*] %* %*", EnvName, Title, Text))
+        warn(`[{EnvName}] {Title} {Text}`)
 
-        game:GetService("StarterGui"):SetCore("SendNotification", {
+        local StarterGui = game:GetService("StarterGui")
+        if pcall(StarterGui.SetCore, StarterGui, "SendNotification", {
             Title    = Title,
             Text     = Text,
             Button1  = "Yes",
             Button2  = "No",
             Duration = (1 / 0),
             Callback = Bindable
-        })
+        }) then
+            local Sound = Instance.new("Sound", game:GetService("SoundService"));do
+                Sound.SoundId      = "rbxassetid://4590662766"
+                Sound.Volume       = 2
+                Sound.PlayOnRemove = true
+            end
+
+            Sound:Destroy()
+        end
     end
 
     local ScriptClassName = scriptRef.ClassName
@@ -480,10 +501,11 @@ function ImportGlobals(refId)
     end
 
     local Global_script = ScriptRef
+    local Old_require   = Global_wax.require
 
     local function Global_require(module, ...)
         local Args = {...}
-        local ModuleArgType = type(module)
+        local ModuleArgType = typeof(module)
 
         local ErrorNonModuleScript = "Attempted to call require with a non-ModuleScript"
         local ErrorSelfRequire = "Attempted to call require with self"
@@ -499,7 +521,7 @@ function ImportGlobals(refId)
         elseif ModuleArgType == "string" then
             if #module == 0 then
                 error("Attempted to call require with empty string", 2)
-            elseif string_sub(module, 1, 6) == "@self/" then
+            elseif string_sub(module, 1, 6) == "@self/" then -- #1 Require-by-String Update
                 module = string_sub(module, 7)
             end
 
@@ -543,7 +565,20 @@ function ImportGlobals(refId)
                 PreviousPathMatch = PathMatch
             end
 
-            if CurrentRefPointer.ClassName ~= "ModuleScript" then
+            if CurrentRefPointer.ClassName == "Folder" then -- #2 Require-by-String Update
+                local InitModule
+                for _, Child in CurrentRefPointer:GetChildren() do
+                    if Child.Name ~= "init" or Child.ClassName ~= "ModuleScript" then continue end
+
+                    InitModule = Child
+                    CurrentRefPointer = Child
+                    break
+                end
+
+                if not InitModule then
+                    error(ErrorNonModuleScript, 2)
+                end
+            elseif CurrentRefPointer.ClassName ~= "ModuleScript" then
                 error(ErrorNonModuleScript, 2)
             elseif CurrentRefPointer == ScriptRef then
                 error(ErrorSelfRequire, 2)
@@ -552,7 +587,7 @@ function ImportGlobals(refId)
             return LoadScript(CurrentRefPointer, unpack(Args))
         end
 
-        return RealCall(require, module, ...)
+        return RealCall(Old_require, module, ...)
     end
 
     -- Now, return flattened globals ready for direct runtime exec
