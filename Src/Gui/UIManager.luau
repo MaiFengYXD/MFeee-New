@@ -65,11 +65,11 @@
     }
 
     for Index, Content in TipTitles do
-        TipTitles[Index]   = GetTranslation(Content)
+        TipTitles[Index]   = Translate(Content)
     end
 
     for Index, Content in TipContents do
-        TipContents[Index] = GetTranslation(Content)
+        TipContents[Index] = Translate(Content)
     end
 
     local function FormatTip(Title, Content)
@@ -83,8 +83,8 @@
 
     AllTips += 1
 
-    table_insert(TipTitles  , GetTranslation("Funny trivia:"))
-    table_insert(TipContents, string_format(GetTranslation("You had %f%% chance to roll this tip"), 1 / AllTips * 100))
+    table_insert(TipTitles  , Translate("Funny trivia:"))
+    table_insert(TipContents, string_format(Translate("You had %f%% chance to roll this tip"), 1 / AllTips * 100))
     ```
 --]]
 
@@ -105,18 +105,18 @@ local Elements = {
 
 local ExecutorSupport = shared.ExecutorSupport
 local EasingLibrary   = shared.EasingLibrary
-local Translations    = shared.Translations
+local Translator      = shared.Translator
 local FileHelper      = shared.FileHelper
 
-local GetTranslation  = Translations.GetTranslation
-local FromTranslation = Translations.FromTranslation
+local Translate = Translator.Translate
+local Reverse   = Translator.Reverse
 
-local DoesntSupport = GetTranslation("Your executor doesn't support this feature (missing function '%*')")
+local DoesntSupport = Translate("Your executor doesn't support this feature (missing function '%*')")
 
 local UpdateSetting: (Key: string, Value: any) -> ()
 
 UIManager.Settings = {
-    NotificationSound   = "Obsidian", -- Obsidian: 4590662766, Linoria: 4590657391
+    NotificationSound   = "Obsidian", -- Obsidian: 4590662766, Linoria: 4590657391 (Their names are just arbitrary and unrelated to anything else with the same name)
     NotificationSide    = "TopRight",
     EasingMode          = "Quartic",
     EasingDirection     = "Out",
@@ -128,7 +128,7 @@ UIManager.Settings = {
     NoNotify            = false,
     UIActivated         = true,
     DPIScale            = 1,
-    NotificationVolume  = 200,
+    NotificationVolume  = 2,
     EasingDuration      = 1,
     NotificationSoundId = 4590662766
 };do
@@ -143,7 +143,7 @@ UIManager.Settings = {
 
     local _, Data = xpcall(JSONDecode, function()
         return {}
-    end, Settings)
+    end, HttpService, Settings)
 
     for Key, Value in Data do
         if UIManager.Settings[Key] == nil then continue end
@@ -181,13 +181,14 @@ UIManager.Notify = Library.Notify
 function UIManager:Init()
     local Window = self.Library:CreateWindow({
         Icon              = 77335290652571,
-        Title             = "MFeee-New",
+        Title             = "MFeee~ New",
         DPIScale          = self.Settings.DPIScale,
         NotificationSide  = self.Settings.NotificationSide,
         NotificationSound = self.Settings.NotificationSoundId,
         ShowCustomCursor  = self.Settings.CustomCursor,
         AlwaysOnTop       = self.Settings.AlwaysOnTop,
-        UIActivated       = self.Settings.UIActivated
+        UIActivated       = self.Settings.UIActivated,
+        NoNotify          = self.Settings.NoNotify,
     })
 
     self.Window = Window
@@ -227,36 +228,46 @@ function UIManager:AddMainTab(IgnoredElements: {string}, IgnoredTabs: {string})
     end
 
     --// Main Tab //
-    local MainTab = Create(self.Window, "AddTab", GetTranslation("Main"), "house")
+    local MainTab = Create(self.Window, "AddTab", Translate("Main"), "house")
 
     --// Common Groupbox
-    local CommonGroupbox = Create(MainTab, "AddLeftGroupbox", GetTranslation("Common"))
+    local CommonGroupbox = Create(MainTab, "AddLeftGroupbox", Translate("Common"))
 
     local AntiAFKToggle = Create(CommonGroupbox, "AddToggle", "AntiAFK", {
-        Text = GetTranslation("Anti AFK"),
+        Text = Translate("Anti AFK"),
         Disabled = not ExecutorSupport.getconnections,
         DisabledTooltip = string_format(DoesntSupport, "getconnections")
     })
 
     local AntiKickToggle = Create(CommonGroupbox, "AddToggle", "AntiKick", {
-        Text = GetTranslation("Anti Kick"),
+        Text = Translate("Anti Kick"),
         Disabled = not (ExecutorSupport.hookfunction or (ExecutorSupport.getnamecallmethod and ExecutorSupport.hookmetamethod)),
         DisabledTooltip = string_format(DoesntSupport, "hookfunction or (getnamecallmethod and hookmetamethod)")
     })
 
     local AntiLagToggle = Create(CommonGroupbox, "AddToggle", "AntiLag", {
-        Text = GetTranslation("Anti Lag")
+        Text = Translate("Anti Lag")
     })
 
     --// :: TESTS :: //
-    local TestDropdown = Create(CommonGroupbox, "AddDropdown", "TestDropdown", {
-        Text = GetTranslation("Test Dropdown"),
+    local TestDropdown1 = Create(CommonGroupbox, "AddDropdown", "TestDropdown1", {
+        Text = Translate("Test Dropdown 1"),
         Values = {
-            GetTranslation("Option 1"),
-            GetTranslation("Option 2"),
-            GetTranslation("Option 3")
+            Translate("Option 1"),
+            Translate("Option 2"),
+            Translate("Option 3")
         },
-        Default = GetTranslation("Option 1")
+        Default = Translate("Option 1")
+    })
+
+    local TestDropdown2 = Create(CommonGroupbox, "AddDropdown", "TestDropdown2", {
+        Text = Translate("Test Dropdown 2"),
+        Values = {
+            Translate("Option 4"),
+            Translate("Option 5"),
+            Translate("Option 6")
+        },
+        Default = Translate("Option 4")
     })
 end
 
