@@ -52,8 +52,8 @@ do
     local SendNotification = GuiService.SendNotification
     local SetCore          = StarterGui.SetCore
 
-    local function Notify(Title: string, Text: string)
-        print(`[MFeee~ New] {Title} {Text}`)
+    local function Notify(Title: string, Text: string): ()
+        warn(`[MFeee~ New] {Title} {Text}`)
 
         local function Alert()
             local Sound = Instance_new("Sound", SoundService);do
@@ -156,12 +156,12 @@ shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (functio
 end)(game.IsA, game.Close.Wait, shared.Speaker.ChildAdded)
 
 shared.Emoji           = require("@self/Utils/ArtEmoji")
-shared.ExecutorSupport = require("@self/Utils/ExecutorSupport")
+shared.ExecutorSupport = require("@self/Utils/ExecutorSupport", true)
 shared.FileHelper      = require("@self/Utils/FileHelper")
 
 shared.ConfigManager = require("@self/Utils/Config")
 
-local BootConfig = shared.ConfigManager.new({
+local BootConfig = shared.ConfigManager.new("Boot", {
     VersionCheck         = wax.arguments[1] ~= "FromHttpGet",
     InitialNotifications = true,
     TranslationsTimeout  = 10,
