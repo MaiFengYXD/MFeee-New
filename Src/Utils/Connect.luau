@@ -162,8 +162,6 @@ function Connect:DisconnectAll()
     end
 end
 
-wax.AddOnUnload(function()
-    Connect:DisconnectAll()
-end)
+wax.AddOnUnload(Connect.DisconnectAll, Connect)
 
 return Connect
