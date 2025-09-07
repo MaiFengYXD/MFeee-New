@@ -22,7 +22,7 @@ local SoundService = cloneref(game:GetService("SoundService"))
 local setthreadidentity = GetFunction(setthreadidentity)
 
 local function Notify(Title: string, Text: string)
-    print(`[MFeee~ New] {Title} {Text}`)
+    warn(`[MFeee~ New] {Title} {Text}`)
 
     local function Alert()
         local Sound = Instance_new("Sound", SoundService);do
@@ -36,7 +36,7 @@ local function Notify(Title: string, Text: string)
 
     if (
         setthreadidentity and (
-            pcall(setthreadidentity, 8) and
+            pcall(setthreadidentity, 3) and
             pcall(GuiService.SendNotification, GuiService, {
                 Title = Title,
                 Text  = Text
