@@ -234,7 +234,7 @@ local EmojiList = {
     ["12 25"] = "🎄"
 } :: {[string?]: string}
 
-if shared.Language == "zh-cn" then
+if shared.Language == "Chinese (Simplified)" then
     EmojiList["01 26"] = "🥣" --/ 2026
     EmojiList["02 16"] = "🧨" --/ 2026
     EmojiList["03 03"] = "🏮" --/ 2026
