@@ -1,12 +1,17 @@
 --[[
-    Extended from NPCHandler.luau
-
-    Including:
-    + Entities
-    L Npcs
-    + Players (characters)
+    Will be rewritten when I finished UI Library fr 🥰
 --]]
 
+--[[
+    Extended from NPCHandler.luau, Rewrite 2
+
+    Including:
+        + Entities
+            - Npcs
+        + Players (characters)
+--]]
+
+--[[
 --// Local Caches //
 local Instance_new, table_clear, table_insert, task_defer, task_spawn, task_cancel
     = Instance.new, table.clear, table.insert, task.defer, task.spawn, task.cancel
@@ -591,3 +596,4 @@ return {
     OnPlayerAdded    = _OnPlayerAdded,
     OnCharacterAdded = _OnCharacterAdded,
 }
+--]]
