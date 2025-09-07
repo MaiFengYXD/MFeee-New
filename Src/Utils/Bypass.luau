@@ -48,6 +48,7 @@ if shared.BypassedMethod then
     return {}
 end
 
+--/ Default a anti-hook bypass
 xpcall(function(
     xpcall:      typeof(xpcall),
     debug_info:  typeof(debug.info),
