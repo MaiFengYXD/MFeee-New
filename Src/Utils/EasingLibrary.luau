@@ -1,5 +1,5 @@
-local TweenInfo_new, type
-    = TweenInfo.new, type
+local TweenInfo_new, type, assert
+    = TweenInfo.new, type, assert
 
 local      Destroy
     = game.Destroy
@@ -62,16 +62,15 @@ type StoredTween = {
     OnCompleted: RBXScriptConnection
 }
 
-function EasingLibrary:CancelTween(Index: string)
+function EasingLibrary:CancelTween(Index: string | any)
     local Running = self.RunningTween[Index]
     if not Running then return end
 
-    Cancel (Running.Tween) --/ OnCompleted will automatically clean the RunningTween
-    Destroy(Running.Tween)
+    Cancel(Running.Tween) --/ OnCompleted will automatically clean the RunningTween
 end
 
-function EasingLibrary:PlayTween(Index: string?, Tween: Tween | TweenBase): StoredTween
-    self.RunningTween[Index] = (self:CancelTween(Index) :: nil) or {
+function EasingLibrary:PlayTween(Index: string | any, Tween: Tween | TweenBase): StoredTween
+    local This = {
         Tween = Tween,
 
         OnCompleted = Tween.Completed:Once(function()
@@ -82,9 +81,9 @@ function EasingLibrary:PlayTween(Index: string?, Tween: Tween | TweenBase): Stor
         end)
     } :: StoredTween
 
-    Play(Tween)
+    self.RunningTween[Index] = (self:CancelTween(Index) :: nil) or This
 
-    return self.RunningTween[Index]
+    return Play(Tween) or This
 end
 
 function EasingLibrary:Ease(
@@ -96,7 +95,7 @@ function EasingLibrary:Ease(
     Mode:      string | Enum.EasingStyle | nil,
     Direction: string | Enum.EasingDirection | nil
 ): StoredTween | nil
-    assert(Index ~= nil, "EasingLibrary.Ease: Argument 'Index' is required!")
+    assert(Index ~= nil, "EasingLibrary.Ease: argument 'Index' is required!")
 
     if Mode == "None" or self.EasingMode == "None" then
         if type(Property) == "string" then
@@ -109,14 +108,16 @@ function EasingLibrary:Ease(
         return
     end
 
-    local TweenInfo = TweenInfo_new(
-        Duration  or self.EasingDuration or 1,
-        type(Mode) == "string" and self.EasingModes[Mode] or self.EasingModes[self.EasingMode] or Quart,
-        type(Direction) == "string" and self.EasingDirections[Direction] or self.EasingDirections[self.EasingDirection] or Out
-    )
-    local Goal = if type(Property) == "table" then Property else {[Property] = EndValue}
-
-    return self:PlayTween(Index, Create(TweenService, Target, TweenInfo, Goal))
+    return self:PlayTween(Index, Create(
+        TweenService,
+        Target,
+        TweenInfo_new(
+            Duration or self.EasingDuration or 1,
+            type(Mode) == "string" and self.EasingModes[Mode] or self.EasingModes[self.EasingMode] or Quart,
+            type(Direction) == "string" and self.EasingDirections[Direction] or self.EasingDirections[self.EasingDirection] or Out
+        ),
+        if type(Property) == "table" then Property else {[Property] = EndValue}
+    ))
 end
 
 return EasingLibrary
