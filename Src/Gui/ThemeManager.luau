@@ -13,14 +13,15 @@ local ThemeManager = {
         "SecondaryColor",
         "AccentColor",
         "OutlineColor",
-        "FontColor",
         "RiskyColor"
     }
 
     for Name, Scheme in {
-        ["Cool Cold"] = {"080c0f", "0b1719", "0b9b8a", "67ddab", "909090", "FFFFFF", "f65938"}
+        ["Cool Cold"] = {"111019", "141929", "243b52", "57b3e1", "170c17", "d02525"}
     } :: hash do
-        local Color3Scheme = {}
+        local Color3Scheme = {
+            FontColor = Color3_fromHex("ffffff")
+        }
 
         for Index, HexValue in Scheme do
             Color3Scheme[IndexToKey[Index]] = Color3_fromHex(HexValue)
