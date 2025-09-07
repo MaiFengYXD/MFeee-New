@@ -1,5 +1,8 @@
-local pcall, xpcall, error, typeof, print, string_find, string_sub, table_clear, table_insert, task_spawn
-    = pcall, xpcall, error, typeof, print, string.find, string.sub, table.clear, table.insert, task.spawn
+local task_spawn, task_delay, string_find, string_sub, table_clear, table_insert, Instance_new
+    = task.spawn, task.delay, string.find, string.sub, table.clear, table.insert, Instance.new
+
+local pcall, xpcall, error, typeof, print
+    = pcall, xpcall, error, typeof, print
 
 local Global = wax.Global
 
@@ -22,9 +25,9 @@ local function Test(
     Name:         string,
     Requires:     {string?},
     Aliases:      {string?},
-    TestFunction: (...any) -> (nil),
-    Fix:          ((nil) -> (nil)) | nil,
-    CannotTest:   boolean   | nil
+    TestFunction: (...any) -> (),
+    Fix:          (() -> ()) | nil,
+    CannotTest:   boolean    | nil
 ): ()
     ExecutorSupport.TotalTestes += 1
 
@@ -43,7 +46,10 @@ local function Test(
         ExecutorSupport[Name] = RealSuccess
         ExecutorSupport.TotalWorking += RealSuccess and 1 or 0
 
-        table_insert(OutputList, `> {Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"} [{Name}]{not Success and ` - {TestResult}` or ""}`)
+        local Emoji = Success and (CannotTest and "⏺️" or "✅") or RealSuccess and "⚠️" or "❌"
+        local Info  = TestResult and ` - {TestResult}` or ""
+
+        table_insert(OutputList, `> {Emoji} [{Name}]{Info}`)
 
         task_spawn(table_clear, Requires)
         task_spawn(table_clear, Aliases)
@@ -117,6 +123,10 @@ local function Test(
     return GoSummary()
 end
 
+local function GetShortName(Name: string): string
+    return #Name > 15 and string_sub(Name, 1, 15) .. "..." or Name
+end
+
 table_insert(OutputList, "----------------")
 
 --// File System //
@@ -186,7 +196,6 @@ Test("hookmetamethod", {}, {}, function()
         Object, MetaTable = nil, nil
     end)
 
-    -- Original meta methods
     function MetaTable.__index(_, Key)
         return Key == "Banana" and 123 or "Hello "
     end
@@ -200,7 +209,6 @@ Test("hookmetamethod", {}, {}, function()
         ["__namecall"]: (any, Arg: string?) -> string | number
     }
 
-    -- Hook and store references from the original meta method
     Originals.__index    = hookmetamethod(Object, "__index"   , function(_, Key)
         return Key == "Banana" and "Hello " or 123
     end)
@@ -209,15 +217,12 @@ Test("hookmetamethod", {}, {}, function()
         return Arg == "Orange" and "World!" or 456
     end)
 
-    -- Test hooked meta methods
     assert(Object.Banana           == "Hello " and Object.Orange           == 123, "Failed to hook (__index)")
     assert(Object:OhTest("Orange") == "World!" and Object:OhTest("Banana") == 456, "Failed to hook (__namecall)")
 
-    -- Test original references
     assert(Originals.__index   (nil, "Banana") == 123 and Originals.__index   (nil, "Orange") == "Hello ", "Failed to get original reference (__index)")
     assert(Originals.__namecall(nil, "Orange") == 456 and Originals.__namecall(nil, "Banana") == "World!", "Failed to get original reference (__namecall)")
 
-    -- Hook back original meta methods and test again
     hookmetamethod(Object, "__index"   , Originals.__index)
     hookmetamethod(Object, "__namecall", Originals.__namecall)
 
@@ -232,6 +237,8 @@ Test("getnamecallmethod", {}, {}, function()
 
     local Method = `{getnamecallmethod()}`
     assert(Method == "HelloWorld", `Failed to get __namecall method ("HelloWorld" expected, got "{Method}")`)
+
+    return Method
 end)
 
 --// Closures //
@@ -242,7 +249,6 @@ Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: 
         end
     })[1]
 
-    -- Hook function and store reference to the original function
     local Original = RealFunction(Test, function(Arg)
         return Arg == "Hello " and 456 or "World!"
     end)
@@ -250,7 +256,6 @@ Test("hookfunction", {}, {"replaceclosure", "hookfunc"}, function(RealFunction: 
     assert(Test    ("Hello ") == 456      and Test    (123) == "World!", "Failed to hook function")
     assert(Original("Hello ") == "World!" and Original(123) == 456     , "Failed to get original reference")
 
-    -- Hook back the original function and test again
     RealFunction(Test, Original)
 
     assert(Test("Hello ") == "World!" and Test(123) == 456, "Failed to restore original reference")
@@ -267,14 +272,18 @@ Test("getcallingscript", {}, {}, function()
     if typeof(Calling) == "Instance" then
         assert(Calling:IsA("LocalScript"), `Failed to get calling script (LocalScript expected, got {Calling.ClassName})`)
         assert(not Calling:IsDescendantOf(game), `Failed to get calling script, your executor cannot execute scripts safely (FullName "" expected, got "{Calling:GetFullName()}")`)
+
+        return GetShortName(`{Calling}`)
     elseif Calling ~= nil then
         assert(false, `Failed to get calling script, (Instance | nil expected, got {typeof(Calling)})`)
     end
+
+    return "nil"
 end)
 
 --// Cache //
 Test("cloneref", {}, {"clonereference"}, function(RealFunction: typeof(cloneref))
-    local Part = Instance.new("Part")
+    local Part = Instance_new("Part")
     table_insert(Grabages, function()
         Part:Destroy()
     end)
@@ -283,7 +292,7 @@ Test("cloneref", {}, {"clonereference"}, function(RealFunction: typeof(cloneref)
     assert(Cloned ~= Part, "Failed to clone reference (clone is same as original)")
 
     Cloned.Name = "ClonedPart"
-    assert(Part.Name == "ClonedPart", "Failed to get cloned reference")
+    assert(Part.Name == "ClonedPart", "Failed to get the real cloned reference")
 end)
 
 --// Instance //
@@ -301,7 +310,7 @@ Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: typeof(ge
         Enable = "function"
     }
 
-    -- Create a RBXScriptConnection and get its connections
+    -- Not using game.Close 'cause it's crashing on seliware 🥀🥀
     game.Changed:Once(function() end)
     local Connection = RealFunction(game.Changed)[1] :: any
 
@@ -311,83 +320,81 @@ Test("getconnections", {}, {"get_signal_cons"}, function(RealFunction: typeof(ge
     end
 end)
 
-Test("fireproximityprompt", {}, {}, function()
-    local Prompt = Instance.new("ProximityPrompt", shared.Workspace) :: any & Instance
-    local Event  = Instance.new("BindableEvent")
-
-    table_insert(Grabages, function()
-        Prompt:Destroy()
-    end)
+Test("firesignal", {}, {}, function()
+    local Event = Instance_new("BindableEvent")
+    local Relay = Instance_new("BindableEvent")
 
     table_insert(Grabages, function()
         Event:Destroy()
+        Relay:Destroy()
+    end)
+
+    Event.Event:Once(function(Received1: string, Received2: string)
+        if Received1 == "Hello " and Received2 == "World!" then
+            Relay:Fire(true)
+        else
+            Relay:Fire(false, `failed to receive arguments ("Hello World!" expected, got "{Received1} {Received2}")`)
+        end
+    end)
+
+    task_delay(0, Relay.Fire, Relay, false, "timed out")
+    task_spawn(firesignal, Event.Event, "Hello ", "World!")
+
+    local Response, Cause = Relay.Event:Wait()
+    assert(Response, `Failed to fire signal ({Cause})`)
+end, function()
+    local getconnections = (ExecutorSupport.getconnections and getconnections) :: typeof(getconnections)
+    assert(getconnections)
+
+    local Fire = getconnections(game.Changed)[1].Fire
+
+    function Global.firesignal(Signal: RBXScriptSignal, ...: any)
+        local Fire
+            = Fire
+
+        for _, Connection in getconnections(Signal) do
+            Fire(Connection, ...)
+        end
+    end
+end)
+
+Test("fireproximityprompt", {}, {}, function()
+    local Prompt = Instance_new("ProximityPrompt", shared.Workspace) :: any & Instance
+    local Relay  = Instance_new("BindableEvent")
+
+    table_insert(Grabages, function()
+        Prompt:Destroy()
+        Relay:Destroy()
     end)
 
     Prompt.Triggered:Once(function()
         Prompt = Prompt:Destroy()
-        Event:Fire(true)
+        Relay:Fire(true)
     end)
 
-    task.delay(0.1, Event.Fire, Event, false)
+    task_delay(0.1, Relay.Fire, Relay, false)
     task_spawn(fireproximityprompt, Prompt)
 
-    assert(Event.Event:Wait() and Prompt == nil, "Failed to fire proximity prompt (timed out)")
+    assert(Relay.Event:Wait() and Prompt == nil, "Failed to fire proximity prompt (timed out)")
 end, function()
-    local      IsA,            Once, shared
-        = game.IsA, game.Close.Once, shared
+    local firesignal = (ExecutorSupport.firesignal and firesignal) :: typeof(firesignal)
+    assert(firesignal)
 
-    local InputHoldBegin, InputHoldEnd;do
-        local Prompt = Instance.new("ProximityPrompt")
+    local Speaker = shared.Speaker :: Player
 
-        InputHoldBegin = Prompt.InputHoldBegin
-        InputHoldEnd   = Prompt.InputHoldEnd
+    function Global.fireproximityprompt(Prompt: ProximityPrompt)
+        local firesignal, Speaker
+            = firesignal, Speaker
 
-        Prompt:Destroy()
-    end
-
-    local Firing = {}
-    local Inf    = (1 / 0)
-
-    function Global.fireproximityprompt(Prompt: ProximityPrompt, Distance: number): boolean
-        local Success, Result = xpcall(function()
-            if Firing[Prompt] then return false end
-
-            assert((Prompt :: any) ~= nil, "missing argument #1 to 'fireproximityprompt' (userdata expected)")
-            assert(typeof(Prompt) == "userdata", `invalid argument #1 to 'fireproximityprompt' (userdata expected, got {typeof(Prompt)})`)
-            assert(IsA(Prompt, "ProximityPrompt"), `invalid argument #1 to 'fireproximityprompt' (ProximityPrompt expected, got {Prompt.ClassName})`)
-
-            Firing[Prompt] = true
-
-            if typeof(Distance) ~= "number" or not shared.Speaker.Character or Distance ~= Distance then
-                Distance = Inf
-            end
-
-            local PreDuration = Prompt.HoldDuration
-            local PreDistance = Prompt.MaxActivationDistance
-            local PreNoclip   = Prompt.RequiresLineOfSight
-
-            Prompt.HoldDuration = 0
-            Prompt.MaxActivationDistance = Distance
-            Prompt.RequiresLineOfSight   = false
-
-            Once(Prompt.Triggered, function()
-                InputHoldEnd(Prompt)
-
-                Prompt.HoldDuration          = PreDuration
-                Prompt.MaxActivationDistance = PreDistance
-                Prompt.RequiresLineOfSight   = PreNoclip
-
-                Firing[Prompt] = nil
-            end)
-
-            InputHoldBegin(Prompt)
-            return true
-        end, function(Message)
-            Firing[Prompt] = nil
-            error(Message, 2)
-        end)
-
-        return if Success then Result else false
+        if Prompt.HoldDuration == 0 then
+            firesignal(Prompt.Triggered, Speaker)
+            firesignal(Prompt.TriggerEnded, Speaker)
+        else
+            firesignal(Prompt.PromptButtonHoldBegan, Speaker)
+            firesignal(Prompt.Triggered, Speaker)
+            firesignal(Prompt.PromptButtonHoldEnded, Speaker)
+            firesignal(Prompt.TriggerEnded, Speaker)
+        end
     end
 end)
 
@@ -407,6 +414,7 @@ Test("gethui", {}, {}, function()
     end)
 
     assert(HiddenUI ~= CoreGui and HiddenUI ~= shared.PlayerGui, "Failed to get hidden UI (useless)")
+    return GetShortName(`{HiddenUI}`)
 end, function()
     local GarbageFunction
     local CanAccessCoreGui = pcall(function()
@@ -421,9 +429,7 @@ end, function()
     GarbageFunction()
 
     local CoreGui = game:GetService("CoreGui")
-    local Gui = ExecutorSupport.cloneref and cloneref(
-        CanAccessCoreGui and CoreGui or shared.PlayerGui
-    ) or shared.PlayerGui
+    local Gui = CanAccessCoreGui and ExecutorSupport.cloneref and cloneref(CoreGui) or shared.PlayerGui
 
     CoreGui = nil
 
@@ -444,7 +450,7 @@ Test("require", {}, {}, function()
         if not IsA(Object, "ModuleScript") then continue end
         if require(Object) == nil then continue end
 
-        return
+        return GetShortName(`{Object}`)
     end
 
     assert(false, "Failed to find an available module script (or require is broken)")
@@ -495,7 +501,7 @@ local function CommuniticationChannelTest()
     local Received = get_comm_channel(ChannelId)
     assert(Received == Event, "Failed to get the communitication channel")
 
-    local Relay = Instance.new("BindableEvent")
+    local Relay = Instance_new("BindableEvent")
     table_insert(Grabages, function()
         Relay:Destroy()
     end)
@@ -505,9 +511,10 @@ local function CommuniticationChannelTest()
     end)
 
     task_spawn(Event.Fire, Event)
-    task.delay(0, Relay.Fire, Relay, false)
+    task_delay(0, Relay.Fire, Relay, false)
 
     assert(Relay.Event:Wait(), "Failed to receive the communitication channel event (timed out)")
+    return GetShortName(`{ChannelId}`)
 end
 
 Test("create_comm_channel", {"get_comm_channel"}, {}, CommuniticationChannelTest)
@@ -515,7 +522,7 @@ Test("get_comm_channel", {"create_comm_channel"}, {}, CommuniticationChannelTest
 
 Test("getactors", {"run_on_actor", "create_comm_channel", "get_comm_channel"}, {}, function()
     local      IsA, string_format, task_spawn, task_delay, Instance_new
-        = game.IsA, string.format, task_spawn, task.delay, Instance.new
+        = game.IsA, string.format, task_spawn, task_delay, Instance_new
 
     local Actors = getactors()
 
@@ -549,8 +556,12 @@ Test("getactors", {"run_on_actor", "create_comm_channel", "get_comm_channel"}, {
         end
     end
 
-    shared.GameUsingActors = #WorkingActors > 0
+    local Working = #WorkingActors
+
+    shared.GameUsingActors = Working > 0
     shared.WorkingActors   = WorkingActors
+
+    return GetShortName(`{Working} available`)
 end, function()
     local      IsA, table_insert
         = game.IsA, table_insert
@@ -587,7 +598,7 @@ end)
 
 Test("run_on_actor", {"create_comm_channel", "get_comm_channel"}, {}, function()
     local ChannelId, Event = create_comm_channel()
-    local Relay = Instance.new("BindableEvent")
+    local Relay = Instance_new("BindableEvent")
 
     table_insert(Grabages, function()
         Relay:Destroy()
@@ -597,13 +608,13 @@ Test("run_on_actor", {"create_comm_channel", "get_comm_channel"}, {}, function()
         Relay:Fire(true)
     end)
 
-    task_spawn(run_on_actor, Instance.new("Actor"), string.format([[
+    task_spawn(run_on_actor, Instance_new("Actor"), string.format([[
         pcall(function()
             get_comm_channel(%*):Fire(true)
         end)
     ]], typeof(ChannelId) == "number" and ChannelId or `"{ChannelId}"`))
 
-    task.delay(0, Relay.Fire, Relay, false)
+    task_delay(0, Relay.Fire, Relay, false)
     assert(Relay.Event:Wait(), "Failed to run on actor (timed out)")
 end)
 
@@ -649,9 +660,7 @@ Test("Drawing", {}, {}, function()
         assert(typeof(Circle[Property]) == Type, `Failed to get property '{Property}' ({Type} expected, got {typeof(Circle[Property])})`)
     end
 
-    xpcall(Circle.Remove, function()
-        assert(false, "Failed to remove the drawing")
-    end, Circle)
+    assert(pcall(Circle.Remove, Circle), "Failed to remove the drawing")
 end)
 
 --// Summary //
