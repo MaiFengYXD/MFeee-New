@@ -1,1 +1,0 @@
-return shared.UIManager:CreatePlayerTab()
