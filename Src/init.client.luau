@@ -42,8 +42,8 @@ local Global = getgenv()
 wax.Global   = Global
 
 do
-    local task_spawn, Instance_new,      Destroy
-        = task.spawn, Instance.new, game.Destroy
+    local Instance_new,      Destroy
+        = Instance.new, game.Destroy
 
     local GuiService   = shared.GuiService   :: GuiService
     local StarterGui   = shared.StarterGui   :: StarterGui
@@ -55,7 +55,21 @@ do
     local function Notify(Title: string, Text: string): ()
         warn(`[MFeee~ New] {Title} {Text}`)
 
-        local function Alert()
+        if (
+            type(setthreadidentity) == "function" and (
+                pcall(setthreadidentity, 3) and
+                pcall(SendNotification, GuiService, {
+                    Title = Title,
+                    Text  = Text
+                })
+            ) or
+            pcall(SetCore, StarterGui, "SendNotification", {
+                Title    = Title,
+                Text     = Text,
+                Duration = 15,
+                Button1  = "Close"
+            })
+        ) then
             local Sound = Instance_new("Sound", SoundService);do
                 Sound.SoundId      = "rbxassetid://4590662766"
                 Sound.Volume       = 2
@@ -64,25 +78,6 @@ do
 
             Destroy(Sound)
         end
-
-        if type(setthreadidentity) == "function" then
-            task_spawn(function()
-                pcall(setthreadidentity, 3)
-                pcall(SendNotification, GuiService, {
-                    Title = Title,
-                    Text  = Text
-                })
-            end)
-
-            return Alert()
-        end
-
-        return pcall(SetCore, StarterGui, "SendNotification", {
-            Title    = Title,
-            Text     = Text,
-            Duration = 15,
-            Button1  = "Dismiss"
-        }) and Alert() or nil
     end
 
     shared.MiniNotify = Notify
@@ -156,7 +151,7 @@ shared.PlayerGui = shared.Speaker:FindFirstChildOfClass("PlayerGui") or (functio
 end)(game.IsA, game.Close.Wait, shared.Speaker.ChildAdded)
 
 shared.Emoji           = require("@self/Utils/ArtEmoji")
-shared.ExecutorSupport = require("@self/Utils/ExecutorSupport", true)
+shared.ExecutorSupport = require("@self/Utils/ExecutorSupport")
 shared.FileHelper      = require("@self/Utils/FileHelper")
 
 shared.ConfigManager = require("@self/Utils/Config")
@@ -167,9 +162,9 @@ local BootConfig = shared.ConfigManager.new("Boot", {
     TranslationsTimeout  = 10,
     DisableTranslation   = false,
     AutoBypassAntiCheat  = true
-}, "boot.settings.json")
+}, "boot.config.json")
 
-local BootSettings  = BootConfig.Configs
+local BootSettings  = BootConfig.Config
 shared.BootSettings = BootSettings
 
 if BootSettings.AutoBypassAntiCheat then
@@ -177,19 +172,20 @@ if BootSettings.AutoBypassAntiCheat then
 end
 
 do
-    local table_insert, table_clear, unpack
-        = table.insert, table.clear, unpack
+    local table_insert, table_clear, unpack, debug_profilebegin, debug_profileend
+        = table.insert, table.clear, unpack, debug.profilebegin, debug.profileend
 
     local OnUnloadFunctions = {} :: {{any}}
 
     function wax.Unload()
         if wax.Unloaded then return end
+        debug_profilebegin("[Multi-function pcall] Unload")
 
-        local pcall, task_spawn
-            = pcall, task.spawn
+        local pcall, unpack
+            = pcall, unpack
 
         for _, Bundled in OnUnloadFunctions do
-            task_spawn(pcall, Bundled[1], unpack(Bundled[2]))
+            pcall(Bundled[1], unpack(Bundled[2]))
         end
         OnUnloadFunctions = table_clear(OnUnloadFunctions)
 
@@ -197,6 +193,7 @@ do
         Global.MFeeeLoading = false
 
         wax.Unloaded = true
+        debug_profileend()
     end
 
     function wax.AddOnUnload(Callback: () -> (), ...: any)
@@ -303,7 +300,7 @@ do
         }
     }
 
-    local Platform = shared.UserInputService:GetPlatform().Name
+    local Platform = (shared.UserInputService :: UserInputService):GetPlatform().Name
 
     for Type, OSList in DeviceTypes :: hash do
         for _, OS in OSList do
@@ -313,13 +310,17 @@ do
             break
         end
     end
-
-    local Mapping = require("@self/Mappings")[game.PlaceId]
-
-    shared.ScriptName    = Mapping.Name
-    shared.ScriptFolder  = Mapping.Folder
-    shared.ScriptDisplay = Mapping.Display
 end
+
+local Mapping = require("@self/Mappings")[game.PlaceId]
+
+local ScriptName    = Mapping.Name
+local ScriptFolder  = Mapping.Folder
+local ScriptDisplay = Mapping.Display
+
+shared.ScriptName    = ScriptName
+shared.ScriptFolder  = ScriptFolder
+shared.ScriptDisplay = ScriptDisplay
 
 --// Start to Load //
 shared.TempStorage = {}
@@ -348,15 +349,17 @@ end)
 --// Load //
 shared.ScriptVersion = "Build 1"
 
-shared.UIManager = require("@self/Gui/UIManager")
-shared.Window    = shared.UIManager:Init()
+shared.Gui    = require("@self/Gui")
+shared.Window = shared.Gui:Init()
 
-require(`@self/Places/{shared.ScriptFolder}`)
+-- Please don't mind the error here, as luau-lsp cannot predict these "dynamic" require calls.
+-- If an error actually happens here, I'll eat my hat.
+require(`@self/Places{shared.ScriptFolder}`)
 
-shared.UIManager:AddUniversalTabs()
+shared.Gui:AddUniversalTabs()
 
-shared.UIManager.SaveManager :LoadAutoloadConfig()
-shared.UIManager.ThemeManager:LoadDefault()
+shared.Gui.SaveManager :LoadAutoloadConfig()
+shared.Gui.ThemeManager:LoadDefault()
 
 Global.MFeeeLoaded  = true
 Global.MFeeeLoading = false
@@ -369,9 +372,9 @@ if BootSettings.InitialNotifications then
         assert(BootSettings.VersionCheck)
 
         local Version   = Global.HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
-        assert(Version ~= shared.ScriptVersion and #Version > 0 and not string.find(Version, ":"))
+        assert(Version ~= shared.ScriptVersion and #Version > 0 and Version ~= "404: Not Found")
 
-        shared.UIManager:Notify({
+        shared.Gui:Notify({
             Title       = Translate("Version Mismatch"),
             Description = Reverse("The script version %s is outdated, please update it! (new version %s)", shared.ScriptVersion, Version),
             Time        = 15
@@ -381,7 +384,7 @@ if BootSettings.InitialNotifications then
     task.spawn(pcall, function()
         assert(shared.BypassedMethod)
 
-        shared.UIManager:Notify({
+        shared.Gui:Notify({
             Title       = Translate("Bypassed Anticheat"),
             Description = Reverse("MFeee~ New has bypassed %s anti-hook anti-cheat", shared.BypassedMethod),
             Time        = 4
