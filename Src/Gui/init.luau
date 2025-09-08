@@ -59,26 +59,6 @@ end
 
 UIManager.Notify = Library.Notify
 
-function UIManager:Init()
-    local Window = self.Library:CreateWindow({
-        Icon              = 77335290652571,
-        Title             = "MFeee~ New",
-        DPIScale          = self.Config.DPIScale,
-        NotificationSide  = self.Config.NotificationSide,
-        NotificationSound = self.Config.NotificationSoundId,
-        ShowCustomCursor  = self.Config.CustomCursor,
-        AlwaysOnTop       = self.Config.AlwaysOnTop,
-        UIActivated       = self.Config.UIActivated,
-        NoNotify          = self.Config.NoNotify,
-    })
-
-    self.Window = Window
-    self.Tabs   = Window.Tabs
-
-    function self.Init() end
-    return Window
-end
-
 local function Creating(IgnoredElements: {string}, IgnoredTabs: {string})
     local function Create(Self: any, Method: "AddTab" | string, Index: string, Data: (hash | string)?): any
         local self = UIManager
@@ -111,7 +91,7 @@ local function Creating(IgnoredElements: {string}, IgnoredTabs: {string})
 end
 
 function UIManager:AddMainTab(IgnoredElements: {string}, IgnoredTabs: {string})
-    local UniversalMISC = require("../Universal/MISC")
+    local UniversalMISC = require("Universal/MISC")
 
     local Create = Creating(IgnoredElements, IgnoredTabs)
 
@@ -166,5 +146,20 @@ function UIManager:AddUniversalTabs(IgnoredElements: {string}, IgnoredTabs: {str
     local SettingsTab = Create(self.Window, "AddTab", "Config", "settings")
 
 end
+
+local Window = UIManager.Library:CreateWindow({
+    Icon              = 77335290652571,
+    Title             = "MFeee~ New",
+    DPIScale          = UIManager.Config.DPIScale,
+    NotificationSide  = UIManager.Config.NotificationSide,
+    NotificationSound = UIManager.Config.NotificationSoundId,
+    ShowCustomCursor  = UIManager.Config.CustomCursor,
+    AlwaysOnTop       = UIManager.Config.AlwaysOnTop,
+    UIActivated       = UIManager.Config.UIActivated,
+    NoNotify          = UIManager.Config.NoNotify,
+})
+
+UIManager.Window = Window
+UIManager.Tabs   = Window.Tabs
 
 return UIManager
