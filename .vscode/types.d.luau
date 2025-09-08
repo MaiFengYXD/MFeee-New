@@ -15,6 +15,13 @@ export type hash = Hash
 export type ContentId = typeof(`rbxassetid://{123}`)
 export type RobloxId  = typeof(`rbxasset://somepath/something`)
 
+export type EventStore = typeof(setmetatable({
+    Events  = {} :: {Function},
+    OnEvent = function(self: EventStore, Callback: Function): () end,
+    Fire    = function(self: EventStore, ...:      any):      () end,
+    Clear   = function(self: EventStore):                     () end
+}, {__mode  = "kv" :: "kv"}))
+
 declare class DataModel extends DataModel
     function HttpGet(self, url: string): string
     function HttpPost(self, url: string, data: string, contentType: string?): string
@@ -67,7 +74,6 @@ declare function getthreadcontext(): number
 declare function setthreadidentity(identity: number): ()
 declare function setidentity(identity: number): ()
 declare function setthreadcontext(identity: number): ()
-declare function require(target: ModuleScript | string, ...: any): ...any
 
 --// Misc //
 declare function identifyexecutor(): (string, string)
