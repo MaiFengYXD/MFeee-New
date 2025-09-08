@@ -120,9 +120,9 @@ local function new(Radius: number?, Distance: number?)
     local CylinderAngleOffset = CFrame.Angles(0, math.rad(90), 0)
 
     local FrameInfo = {
-        TopLeft2d = Vector2.new(),
-        TopRight2d = Vector2.new(),
-        BottomRight2d = Vector2.new(),
+        TopLeft2d       = Vector2.new(),
+        TopRight2d      = Vector2.new(),
+        BottomRight2d   = Vector2.new(),
         TopLeftRadius2d = Vector2.new()
     }
 
@@ -137,9 +137,9 @@ local function new(Radius: number?, Distance: number?)
 
         local Distance = AcrylicBlur.Distance
 
-        local TopLeft_ = ViewportPointToWorld(FrameInfo.TopLeft2d, Distance)
-        local TopRight_ = ViewportPointToWorld(FrameInfo.TopRight2d, Distance)
-        local BottomRight_ = ViewportPointToWorld(FrameInfo.BottomRight2d, Distance)
+        local TopLeft_      = ViewportPointToWorld(FrameInfo.TopLeft2d, Distance)
+        local TopRight_     = ViewportPointToWorld(FrameInfo.TopRight2d, Distance)
+        local BottomRight_  = ViewportPointToWorld(FrameInfo.BottomRight2d, Distance)
         local TopLeftRadius = ViewportPointToWorld(FrameInfo.TopLeftRadius2d, Distance)
 
         local CornerRadius = (TopLeftRadius - TopLeft_).Magnitude
@@ -179,27 +179,27 @@ local function new(Radius: number?, Distance: number?)
 
             local MeshScale = Vector3_new(0, CornerRadius * 2, CornerRadius * 2)
 
-            TopLeft.CFrame = LeftCFrame
+            TopLeft.CFrame     = LeftCFrame
             TopLeft_Mesh.Scale = MeshScale
 
-            TopRight.CFrame = RightCFrame
+            TopRight.CFrame     = RightCFrame
             TopRight_Mesh.Scale = MeshScale
 
-            BottomLeft.CFrame = LeftCFrame
+            BottomLeft.CFrame     = LeftCFrame
             BottomLeft_Mesh.Scale = MeshScale
 
-            BottomRight.CFrame = RightCFrame
+            BottomRight.CFrame     = RightCFrame
             BottomRight_Mesh.Scale = MeshScale
         else
-            Horizontal.CFrame = Center
+            Horizontal.CFrame     = Center
             Horizontal_Mesh.Scale = Vector3_new(Width, Height, 0)
         end
     end
 
     UpdateBlur()
 
-    AcrylicBlur.PositionHandle     = shared.Connect:GiveSignal(`AcrylicBlurPositionHandle{Id}`,     Camera:GetPropertyChangedSignal("CFrame"), UpdateBlur)
-    AcrylicBlur.FovHandle          = shared.Connect:GiveSignal(`AcrylicBlurFovHandle{Id}`,          Camera:GetPropertyChangedSignal("FieldOfView"), UpdateBlur)
+    AcrylicBlur.PositionHandle     = shared.Connect:GiveSignal(`AcrylicBlurPositionHandle{Id}`,     Camera:GetPropertyChangedSignal("CFrame"),       UpdateBlur)
+    AcrylicBlur.FovHandle          = shared.Connect:GiveSignal(`AcrylicBlurFovHandle{Id}`,          Camera:GetPropertyChangedSignal("FieldOfView"),  UpdateBlur)
     AcrylicBlur.ViewportSizeHandle = shared.Connect:GiveSignal(`AcrylicBlurViewportSizeHandle{Id}`, Camera:GetPropertyChangedSignal("ViewportSize"), UpdateBlur)
 
     local function GetOffset(): number
@@ -211,9 +211,9 @@ local function new(Radius: number?, Distance: number?)
         local TopLeft2d  = Vector2_new(math_ceil(TopLeftRaw.X), math_ceil(TopLeftRaw.Y))
 
         FrameInfo = {
-            TopLeft2d = TopLeft2d,
-            TopRight2d = TopLeft2d + Vector2_new(Size.X, 0),
-            BottomRight2d = TopLeft2d + Size,
+            TopLeft2d       = TopLeft2d,
+            TopRight2d      = TopLeft2d + Vector2_new(Size.X, 0),
+            BottomRight2d   = TopLeft2d + Size,
             TopLeftRadius2d = TopLeft2d + Vector2_new(AcrylicBlur.Radius, 0)
         }
     end
