@@ -101,7 +101,7 @@ local LocaleIDTree = {
     RealShouldTranslate = not shared.BootSettings.DisableTranslation and Language ~= "English"
 
     if RealShouldTranslate then
-        local Original, BuiltInTranslationsTree = require("BuiltInTranslations")
+        local Original, BuiltInTranslationsTree = require("@self/BuiltInTranslations")
 
         for LocaleID, Translation in BuiltInTranslationsTree do
             if LocaleID_Language[LocaleID] ~= Language then continue end
@@ -135,7 +135,7 @@ if RealShouldTranslate then --/ Source language: English
     local Elapsed = 0
 
     local Thread = task.spawn(function()
-        print(`[MFeee~ New] {TranslateWithFormat("Fetching translations for %s...", Language)}`)
+        print(`[MFeee~ New] {TranslateWithFormat("Fetching translations for %*...", Display)}`)
 
         Success, Result = pcall(function(HttpGet: typeof(HttpGet), request: typeof(request))
             local HttpService = shared.HttpService
@@ -172,7 +172,7 @@ if RealShouldTranslate then --/ Source language: English
                             break
                         end
 
-                        ErrorReason = GetBuiltInTranslation("Translator raw page error or HttpGet problem, please report it!")
+                        ErrorReason = GetBuiltInTranslation("There is a problem with GitHub or the required features, please report it!")
                     elseif Response.Success == false then
                         ErrorReason = TranslateWithFormat("Http Error: %*", StatusCode)
                     end
@@ -192,7 +192,7 @@ if RealShouldTranslate then --/ Source language: English
 
                     if UrlContent == "404: Not Found" then
                         StatusCode = 404
-                        ErrorReason = TranslateWithFormat("Http Error: %s", "404")
+                        ErrorReason = TranslateWithFormat("Http Error: %*", "404")
                     else
                         local Success
                         Success, RealTranslations = pcall(JSONDecode, HttpService, UrlContent)
@@ -202,7 +202,7 @@ if RealShouldTranslate then --/ Source language: English
                             break
                         end
 
-                        ErrorReason = GetBuiltInTranslation("Translator raw page error or HttpGet problem, please report it!")
+                        ErrorReason = GetBuiltInTranslation("There is a problem with GitHub or the required features, please report it!")
                     end
 
                     RealTranslations = nil
@@ -212,7 +212,7 @@ if RealShouldTranslate then --/ Source language: English
                 end
             end
 
-            if not Succeeded then error(ErrorReason, 19998) end
+            if not Succeeded then error(ErrorReason or GetBuiltInTranslation("Unable to download! Your executor lacks the required features."), 19998) end
 
             return RealTranslations
         end, wax.Global.HttpGet, wax.Global.request)
@@ -226,7 +226,7 @@ if RealShouldTranslate then --/ Source language: English
         if Elapsed >= Timeout then
             task.cancel(Thread)
             Success = false
-            Result  = GetBuiltInTranslation("Timeout! time exceeded 10 seconds.")
+            Result  = TranslateWithFormat("Downloading translation timed out! (exceeded %* seconds)", Timeout)
         end
     until Success ~= nil
 
@@ -237,7 +237,7 @@ if RealShouldTranslate then --/ Source language: English
             Result = GetBuiltInTranslation("Missing 'HttpGet' function!")
         end
 
-        shared.MiniNotify(GetBuiltInTranslation("Translator:"), TranslateWithFormat("Failed to fetch translations for %s due to %s", Display, Result))
+        shared.MiniNotify(GetBuiltInTranslation("Translator:"), TranslateWithFormat("Failed to fetch translations for %* due to %*", Display, Result))
     end
 end
 
