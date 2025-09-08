@@ -3,16 +3,21 @@ local Instance_new, pcall, randomstring, next, typeof
 
 local Library = shared.Gui.Library
 
+local Scheme        = Library.Scheme
+local ThemeRegistry = Library.ThemeRegistry
+
 local Colors = require("Colors")
 local GetDarkerColor = Colors.GetDarkerColor
 
-local InstanceTemplates = {
+local Templates = {
     Frame = {
         BorderSizePixel = 0
     },
+
     UIListLayout = {
         SortOrder = Enum.SortOrder.LayoutOrder
     },
+
     UIStroke = {
         Color = "OutlineColor"
     },
@@ -59,7 +64,7 @@ local InstanceTemplates = {
         Text = "",
         TextColor3 = "FontColor",
         PlaceholderColor3 = function()
-            return GetDarkerColor(Library.Scheme.FontColor)
+            return GetDarkerColor(Scheme.FontColor)
         end
     }
 }
@@ -76,8 +81,8 @@ local function Fill(
     __newindex: typeof(__newindex),
     typeof:     typeof(typeof)
 )
-    local ThemeProperties = Library.ThemeRegistry[Instance] or {}
-    local Scheme = Library.Scheme
+    local ThemeProperties = ThemeRegistry[Instance] or {}
+    local Scheme = Scheme
 
     for Property, Value in Properties do
         if ThemeProperties[Property] then
@@ -94,7 +99,7 @@ local function Fill(
     __newindex(Instance, "Parent", Properties.Parent)
 
     if next(ThemeProperties) then
-        Library.ThemeRegistry[Instance] = ThemeProperties
+        ThemeRegistry[Instance] = ThemeProperties
     end
 end
 
@@ -104,7 +109,7 @@ local function Create(ClassName: string, Properties: hash | Instance | any): Ins
 
     -- It always use Frame instead of CanvasGroup 'cause the CanvasGroup works bad
     local Instance = Instance_new(ClassName ~= "CanvasGroup" and ClassName or "Frame")
-    local Template = InstanceTemplates[ClassName ~= "CanvasGroup" and ClassName or "Frame"]
+    local Template = Templates[ClassName ~= "CanvasGroup" and ClassName or "Frame"]
 
     if Template then
         Fill(Instance, Template, __newindex, typeof)
