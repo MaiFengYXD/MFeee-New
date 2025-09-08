@@ -1,4 +1,9 @@
 --[[
+    This will also needs to be rewritten yay ToT
+--]]
+
+--[=[
+--[[
     Rewrite 2
 
     Including:
@@ -44,18 +49,17 @@ local Shared = {
 
 local Workspace = shared.Workspace :: Workspace & WorldRoot
 local Camera    = shared.Camera    :: Camera
-local Players   = shared.Players   :: Players
 local Speaker   = shared.Speaker   :: Player
 
 local Character = Speaker.Character
 
-shared.Connect:GiveSignal("AimbotCameraChanged", Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-    Camera = Workspace.CurrentCamera
-end))
+shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
+    Camera = NewCamera
+end)
 
-shared.Connect:GiveSignal("AimbotSpeakerChanged", Players:GetPropertyChangedSignal("LocalPlayer"):Connect(function()
-    Speaker = Players.LocalPlayer
-end))
+shared.Connect.CommonSignals.SpeakerChanged(function(NewSpeaker: Player)
+    Speaker = NewSpeaker
+end)
 
 local SpeakerPosition;do
     local      WaitForChild,      FindFirstChildOfClass,      GetPropertyChangedSignal
@@ -91,8 +95,8 @@ end
 
 local _Target: BasePart?
 
-local Prediction = require("../Prediction")
-local Entities   = require("../Entities")
+local Prediction = require("../Utils/Prediction")
+local Entities   = require("../Utils/Entities")
 
 local Fov
 
@@ -1244,3 +1248,4 @@ local AimbotModule = {
 
     return AimbotModule
 end
+--]=]
