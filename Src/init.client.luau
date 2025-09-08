@@ -2,7 +2,7 @@ local pcall, task, type
     = pcall, task, type
 
 if type(getgenv) ~= "function" then
-    task.spawn(error, "This script only supports exploit environments.")
+    task.defer(error, "This script only supports exploit environments.")
     return
 elseif not game:IsLoaded() then
     game.Loaded:Wait()
@@ -89,7 +89,7 @@ end
 Global.MFeeeLoading = true
 Global.MFeeeLoaded  = false
 
-if not Global.HttpGet then
+do
     local function GetFunction(Function: any): Function?
         return type(Function) == "function" and Function or nil
     end
@@ -118,7 +118,7 @@ if not Global.HttpGet then
     Global.HttpGet = HttpGet
 end
 
-if not Global.request then
+do
     local function GetFunction(Function: any): Function?
         return type(Function) == "function" and Function or nil
     end
@@ -154,23 +154,27 @@ shared.Emoji           = require("@self/Utils/ArtEmoji")
 shared.ExecutorSupport = require("@self/Utils/ExecutorSupport")
 shared.FileHelper      = require("@self/Utils/FileHelper")
 
-shared.ConfigManager = require("@self/Utils/Config")
+local BootSettings;do
+    local ConfigManager  = require("@self/Utils/Config")
+    shared.ConfigManager = ConfigManager
 
-local BootConfig = shared.ConfigManager.new("Boot", {
-    VersionCheck         = wax.arguments[1] ~= "FromHttpGet",
-    InitialNotifications = true,
-    TranslationsTimeout  = 10,
-    DisableTranslation   = false,
-    AutoBypassAntiCheat  = true
-}, "boot.config.json")
+    local BootConfig = ConfigManager.new("Boot", {
+        VersionCheck         = wax.arguments[1] ~= "FromHttpGet",
+        InitialNotifications = true,
+        TranslationsTimeout  = 10,
+        DisableTranslation   = false,
+        AutoBypassAntiCheat  = true
+    }, "boot.config.json")
 
-local BootSettings  = BootConfig.Config
-shared.BootSettings = BootSettings
+    BootSettings = BootConfig.Config
+    shared.BootSettings = BootSettings
 
-if BootSettings.AutoBypassAntiCheat then
-    require("@self/Utils/Bypass")
+    if BootSettings.AutoBypassAntiCheat then
+        require("@self/Utils/Bypass")
+    end
 end
 
+--// Basic Utils //
 do
     local table_insert, table_clear, unpack, debug_profilebegin, debug_profileend
         = table.insert, table.clear, unpack, debug.profilebegin, debug.profileend
@@ -255,21 +259,9 @@ do
 
         return Table
     end
+end
 
-    function shared.Validate(Target: table, Template: table): table
-        if type(Target) ~= "table" then
-            return Template
-        end
-
-        for Key, Value in Template do
-            if Target[Key] == nil then
-                Target[Key] = Value
-            end
-        end
-
-        return Target
-    end
-
+do
     local DeviceTypes = {
         Mobile = {
             "IOS",
@@ -312,15 +304,17 @@ do
     end
 end
 
-local Mapping = require("@self/Mappings")[game.PlaceId]
+do
+    local Mapping = require("@self/Mappings")[game.PlaceId]
 
-local ScriptName    = Mapping.Name
-local ScriptFolder  = Mapping.Folder
-local ScriptDisplay = Mapping.Display
+    local ScriptName    = Mapping.Name
+    local ScriptFolder  = Mapping.Folder
+    local ScriptDisplay = Mapping.Display
 
-shared.ScriptName    = ScriptName
-shared.ScriptFolder  = ScriptFolder
-shared.ScriptDisplay = ScriptDisplay
+    shared.ScriptName    = ScriptName
+    shared.ScriptFolder  = ScriptFolder
+    shared.ScriptDisplay = ScriptDisplay
+end
 
 --// Start to Load //
 shared.TempStorage = {}
@@ -333,40 +327,51 @@ end)
 
 shared.Camera = shared.Workspace.CurrentCamera
 
-shared.Translator    = require("@self/Translator")
+local Translator  = require("@self/Translator")
+shared.Translator = Translator
+
 shared.EasingLibrary = require("@self/Utils/EasingLibrary")
 
-shared.Connect = require("@self/Utils/Connect")
+do
+    local Connect  = require("@self/Utils/Connect")
+    shared.Connect = Connect
 
-shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
-    shared.Camera = NewCamera
-end)
+    Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
+        shared.Camera = NewCamera
+    end)
 
-shared.Connect.CommonSignals.SpeakerChagned(function(NewSpeaker: Player)
-    shared.Speaker = NewSpeaker
-end)
+    Connect.CommonSignals.SpeakerChanged(function(NewSpeaker: Player)
+        shared.Speaker = NewSpeaker
+    end)
+end
 
 --// Load //
 shared.ScriptVersion = "Build 1"
 
-shared.Gui    = require("@self/Gui")
-shared.Window = shared.Gui:Init()
+do
+    local Gui = require("@self/Gui")
 
-do (require :: any)(`@self/Places{shared.ScriptFolder}`) end
+    shared.Gui    = Gui
+    shared.Window = Gui.Window
 
-shared.Gui:AddUniversalTabs()
+    Gui:AddMainTab({}, {})
 
-shared.Gui.SaveManager :LoadAutoloadConfig()
-shared.Gui.ThemeManager:LoadDefault()
+    do (require :: any)(`@self/Places{shared.ScriptFolder}`) end
+
+    Gui:AddUniversalTabs({}, {})
+
+    Gui.SaveManager :LoadAutoloadConfig()
+    Gui.ThemeManager:LoadDefault()
+end
 
 Global.MFeeeLoaded  = true
 Global.MFeeeLoading = false
 
-local Translate = shared.Translator.Translate
-local Reverse   = shared.Translator.Reverse
+local Translate           = Translator.Translate
+local TranslateWithFormat = Translator.TranslateWithFormat
 
 if BootSettings.InitialNotifications then
-    task.spawn(pcall, function()
+    task.defer(pcall, function()
         assert(BootSettings.VersionCheck)
 
         local Version   = Global.HttpGet("https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/heads/main/VERSION")
@@ -374,7 +379,7 @@ if BootSettings.InitialNotifications then
 
         shared.Gui:Notify({
             Title       = Translate("Version Mismatch"),
-            Description = Reverse("The script version %s is outdated, please update it! (new version %s)", shared.ScriptVersion, Version),
+            Description = TranslateWithFormat("The script version %s is outdated, please update it! (new version %s)", shared.ScriptVersion, Version),
             Time        = 15
         })
     end)
@@ -384,7 +389,7 @@ if BootSettings.InitialNotifications then
 
         shared.Gui:Notify({
             Title       = Translate("Bypassed Anticheat"),
-            Description = Reverse("MFeee~ New has bypassed %s anti-hook anti-cheat", shared.BypassedMethod),
+            Description = TranslateWithFormat("MFeee~ New has bypassed %s anti-hook anti-cheat", shared.BypassedMethod),
             Time        = 4
         })
     end)
