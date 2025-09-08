@@ -761,7 +761,7 @@ local Aimbot = {
         end
     end
 
-    local AimbotKeybind = shared.UIManager.KeyPickers.AimbotKeybind
+    local AimbotKeybind = shared.Gui.KeyPickers.AimbotKeybind
     local GetState      = AimbotKeybind.GetState
 
     local StepThread: thread?

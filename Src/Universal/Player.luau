@@ -40,7 +40,7 @@ local Universal = {}
 local Inf = (1 / 0)
 local Nan = (0 / 0)
 
-local Toggles = shared.UIManager.Library.Toggles
+local Toggles = shared.Gui.Library.Toggles
 
 local ControlModule = require("../Universal/ControlModule")
 local GetMoveVector = ControlModule.GetMoveVector
