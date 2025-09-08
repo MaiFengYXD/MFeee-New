@@ -9,8 +9,8 @@ local Cylinder = Enum.MeshType.Cylinder
 local Camera           = shared.Camera :: Camera
 local ScreenPointToRay = Camera.ScreenPointToRay
 
-shared.Connect:GiveSignal("AcrylicBlurCameraChanged", shared.Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
-    Camera = shared.Workspace.CurrentCamera
+shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
+    Camera = NewCamera
 end)
 
 local function Create(ClassName: string, Properties: hash): Instance

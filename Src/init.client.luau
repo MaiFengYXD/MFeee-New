@@ -338,12 +338,12 @@ shared.EasingLibrary = require("@self/Utils/EasingLibrary")
 
 shared.Connect = require("@self/Utils/Connect")
 
-shared.Connect:GiveSignal(nil, shared.Workspace:GetPropertyChangedSignal("CurrentCamera"), function()
-    shared.Camera = shared.Workspace.CurrentCamera
+shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
+    shared.Camera = NewCamera
 end)
 
-shared.Connect:GiveSignal(nil, shared.Players:GetPropertyChangedSignal("LocalPlayer"), function()
-    shared.Speaker = shared.Players.LocalPlayer
+shared.Connect.CommonSignals.SpeakerChagned(function(NewSpeaker: Player)
+    shared.Speaker = NewSpeaker
 end)
 
 --// Load //

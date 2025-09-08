@@ -26,9 +26,9 @@ local Enabled = false
 local Workspace = shared.Workspace :: Workspace
 local Camera    = shared.Camera    :: Camera
 
-shared.Connect:GiveSignal("FreeCameraCameraChanged", Connect(GetPropertyChangedSignal(Workspace, "CurrentCamera"), function()
-    Camera = Workspace.CurrentCamera
-end))
+shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
+    Camera = NewCamera
+end)
 
 --// Instances //
 local function New(ClassName: string, Properties: Instance | {[string]: any}): Instance
