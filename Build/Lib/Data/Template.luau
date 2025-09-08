@@ -79,7 +79,11 @@ local StoredModuleValues = {}
 local ScriptsToRun = {}
 
 -- shared __index/__newindex
-local SharedEnvironment = {} :: any
+local SharedEnvironment = {
+    Unload = function() end,
+    Translator = {Translate = function(Key: string) return Key end},
+    ScreenGui = nil
+} :: any
 
 -- We're creating 'fake' instance refs soley for traversal of the DOM for require() compatibility
 -- It's meant to be as lazy as possible
@@ -354,21 +358,28 @@ local Global_wax = {
     script = script,
     require = if typeof(require) == "function" then require else function(...) end,
 
-    arguments = {...}
+    arguments = {...},
+
+    Unloaded = false,
+    Global = nil
 } :: hash
 
 local function LoadScript(scriptRef, ...)
     local Args = {...}
 
     local function OnError()
-        local Title = "Error Loading!"
-        local Text  = "Would you like to unload?"
+        local Translate = SharedEnvironment.Translator.Translate
+
+        local Title = Translate("Error Loading!")
+        local Text  = Translate("Would you like to quit the script?")
+        local Yes   = Translate("Yes")
+        local No    = Translate("No")
 
         local Bindable = Instance.new("BindableFunction")
         function Bindable.OnInvoke(Choice)
-            if Choice ~= "Yes" or Global_wax.Unloaded == true then return end
+            if Choice ~= Yes or Global_wax.Unloaded == true then return end
 
-            pcall(pcall, SharedEnvironment.Unload)
+            pcall(SharedEnvironment.Unload)
 
             local Global = Global_wax.Global or getgenv and getgenv()
             if Global then
@@ -394,8 +405,8 @@ local function LoadScript(scriptRef, ...)
         if pcall(StarterGui.SetCore, StarterGui, "SendNotification", {
             Title    = Title,
             Text     = Text,
-            Button1  = "Yes",
-            Button2  = "No",
+            Button1  = Yes,
+            Button2  = No,
             Duration = (1 / 0),
             Callback = Bindable
         }) then
@@ -503,8 +514,7 @@ function ImportGlobals(refId)
     local Global_script = ScriptRef
     local Old_require   = Global_wax.require
 
-    local function Global_require(module, ...)
-        local Args = {...}
+    local function Global_require(module)
         local ModuleArgType = typeof(module)
 
         local ErrorNonModuleScript = "Attempted to call require with a non-ModuleScript"
@@ -517,7 +527,7 @@ function ImportGlobals(refId)
                 error(ErrorSelfRequire, 2)
             end
 
-            return LoadScript(module, unpack(Args))
+            return LoadScript(module)
         elseif ModuleArgType == "string" then
             if #module == 0 then
                 error("Attempted to call require with empty string", 2)
@@ -584,7 +594,7 @@ function ImportGlobals(refId)
                 error(ErrorSelfRequire, 2)
             end
 
-            return LoadScript(CurrentRefPointer, unpack(Args))
+            return LoadScript(CurrentRefPointer)
         end
 
         return RealCall(Old_require, module, ...)
