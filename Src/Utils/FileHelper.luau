@@ -1,5 +1,8 @@
-local string_match, tostring, tonumber, makefolder, writefile, isfolder, isfile, readfile, type
-    = string.match, tostring, tonumber, makefolder, writefile, isfolder, isfile, readfile, type
+local tonumber, makefolder, writefile, isfolder, isfile, readfile, type
+    = tonumber, makefolder, writefile, isfolder, isfile, readfile, type
+
+local string_match, debug_profilebegin, debug_profileend
+    = string.match, debug.profilebegin, debug.profileend
 
 local FileHelper = {
     APIUncompatible = not shared.ExecutorSupport.SupportFileSystem
@@ -9,11 +12,13 @@ local APIUncompatible = FileHelper.APIUncompatible
 
 function FileHelper:CreateFolder(FolderPath: string): string?
     if APIUncompatible then return nil end
+    debug_profilebegin("[File I/O] CreateFolder")
 
     if not isfolder(FolderPath) then
         makefolder(FolderPath)
     end
 
+    debug_profileend()
     return FolderPath
 end
 
@@ -29,9 +34,10 @@ end
 function FileHelper:WriteFile(FilePath: string, Content: string, DontOverwrite: boolean?): string?
     if APIUncompatible then return nil end
 
-    Content = tostring(Content)
+    Content = `{Content}`
     self:CreateParentFolder(FilePath)
 
+    debug_profilebegin("[File I/O] WriteFile")
     if DontOverwrite then
         local Repeated  = 1
         local BasePath  = string_match(FilePath, "(.+)%.[^%.]+$")
@@ -44,12 +50,22 @@ function FileHelper:WriteFile(FilePath: string, Content: string, DontOverwrite: 
     end
 
     writefile(FilePath, Content)
+
+    debug_profileend()
     return Content
 end
 
-function FileHelper:IsFile(FilePath: string): boolean? | string
-    if APIUncompatible then return nil end
-    return if isfile(FilePath) then readfile(FilePath) else false
+function FileHelper:IsFile(FilePath: string): boolean | string
+    if APIUncompatible then return false end
+    debug_profilebegin("[File I/O] IsFile")
+
+    local ReturnValue: boolean | string = false
+    if isfile(FilePath) then
+        ReturnValue = readfile(FilePath)
+    end
+
+    debug_profileend()
+    return ReturnValue
 end
 
 function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): (string? | number?, boolean)
@@ -58,6 +74,7 @@ function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): 
     if APIUncompatible then return nil, false end
 
     if not self:IsFile(FilePath) then return self:WriteFile(FilePath, Fallback), false end
+    debug_profilebegin("[File I/O] CheckFile")
 
     local Content    = readfile(FilePath)
     local TargetType = type(Target)
@@ -66,6 +83,7 @@ function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): 
         local NewContent = tonumber(Content)
         local Value = if type(NewContent) ~= "number" then tonumber(self:WriteFile(FilePath, Fallback)) else NewContent
 
+        debug_profileend()
         return Value, true
     elseif TargetType == "table" then
         for Key, Value in Target do
@@ -74,9 +92,11 @@ function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): 
             end
         end
 
+        debug_profileend()
         return self:WriteFile(FilePath, Fallback), true
     end
 
+    debug_profileend()
     return Content, true
 end
 
