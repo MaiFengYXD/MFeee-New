@@ -3,7 +3,6 @@
     Cause the current one looks so cheap! 😭
 --]]
 
---[=[
 local error, xpcall, string_find, debug_traceback, string_gsub, string_sub, task_spawn, task_delay, table_clear
     = error, xpcall, string.find, debug.traceback, string.gsub, string.sub, task.spawn, task.delay, table.clear
 
@@ -2606,6 +2605,3 @@ return setmetatable({}, {
     __index    = Library,
     __newindex = Library__newindexFunction
 })
---]=]
-
-
