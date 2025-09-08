@@ -1,9 +1,0 @@
-{
-    "languageMode": "strict",
-    "lintErrors": false,
-    "typeErrors": true,
-
-    "aliases": {
-        "lune": "./.lune"
-    }
-}
