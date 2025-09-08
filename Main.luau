@@ -24,16 +24,6 @@ local setthreadidentity = GetFunction(setthreadidentity)
 local function Notify(Title: string, Text: string)
     warn(`[MFeee~ New] {Title} {Text}`)
 
-    local function Alert()
-        local Sound = Instance_new("Sound", SoundService);do
-            Sound.SoundId      = "rbxassetid://4590662766"
-            Sound.Volume       = 2
-            Sound.PlayOnRemove = true
-        end
-
-        Sound:Destroy()
-    end
-
     if (
         setthreadidentity and (
             pcall(setthreadidentity, 3) and
@@ -49,7 +39,13 @@ local function Notify(Title: string, Text: string)
             Button1  = "Close"
         })
     ) then
-        Alert()
+        local Sound = Instance_new("Sound", SoundService);do
+            Sound.SoundId      = "rbxassetid://4590662766"
+            Sound.Volume       = 2
+            Sound.PlayOnRemove = true
+        end
+
+        Sound:Destroy()
     end
 end
 
