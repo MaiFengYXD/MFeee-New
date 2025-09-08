@@ -91,7 +91,7 @@ local LocaleIDTree = {
 
             Language = LocaleID_Language[RobloxLocaleId]
         end, shared.LocalizationService) then
-            Language = "English" -- Maybe a repeat?
+            Language = "English"
         end
     end
 
@@ -101,7 +101,7 @@ local LocaleIDTree = {
     RealShouldTranslate = not shared.BootSettings.DisableTranslation and Language ~= "English"
 
     if RealShouldTranslate then
-        local Original, BuiltInTranslationsTree = require("@self/BuiltInTranslations")
+        local Original, BuiltInTranslationsTree = (require :: any)("@self/BuiltInTranslations")
 
         for LocaleID, Translation in BuiltInTranslationsTree do
             if LocaleID_Language[LocaleID] ~= Language then continue end
@@ -141,7 +141,7 @@ if RealShouldTranslate then --/ Source language: English
             local HttpService = shared.HttpService
             local JSONDecode  = HttpService.JSONDecode
 
-            local Url = `https://raw.githubusercontent.com/MaiFengYXD/Translator/refs/heads/MFeee-New/Translations/{Translator.CurrentLocaleID}.json`
+            local Url = `https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/Translator/{Translator.CurrentLocaleID}.json`
 
             local Succeeded:   boolean = false
             local StatusCode:  number = 200

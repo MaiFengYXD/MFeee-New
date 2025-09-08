@@ -352,9 +352,7 @@ shared.ScriptVersion = "Build 1"
 shared.Gui    = require("@self/Gui")
 shared.Window = shared.Gui:Init()
 
--- Please don't mind the error here, as luau-lsp cannot predict these "dynamic" require calls.
--- If an error actually happens here, I'll eat my hat.
-require(`@self/Places{shared.ScriptFolder}`)
+do (require :: any)(`@self/Places{shared.ScriptFolder}`) end
 
 shared.Gui:AddUniversalTabs()
 
