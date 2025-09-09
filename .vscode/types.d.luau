@@ -22,6 +22,14 @@ export type EventStore = typeof(setmetatable({
     Clear   = function(self: EventStore):                     () end
 }, {__mode  = "kv" :: "kv"}))
 
+export type HttpResponse = {
+    Body: string,
+    StatusCode: number,
+    StatusMessage: string,
+    Success: boolean,
+    Headers: hash
+}
+
 declare class DataModel extends DataModel
     function HttpGet(self, url: string): string
     function HttpPost(self, url: string, data: string, contentType: string?): string
@@ -36,14 +44,6 @@ declare class WorldRoot extends WorldRoot
     function FindPartOnRay(self, ray: Ray, ignoreDescendantsInstance: Instance, terrainCellsAreCubes: boolean, ignoreWater: boolean): (BasePart?, Vector3?, Vector3?, Enum.Material?)
     function FindPartOnRayWithIgnoreList(self, ray: Ray, ignoreDescendantsTable: {Instance}, terrainCellsAreCubes: boolean, ignoreWater: boolean): (BasePart?, Vector3?, Vector3?, Enum.Material?)
     function FindPartOnRayWithWhitelist(self, ray: Ray, whitelistDescendantsTable: {Instance}, ignoreWater: boolean): (BasePart?, Vector3?, Vector3?, Enum.Material?)
-end
-
-declare class HttpResponse
-    Body: string
-    StatusCode: number
-    StatusMessage: string
-    Success: boolean
-    Headers: {[string]: any}
 end
 
 --// Actors //
