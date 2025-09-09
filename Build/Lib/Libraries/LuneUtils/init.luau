@@ -1,4 +1,5 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
+--!nocheck
 
 return {
     Log = require("Log"),
