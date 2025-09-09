@@ -4,10 +4,6 @@
         "name": "readable"
     },
     "rules": [
-        "compute_expression",
-        "group_local_assignment",
-        "remove_comments",
-        "remove_nil_declaration",
-        "remove_types"
+        "compute_expression"
     ]
 }
