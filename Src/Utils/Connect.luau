@@ -172,7 +172,7 @@ local CommonSignals = {};do
         = shared.Workspace, shared.Players
 
     local CameraChangedSignal  = GetPropertyChangedSignal(shared.Workspace, "CurrentCamera")
-    local SpeakerChagnedSignal = GetPropertyChangedSignal(shared.Players, "LocalPlayer")
+    local SpeakerChangedSignal = GetPropertyChangedSignal(shared.Players, "LocalPlayer")
 
     function CommonSignals.CameraChanged(Callback: Function): RBXScriptConnection
         return GiveSignal(Connect, nil, CameraChangedSignal, function()
@@ -181,7 +181,7 @@ local CommonSignals = {};do
     end
 
     function CommonSignals.SpeakerChanged(Callback: Function): RBXScriptConnection
-        return GiveSignal(Connect, nil, SpeakerChagnedSignal, function()
+        return GiveSignal(Connect, nil, SpeakerChangedSignal, function()
             Callback(Players.LocalPlayer)
         end)
     end
