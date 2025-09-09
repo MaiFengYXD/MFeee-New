@@ -115,13 +115,7 @@ do
         end
     end, game)
 
-    Global.HttpGet = HttpGet
-end
-
-do
-    local function GetFunction(Function: any): Function?
-        return type(Function) == "function" and Function or nil
-    end
+    if HttpGet then Global.HttpGet = HttpGet end
 
     local request = (
         GetFunction(request) or
