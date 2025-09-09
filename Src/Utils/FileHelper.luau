@@ -1,5 +1,5 @@
-local tonumber, makefolder, writefile, isfolder, isfile, readfile, type
-    = tonumber, makefolder, writefile, isfolder, isfile, readfile, type
+local tonumber, makefolder, writefile, isfolder, isfile, readfile, type, ipairs
+    = tonumber, makefolder, writefile, isfolder, isfile, readfile, type, ipairs
 
 local string_match, debug_profilebegin, debug_profileend
     = string.match, debug.profilebegin, debug.profileend
@@ -68,7 +68,7 @@ function FileHelper:IsFile(FilePath: string): boolean | string
     return ReturnValue
 end
 
-function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): (string? | number?, boolean)
+function FileHelper:CheckFile(FilePath: string, Fallback: string, AllowedTarget: any): (string? | number?, boolean)
     --/ 2nd (boolean) = is file exist
 
     if APIUncompatible then return nil, false end
@@ -77,7 +77,7 @@ function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): 
     debug_profilebegin("[File I/O] CheckFile")
 
     local Content    = readfile(FilePath)
-    local TargetType = type(Target)
+    local TargetType = type(AllowedTarget)
 
     if TargetType == "number" then
         local NewContent = tonumber(Content)
@@ -85,9 +85,9 @@ function FileHelper:CheckFile(FilePath: string, Fallback: string, Target: any): 
 
         debug_profileend()
         return Value, true
-    elseif TargetType == "table" then
-        for Key, Value in Target do
-            if Key == Content or Value == Content then
+    elseif TargetType == "table" then -- TargetType == "array"
+        for _, Value in ipairs(AllowedTarget) do
+            if Value == Content then
                 return Content, true
             end
         end
