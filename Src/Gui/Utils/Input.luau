@@ -31,6 +31,8 @@ local function IsClickInput(InputObject: InputObject, IncludeM1: boolean?, Inclu
 end
 
 local function IsOverFrame(Frame: GuiObject, InputObject: InputObject): boolean
+    if not IsHoverInput(InputObject) then return false end
+
     local Position = InputObject.Position
 
     local FrameSize     = Frame.AbsoluteSize
