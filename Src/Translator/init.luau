@@ -1,6 +1,8 @@
 local string_format
     = string.format
 
+local FileHelper = shared.FileHelper
+
 local Translator = {
     Reversed = {},
     CurrentLocaleID = "en-us"
@@ -69,20 +71,39 @@ local LocaleIDTree = {
     local LocaleID_Code     = {}
     local Language_LocaleID = {}
 
+    local LocaleIDs = {}
+    local Displays  = {}
+    local Codes     = {}
+    local Languages = {}
+
     for LocaleID, Info in LocaleIDTree do
-        LocaleID_Language     [LocaleID] = Info.Language
-        LocaleID_Display      [LocaleID] = Info.Display
-        LocaleID_Code         [LocaleID] = Info.Code
-        Language_LocaleID[Info.Language] = LocaleID
+        local InfoLanguage = Info.Language
+        local InfoDisplay  = Info.Display
+        local InfoCode     = Info.Code
+
+        LocaleID_Language    [LocaleID] = InfoLanguage
+        LocaleID_Display     [LocaleID] = InfoDisplay
+        LocaleID_Code        [LocaleID] = InfoCode
+        Language_LocaleID[InfoLanguage] = LocaleID
+
+        LocaleIDs[#LocaleIDs + 1] = LocaleID
+        Displays [#Displays  + 1] = InfoDisplay
+        Codes    [#Codes     + 1] = InfoCode
+        Languages[#Languages + 1] = InfoLanguage
     end
 
     shared.LocaleID_Language = LocaleID_Language
     shared.LocaleID_Display  = LocaleID_Display
     shared.LocaleID_Code     = LocaleID_Code
     shared.Language_LocaleID = Language_LocaleID
+    
+    shared.LocaleIDs = LocaleIDs
+    shared.Displays  = Displays
+    shared.Codes     = Codes
+    shared.Languages = Languages
 
-    local Exist: boolean
-    Language, Exist = shared.FileHelper:CheckFile("MFeee-New/Language.txt", "English", Language_LocaleID)
+    local UserLocaleID, Exist = FileHelper:CheckFile("MFeee-New/UserLocaleID.txt", "en_us", LocaleIDs)
+    Language = LocaleID_Language[UserLocaleID]
 
     if not Exist then
         if not pcall(function(LocalizationService: LocalizationService)
@@ -134,14 +155,18 @@ if RealShouldTranslate then --/ Source language: English
     local Success: boolean, Result: string | hash | any
     local Elapsed = 0
 
+    local CachedTranslations = FileHelper:IsFile(`MFeee-New/Translator/Translations/{Translator.CurrentLocaleID}.json`)
+
     local Thread = task.spawn(function()
         print(`[MFeee~ New] {TranslateWithFormat("Fetching translations for %*...", Display)}`)
 
-        Success, Result = pcall(function(HttpGet: typeof(HttpGet), request: typeof(request))
+        Success, Result = pcall(function(HttpGet: typeof(HttpGet), request: typeof(request), FileHelper)
+            local WriteFile = FileHelper.WriteFile
+
             local HttpService = shared.HttpService
             local JSONDecode  = HttpService.JSONDecode
 
-            local Url = `https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/Translator/{Translator.CurrentLocaleID}.json`
+            local Url = `https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/Translator/Translations/{Translator.CurrentLocaleID}.json`
 
             local Succeeded:   boolean = false
             local StatusCode:  number = 200
@@ -151,8 +176,65 @@ if RealShouldTranslate then --/ Source language: English
 
             local RealTranslations: hash?
 
-            if request then
-                local Delay = 0.2
+            local SHA1, Exist = FileHelper:CheckFile(`MFeee-New/Translator/SHA1/{Translator.CurrentLocaleID}`, "")
+            if CachedTranslations and Exist then
+                local string_len
+                    = string.len
+
+                local SHA1Url = `https://raw.githubusercontent.com/MaiFengYXD/MFeee-New/refs/Translator/SHA1/{Translator.CurrentLocaleID}`
+
+                if request then
+                    local Response = request({
+                        Url = SHA1Url,
+                        Method = "GET"
+                    })
+
+                    local ThisStatusCode = Response.StatusCode
+
+                    if ThisStatusCode == 200 or ThisStatusCode == 304 then
+                        local ResponseBody = Response.Body
+
+                        if string_len(ResponseBody) == 40 then
+                            if ResponseBody == SHA1 then
+                                UrlContent = CachedTranslations
+                                local Success
+                                Success, RealTranslations = pcall(JSONDecode, HttpService, UrlContent)
+
+                                if Success then
+                                    Succeeded = true
+                                else
+                                    RealTranslations = nil
+                                end
+                            else
+                                WriteFile(FileHelper, `MFeee-New/Translator/SHA1/{Translator.CurrentLocaleID}`, ResponseBody)
+                            end
+                        end
+                    end
+                end
+
+                if (not request and HttpGet) or not Succeeded then
+                    local ResponseBody = HttpGet(SHA1Url)
+
+                    if string_len(UrlContent) == 40 then
+                        if ResponseBody == SHA1 then
+                            UrlContent = CachedTranslations
+                            local Success
+                            Success, RealTranslations = pcall(JSONDecode, HttpService, UrlContent)
+
+                            if Success then
+                                Succeeded = true
+                            else
+                                RealTranslations = nil
+                            end
+                        else
+                            WriteFile(FileHelper, `MFeee-New/Translator/SHA1/{Translator.CurrentLocaleID}`, ResponseBody)
+                        end
+                    end
+                end
+            end
+
+            if not Succeeded and request then
+                local Delay = 0.25
 
                 for _ = 1, 3 do
                     local Response = request({
@@ -172,11 +254,15 @@ if RealShouldTranslate then --/ Source language: English
                             break
                         end
 
-                        ErrorReason = GetBuiltInTranslation("There is a problem with GitHub or the required features, please report it!")
+                        ErrorReason = GetBuiltInTranslation("Failed to parse translations, please report it!")
+                    elseif StatusCode == 404 then
+                        ErrorReason = TranslateWithFormat("Http Error: %*", 404)
+                        break
                     elseif Response.Success == false then
                         ErrorReason = TranslateWithFormat("Http Error: %*", StatusCode)
                     end
 
+                    warn(`[MFeee~ New] {TranslateWithFormat("Failed to fetch, retry in %* seconds...", Delay)}`)
                     RealTranslations = nil
 
                     task_wait(Delay)
@@ -184,15 +270,15 @@ if RealShouldTranslate then --/ Source language: English
                 end
             end
 
-            if not request or not (StatusCode == 404 or Succeeded) then
-                local Delay = 0.2
+            if not Succeeded and (not request and HttpGet) and StatusCode ~= 404 then
+                local Delay = 0.25
 
                 for _ = 1, 3 do
                     UrlContent = HttpGet(Url)
 
                     if UrlContent == "404: Not Found" then
-                        StatusCode = 404
-                        ErrorReason = TranslateWithFormat("Http Error: %*", "404")
+                        ErrorReason = TranslateWithFormat("Http Error: %*", 404)
+                        break
                     else
                         local Success
                         Success, RealTranslations = pcall(JSONDecode, HttpService, UrlContent)
@@ -202,9 +288,10 @@ if RealShouldTranslate then --/ Source language: English
                             break
                         end
 
-                        ErrorReason = GetBuiltInTranslation("There is a problem with GitHub or the required features, please report it!")
+                        ErrorReason = GetBuiltInTranslation("Failed to parse translations, please report it!")
                     end
 
+                    warn(`[MFeee~ New] {TranslateWithFormat("Failed to fetch, retry in %* seconds...", Delay)}`)
                     RealTranslations = nil
 
                     task_wait(Delay)
@@ -212,10 +299,11 @@ if RealShouldTranslate then --/ Source language: English
                 end
             end
 
-            if not Succeeded then error(ErrorReason or GetBuiltInTranslation("Unable to download! Your executor lacks the required features."), 19998) end
+            if not Succeeded then error(ErrorReason or GetBuiltInTranslation("Unable to fetch! Your executor lacks the required features."), 19998) end
 
+            WriteFile(FileHelper, `MFeee-New/Translator/{Translator.CurrentLocaleID}.json`, UrlContent)
             return RealTranslations
-        end, wax.Global.HttpGet, wax.Global.request)
+        end, wax.Global.HttpGet, wax.Global.request, FileHelper)
     end)
 
     local Timeout = shared.BootSettings.TranslationsTimeout
@@ -226,17 +314,13 @@ if RealShouldTranslate then --/ Source language: English
         if Elapsed >= Timeout then
             task.cancel(Thread)
             Success = false
-            Result  = TranslateWithFormat("Downloading translation timed out! (exceeded %* seconds)", Timeout)
+            Result  = TranslateWithFormat("Fetching translations timed out! (exceeded %* seconds)", Timeout)
         end
     until Success ~= nil
 
     if Success then
         Translator[Language] = Result
     else
-        if Result:match("(.+) is not a valid member of .-") or Result:match("attempt to call a .+ value") then
-            Result = GetBuiltInTranslation("Missing 'HttpGet' function!")
-        end
-
         shared.MiniNotify(GetBuiltInTranslation("Translator:"), TranslateWithFormat("Failed to fetch translations for %* due to %*", Display, Result))
     end
 end
