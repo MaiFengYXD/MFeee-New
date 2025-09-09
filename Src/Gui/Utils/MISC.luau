@@ -34,8 +34,8 @@ local function IsOutOfBounds(Object: GuiObject): boolean
 
     return (
         AbsolutePositionX < 0 or
-        (AbsolutePositionX + AbsoluteSize.X) > ViewportSize.X or
         AbsolutePositionY < 0 or
+        (AbsolutePositionX + AbsoluteSize.X) > ViewportSize.X or
         (AbsolutePositionY + AbsoluteSize.Y) > ViewportSize.Y
     )  
 end
