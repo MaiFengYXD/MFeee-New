@@ -1,5 +1,5 @@
 -- MIT License | Copyright (c) 2023-2024 Latte Softworks <https://latte.to>
---!nonstrict
+--!nocheck
 
 if string.sub(_VERSION, 1, 4) ~= "Lune" then
     print("!! Wax doesn't appear to be running on Lune (https://lune-org.github.io/docs), which this script requires, exitting..")
@@ -301,7 +301,7 @@ elseif Subcommand == "bundle" then
 
     DarkluaConfigPath = Options["darklua-config-path"]
 
-    if DarkluaConfigPath and not fs.isFile(DarkluaConfigPath) then
+    if Minify and DarkluaConfigPath and not fs.isFile(DarkluaConfigPath) then
         Log.Error(`File path given for \`darklua-config-path\`, "{DarkluaConfigPath}" not found`)
         process.exit(1)
     end
