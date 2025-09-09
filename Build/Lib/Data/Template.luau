@@ -597,7 +597,7 @@ function ImportGlobals(refId)
             return LoadScript(CurrentRefPointer)
         end
 
-        return RealCall(Old_require, module, ...)
+        return RealCall(Old_require, module)
     end
 
     -- Now, return flattened globals ready for direct runtime exec
