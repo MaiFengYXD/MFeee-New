@@ -48,6 +48,7 @@ if shared.BypassedMethod then
     return {}
 end
 
+--[[
 --/ Default a anti-hook bypass
 xpcall(function(
     xpcall:      typeof(xpcall),
@@ -126,5 +127,6 @@ xpcall(function(
 end, function()
     shared.BypassedMethod = nil
 end, xpcall, debug_info, checkcaller, string.find, unpack)
+--]]
 
 return {}
