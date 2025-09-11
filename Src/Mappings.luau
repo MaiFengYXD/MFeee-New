@@ -1,4 +1,4 @@
-return setmetatable({
+local Mappings = setmetatable({
     [77614252294790] = {
         Name = "The Foundation",
         Folder = "The Foundation/Game",
@@ -19,3 +19,5 @@ return setmetatable({
         }
     end
 })
+
+return Mappings

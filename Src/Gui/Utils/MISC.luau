@@ -1,5 +1,5 @@
-local type, string_gsub, debug_traceback, string_find, string_sub, task_spawn
-    = type, string.gsub, debug.traceback, string.find, string.sub, task.spawn
+local type, string_gsub, debug_traceback, string_find, string_sub, task_spawn, table_clone
+    = type, string.gsub, debug.traceback, string.find, string.sub, task.spawn, table.clone
 
 local Camera = shared.Camera
 
@@ -7,40 +7,50 @@ shared.Connect.CommonSignals.CameraChanged(function(NewCamera: Camera)
     Camera = NewCamera
 end)
 
-local function SafeCallback(Callback: Function?, ...: any): (boolean, ...any)
-    if not Callback or type(Callback) ~= "function" then
-        return false, "No function provided"
+local MISC = {};do
+    function MISC.SafeCallback(Callback: Function?, ...: any): (boolean, ...any)
+        if not Callback or type(Callback) ~= "function" then
+            return false, "No function provided"
+        end
+
+        return xpcall(Callback, function(Error: string)
+            local Traceback = string_gsub(debug_traceback(), "\n", " ")
+            local _, Index  = string_find(Traceback, ":%d+ ")
+
+            Error ..= ` - {string_gsub(string_sub(Traceback, (Index or 0) + 1), " :", ":")}`
+            task_spawn(error, Error)
+
+            return Error
+        end, ...)
     end
 
-    return xpcall(Callback, function(Error: string)
-        local Traceback = string_gsub(debug_traceback(), "\n", " ")
-        local _, Index  = string_find(Traceback, ":%d+ ")
+    function MISC.Validate(Input: table, Template: table): table
+        local Output = table_clone(Template)
 
-        Error ..= ` - {string_gsub(string_sub(Traceback, (Index or 0) + 1), " :", ":")}`
-        task_spawn(error, Error)
+        for Key, Value in Input do
+            if type(Value) ~= type(Template[Key]) then continue end
+            Output[Key] = Value
+        end
 
-        return Error
-    end, ...)
+        return Output
+    end
+
+    function MISC.IsOutOfBounds(Object: GuiObject): boolean
+        local ViewportSize = Camera.ViewportSize
+
+        local AbsoluteSize     = Object.AbsoluteSize
+        local AbsolutePosition = Object.AbsolutePosition
+
+        local AbsolutePositionX = AbsolutePosition.X
+        local AbsolutePositionY = AbsolutePosition.Y
+
+        return (
+            AbsolutePositionX < 0 or
+            AbsolutePositionY < 0 or
+            (AbsolutePositionX + AbsoluteSize.X) > ViewportSize.X or
+            (AbsolutePositionY + AbsoluteSize.Y) > ViewportSize.Y
+        )  
+    end
 end
 
-local function IsOutOfBounds(Object: GuiObject): boolean
-    local ViewportSize = Camera.ViewportSize
-
-    local AbsoluteSize     = Object.AbsoluteSize
-    local AbsolutePosition = Object.AbsolutePosition
-
-    local AbsolutePositionX = AbsolutePosition.X
-    local AbsolutePositionY = AbsolutePosition.Y
-
-    return (
-        AbsolutePositionX < 0 or
-        AbsolutePositionY < 0 or
-        (AbsolutePositionX + AbsoluteSize.X) > ViewportSize.X or
-        (AbsolutePositionY + AbsoluteSize.Y) > ViewportSize.Y
-    )  
-end
-
-return {
-    SafeCallback  = SafeCallback,
-    IsOutOfBounds = IsOutOfBounds
-}
+return MISC
