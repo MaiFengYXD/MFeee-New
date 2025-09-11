@@ -5,8 +5,9 @@ local pcall, table_find, string_sub, string_format
 
 local UIManager = {}
 
-local Elements = {
+local ElementTypes = {
     "Dropdown",
+    "SortableList",
     "Toggle",
     "Button",
     "Slider",
@@ -23,27 +24,26 @@ local FileHelper      = shared.FileHelper
 local Translate = Translator.Translate
 local Reverse   = Translator.Reverse
 
-local DoesntSupport = Translate("Your executor doesn't support this feature (missing function '%*')")
+local DoesntSupport = Translate("Your executor doesn't support this feature\n(missing function %*)")
 
 local UpdateSetting: (Key: string, Value: any) -> ()
 
-UIManager.Config = shared.ConfigManager.new("Gui", {
-    NotificationSound   = "Obsidian", -- Obsidian: 4590662766, Linoria: 4590657391 (Their names are just casual and unrelated to anything else with the same name)
-    NotificationSide    = "TopRight",
-    EasingMode          = "Quartic",
-    EasingDirection     = "Out",
-    ToggleKeybind       = "RightShift",
-    UseCheckbox         = false,
-    CustomCursor        = false,
-    KeybindFrame        = false,
-    AlwaysOnTop         = false,
-    NoNotify            = false,
-    UIActivated         = true,
-    DPIScale            = 1,
-    NotificationVolume  = 2,
-    EasingDuration      = 1,
-    NotificationSoundId = 4590662766
-}, "gui.config.json")
+-- UIManager.Config = shared.ConfigManager.new("Gui", {
+--     NotificationSound   = "Obsidian", -- Obsidian: 4590662766, Linoria: 4590657391 (Their names are just casual and unrelated to anything else with the same name)
+--     NotificationSide    = "TopRight",
+--     EasingMode          = "Quartic",
+--     EasingDirection     = "Out",
+--     ToggleKeybind       = "RightShift",
+--     UseCheckbox         = false,
+--     CustomCursor        = false,
+--     KeybindFrame        = false,
+--     AlwaysOnTop         = false,
+--     NoNotify            = false,
+--     UIActivated         = true,
+--     DPIScale            = 1,
+--     NotificationVolume  = 2,
+--     NotificationSoundId = 4590662766
+-- }, "gui.config.json")
 
 local Library      = require("@self/Library")
 local SaveManager  = require("@self/SaveManager")
@@ -51,13 +51,8 @@ local ThemeManager = require("@self/ThemeManager")
 
 UIManager.SaveManager  = SaveManager
 UIManager.ThemeManager = ThemeManager
-
-for _, ElementName in Elements do
-    local Key = `{ElementName}s`
-    UIManager[Key] = Library[Key]
-end
-
-UIManager.Notify = Library.Notify
+UIManager.Elements     = Library.Elements
+UIManager.Notify       = Library.Notify
 
 local function Creating(IgnoredElements: {string}, IgnoredTabs: {string})
     local function Create(Self: any, Method: "AddTab" | string, Index: string, Data: (hash | string)?): any
@@ -77,10 +72,10 @@ local function Creating(IgnoredElements: {string}, IgnoredTabs: {string})
 
         local Element = Self[Method](Self, Index, Data)
 
-        for _, ElementName in Elements do
-            if string_sub(Method, 1, 3) ~= ElementName then continue end
+        for _, ElementType in ElementTypes do
+            if string_sub(Method, 1, 3) ~= ElementType then continue end
 
-            self[`{ElementName}s`][Index] = Element
+            self.Elements[`{ElementType}s`][Index] = Element
             break
         end
 
@@ -148,15 +143,8 @@ function UIManager:AddUniversalTabs(IgnoredElements: {string}, IgnoredTabs: {str
 end
 
 local Window = UIManager.Library:CreateWindow({
-    Icon              = 77335290652571,
-    Title             = "MFeee~ New",
-    DPIScale          = UIManager.Config.DPIScale,
-    NotificationSide  = UIManager.Config.NotificationSide,
-    NotificationSound = UIManager.Config.NotificationSoundId,
-    ShowCustomCursor  = UIManager.Config.CustomCursor,
-    AlwaysOnTop       = UIManager.Config.AlwaysOnTop,
-    UIActivated       = UIManager.Config.UIActivated,
-    NoNotify          = UIManager.Config.NoNotify,
+    Icon  = 77335290652571,
+    Title = "MFeee~ New"
 })
 
 UIManager.Window = Window
