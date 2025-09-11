@@ -6,12 +6,13 @@ local pcall, table_find, string_sub, string_format
 local UIManager = {}
 
 local ElementTypes = {
-    "Dropdown",
+    "DropdownMenu",
     "SortableList",
     "Toggle",
     "Button",
     "Slider",
     "Input",
+    "Label",
     "ColorPicker",
     "KeyPicker"
 }
@@ -142,10 +143,7 @@ function UIManager:AddUniversalTabs(IgnoredElements: {string}, IgnoredTabs: {str
 
 end
 
-local Window = UIManager.Library:CreateWindow({
-    Icon  = 77335290652571,
-    Title = "MFeee~ New"
-})
+local Window = UIManager.Library:CreateWindow("MFeee~ New", 77335290652571)
 
 UIManager.Window = Window
 UIManager.Tabs   = Window.Tabs
