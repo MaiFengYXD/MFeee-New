@@ -160,7 +160,7 @@ local BootSettings;do
         AutoBypassAntiCheat  = true
     }, "boot.config.json")
 
-    BootSettings = BootConfig.Config
+    BootSettings = BootConfig.Config :: any
     shared.BootSettings = BootSettings
 
     if BootSettings.AutoBypassAntiCheat then
@@ -350,7 +350,7 @@ do
 
     Gui:AddMainTab({}, {})
 
-    do (require :: any)(`@self/Places{shared.ScriptFolder}`) end
+    do (require)(`@self/Places{shared.ScriptFolder}`) end
 
     Gui:AddUniversalTabs({}, {})
 
