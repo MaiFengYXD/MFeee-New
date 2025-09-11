@@ -29,8 +29,13 @@ type ConfigManager = {
 }
 
 type ConfigInstance = typeof(setmetatable({
+    __index = {} :: hash,
     Default = {} :: hash,
-    Config  = {} :: hash,
+
+    Config = setmetatable({}, {
+        __index    = {} :: hash,
+        __newindex = function(_, Key: string, Value: any): () end
+    }),
 
     DefaultConfigPath = nil  :: string?,
     AutoSaveEnabled   = true :: boolean
@@ -61,12 +66,19 @@ local Config = {} :: ConfigManager;do
 
     function Config.new(Index: string, Default: hash | nil, RelativePath: string?): ConfigInstance
         local self = setmetatable({
+            __index = type(Default) == "table" and table_clone(Default :: hash) or {},
             Default = type(Default) == "table" and Default or {},
-            Config  = type(Default) == "table" and table_clone(Default :: hash) or {},
 
             DefaultConfigPath = type(RelativePath) == "string" and RelativePath or nil,
             AutoSaveEnabled   = true
         }, Config)
+
+        self.Config = setmetatable({}, {
+            __index    = self.__index,
+            __newindex = function(_, Key: string, Value: any)
+                self:Set(Key, Value)
+            end
+        })
 
         self:InitialFile()
         self:Load()
@@ -76,11 +88,11 @@ local Config = {} :: ConfigManager;do
     end
 
     function Config.Get(self: ConfigInstance, Key: string): any
-        return self.Config[Key]
+        return self.__index[Key]
     end
 
     function Config.Set(self: ConfigInstance, Key: string, Value: any): ()
-        self.Config[Key] = Value
+        self.__index[Key] = Value
         TryToAutoSave(self)
     end
 
@@ -96,7 +108,7 @@ local Config = {} :: ConfigManager;do
     function Config.Save(self: ConfigInstance, RelativePath: string?): ()
         local Path = ValidatePath(self, RelativePath)
 
-        local Success, Encoded = pcall(JSONEncode, HttpService, self.Config)
+        local Success, Encoded = pcall(JSONEncode, HttpService, self.__index)
         assert(Success, "Failed to parse config to JSON")
 
         WriteFile(FileHelper, `MFeee-New/{Path}`, Encoded)
@@ -122,7 +134,7 @@ local Config = {} :: ConfigManager;do
 
         NewConfig = table_clone(NewConfig)
 
-        local MergedConfig = Priority == "New" and table_clone(self.Config) or NewConfig
+        local MergedConfig = Priority == "New" and table_clone(self.__index) or NewConfig
         local Default      = self.Default
 
         for Key, Value in NewConfig do
@@ -131,7 +143,7 @@ local Config = {} :: ConfigManager;do
             end
         end
 
-        for Key, Value in Priority == "New" and NewConfig or self.Config do
+        for Key, Value in Priority == "New" and NewConfig or self.__index do
             MergedConfig[Key] = Value
         end
 
@@ -140,14 +152,18 @@ local Config = {} :: ConfigManager;do
 
     function Config.Replace(self: ConfigInstance, NewConfig: hash): ()
         assert(type(NewConfig) == "table", "New config must be a table")
+        local __index = self.__index
 
-        self.Config = table_clear(self.Config) or NewConfig
+        table_clear(__index)
+        for Key, Value in NewConfig do
+            __index[Key] = Value
+        end
 
         TryToAutoSave(self)
     end
 
     function Config.Clear(self: ConfigInstance): ()
-        table_clear(self.Config)
+        table_clear(self.__index)
 
         TryToAutoSave(self)
     end
