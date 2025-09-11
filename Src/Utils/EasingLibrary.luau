@@ -54,6 +54,16 @@ local EasingLibrary = {
     EasingDuration  = 1,
 }
 
+local EasingConfig = shared.ConfigManager.new("EasingLibrary", {
+    EasingMode      = "Quartic",
+    EasingDirection = "Out",
+    EasingDuration  = 1,
+}, "easing.config.json")
+
+local Set = EasingConfig.Set
+
+EasingLibrary.Config = EasingConfig.Config
+
 local Quart = EasingStyle.Quart
 local Out   = EasingDirection.Out
 
@@ -120,4 +130,12 @@ function EasingLibrary:Ease(
     ))
 end
 
-return EasingLibrary
+return setmetatable({}, {
+    __index    = EasingLibrary,
+    __newindex = function(_, Key: string, Value: any)
+        if Key == "EasingMode" or Key == "EasingDirection" or Key == "EasingDuration" then
+            EasingLibrary[Key] = Value
+            Set(EasingConfig, Key, Value)
+        end
+    end
+})
