@@ -1,13 +1,23 @@
 <h1 align="center">📖Contributing Guide📖</h1>
 
 >[!NOTE]
->**When creating commit messages follow the [Conventional Commits Standard](https://www.conventionalcommits.org/en/v1.0.0/).**
+>When creating commit messages follow the [Conventional Commits Standard](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ---
 
-### Code Style for MFeee~ New
+## Code Style for MFeee~ New
 
 To ensure a consistent, readable, and maintainable codebase for MFeee~ New, all contributions must strictly follow these style guidelines.
+
+<br>
+
+## 💡Core Design Principles
+
+Beyond specific formatting and naming rules, we follow three core design principles to build a robust and scalable project: **high cohesion**, **low coupling**, and **high reusability**. Adhering to these principles ensures our codebase remains easy to understand, test, and expand.
+
++ **High Cohesion**: Each script or module should focus on doing **one thing and doing it well**. For example, a module for user data should only contain functions related to user data (like fetching or updating), not functions for sending emails or processing payments. This makes the code’s purpose clear and reduces complexity.
++ **Low Coupling**: Modules should be as independent as possible. **Minimize dependencies** between different parts of the code. When you change one module, it should not require changes in many other modules. This makes the system more flexible and reduces the risk of introducing bugs.
++ **High Reusability**: Write code that can be used in different places. By creating **generic, self-contained components**, we can avoid duplicating code and accelerate development. For instance, a well-designed UI component can be used on multiple pages without being rewritten each time.
 
 ## 🔡Naming Conventions
 
