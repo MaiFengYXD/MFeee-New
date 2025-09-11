@@ -12,8 +12,8 @@ if type(setthreadidentity) == "function" then
     pcall(setthreadidentity, 8)
 end
 
-local pcall, xpcall, task, table, string, game, Enum
-    = pcall, xpcall, task, table, string, game, Enum
+local pcall, xpcall, task, table, string, math, debug, game, Enum, UDim2
+    = pcall, xpcall, task, table, string, math, debug, game, Enum, UDim2
 
 -- ++++++++ WAX BUNDLED DATA BELOW ++++++++ --
 
