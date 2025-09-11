@@ -57,10 +57,10 @@ Then, you can directly execute **[Build.bat](./Build.bat)** (for Windows) or **[
 ---
 
 ## 🌹Credits:
-+ **richie0866**  [[AcrylicBlur.luau](./Src/Gui/AcrylicBlur.luau)]
-+ **deividcomsono**  [[Lucide.luau](./Src/Gui/Lucide.luau)]
-+ **NOVEIGMA**  [[Prediction.luau](./Src/Utils/Prediction.luau)]
-+ **7GrandDadPGN**  [[Prediction.luau](./Src/Utils/Prediction.luau)]
++ **[richie0866](https://github.com/richie0866)**  [[AcrylicBlur.luau](./Src/Gui/AcrylicBlur.luau)]
++ **[deividcomsono](https://github.com/deividcomsono)**  [[Lucide.luau](./Src/Gui/Lucide.luau)]
++ **[NOVEIGMA](https://devforum.roblox.com/u/NOVEIGMA)**  [[Prediction.luau](./Src/Utils/Prediction.luau)]
++ **[7GrandDadPGN](https://github.com/7GrandDadPGN)**  [[Prediction.luau](./Src/Utils/Prediction.luau)]  [[Aimbot.luau](./Src/Universal/Aimbot.luau)]
 
 ---
 
