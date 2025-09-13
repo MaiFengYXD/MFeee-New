@@ -102,7 +102,7 @@ local LocaleIDTree = {
     shared.Codes     = Codes
     shared.Languages = Languages
 
-    local UserLocaleID, Exist = FileHelper:CheckFile("MFeee-New/UserLocaleID.txt", "en_us", LocaleIDs)
+    local UserLocaleID, Exist = FileHelper:CheckFile("MFeee-New/UserLocaleID.txt", "en-us", LocaleIDs)
     Language = LocaleID_Language[UserLocaleID]
 
     if not Exist then
