@@ -68,7 +68,8 @@ local Quart = EasingStyle.Quart
 local Out   = EasingDirection.Out
 
 type StoredTween = {
-    Tween:       Tween | TweenBase,
+    Tween:       TweenBase,
+    Goal:        hash,
     OnCompleted: RBXScriptConnection
 }
 
@@ -79,9 +80,10 @@ function EasingLibrary:CancelTween(Index: string | any)
     Cancel(Running.Tween) --/ OnCompleted will automatically clean the RunningTween
 end
 
-function EasingLibrary:PlayTween(Index: string | any, Tween: Tween | TweenBase): StoredTween
+function EasingLibrary:PlayTween(Index: string | any, Tween: TweenBase, Goal: hash): StoredTween
     local This = {
         Tween = Tween,
+        Goal  = Goal,
 
         OnCompleted = Tween.Completed:Once(function()
             local Running = self.RunningTween[Index]
@@ -98,7 +100,7 @@ end
 
 function EasingLibrary:Ease(
     Target:    Instance & any,
-    Property:  string | {[string]: any},
+    Property:  string | hash,
     EndValue:  any,
     Index:     string | any,
     Duration:  number | nil,
@@ -118,7 +120,8 @@ function EasingLibrary:Ease(
         return
     end
 
-    return self:PlayTween(Index, Create(
+    local Goal = if type(Property) == "table" then Property :: hash else {[Property :: string] = EndValue} :: hash
+    local Store = self:PlayTween(Index, Create(
         TweenService,
         Target,
         TweenInfo_new(
@@ -126,8 +129,10 @@ function EasingLibrary:Ease(
             type(Mode) == "string" and self.EasingModes[Mode] or self.EasingModes[self.EasingMode] or Quart,
             type(Direction) == "string" and self.EasingDirections[Direction] or self.EasingDirections[self.EasingDirection] or Out
         ),
-        if type(Property) == "table" then Property else {[Property] = EndValue}
-    ))
+        Goal
+    ), Goal)
+
+    return Store
 end
 
 return setmetatable({}, {
