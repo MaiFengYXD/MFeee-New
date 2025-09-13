@@ -1,4 +1,14 @@
-local Library = {}
+local task_spawn
+    = task.spawn
+
+type LibraryTips = (
+    | "Resize"
+)
+
+local Library = {
+    ThemeRegistry = {},
+    Tips = {} :: {[LibraryTips]: Function}
+}
 shared.Gui.Library = Library
 
 local LibraryConfig = shared.ConfigManager.new("UILibrary", {
@@ -15,7 +25,11 @@ local LibraryConfig = shared.ConfigManager.new("UILibrary", {
 
     DPIScale            = 1,
     NotificationVolume  = 2,
-    NotificationSoundId = 4590662766
+    NotificationSoundId = 4590662766,
+
+    Tips = {
+        Resize = true
+    } :: {[LibraryTips]: boolean}
 }, "ui.config.json")
 
 local SchemeConfig = shared.ConfigManager.new("UILibraryScheme", {
@@ -39,7 +53,13 @@ local SchemeConfig = shared.ConfigManager.new("UILibraryScheme", {
 
     DangerTextColor   = "#fa5a51",
     DangerBoardColor  = "#b62324",
-    DangerBorderColor = "#6b2a2b"
+    DangerBorderColor = "#6b2a2b",
+
+    Font = {
+        "BuilderSans", -- Family
+        "DemiBold",    -- Weight
+        "Normal"       -- Style
+    }
 }, "scheme.config.json")
 
 Library.Config = LibraryConfig.Config
@@ -112,5 +132,14 @@ end
 
 Library.Elements = Elements
 Library.Utils    = require("@self/../Utils")
+
+Library.AddWindow = require("@self/Window")
+
+for Name, TipCallback in Library.Tips do
+    if not LibraryConfig.Tips[Name] then continue end
+
+    task_spawn(TipCallback)
+    LibraryConfig.Tips[Name] = false
+end
 
 return Library
