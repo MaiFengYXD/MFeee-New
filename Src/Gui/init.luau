@@ -4,6 +4,7 @@ local pcall, table_find, string_sub, string_format
     = pcall, table.find, string.sub, string.format
 
 local UIManager = {}
+shared.Gui = UIManager
 
 local ElementTypes = {
     "DropdownMenu",
@@ -143,7 +144,7 @@ function UIManager:AddUniversalTabs(IgnoredElements: {string}, IgnoredTabs: {str
 
 end
 
-local Window = UIManager.Library:CreateWindow("MFeee~ New", 77335290652571)
+local Window = Library:AddWindow("MFeee~ New", 77335290652571)
 
 UIManager.Window = Window
 UIManager.Tabs   = Window.Tabs
