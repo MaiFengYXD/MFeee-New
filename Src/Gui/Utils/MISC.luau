@@ -1,5 +1,5 @@
-local type, string_gsub, debug_traceback, string_find, string_sub, task_spawn, table_clone
-    = type, string.gsub, debug.traceback, string.find, string.sub, task.spawn, table.clone
+local type, string_gsub, debug_traceback, string_find, string_sub, task_spawn, table_clone, UDim2_fromOffset
+    = type, string.gsub, debug.traceback, string.find, string.sub, task.spawn, table.clone, UDim2.fromOffset
 
 local Camera = shared.Camera
 
@@ -50,6 +50,13 @@ local MISC = {};do
             (AbsolutePositionX + AbsoluteSize.X) > ViewportSize.X or
             (AbsolutePositionY + AbsoluteSize.Y) > ViewportSize.Y
         )  
+    end
+
+    function MISC.UDim2ToOffset(UDim2: UDim2, AbsoluteSize: Vector2): UDim2
+        return UDim2_fromOffset(
+            UDim2.X.Scale * AbsoluteSize.X + UDim2.X.Offset,
+            UDim2.Y.Scale * AbsoluteSize.Y + UDim2.Y.Offset
+        )
     end
 end
 
