@@ -238,12 +238,11 @@ if shared.Language == "Chinese (Simplified)" then
     EmojiList["01 26"] = "🥣" --/ 2026
     EmojiList["02 16"] = "🧨" --/ 2026
     EmojiList["03 03"] = "🏮" --/ 2026
-    EmojiList["05 31"] = "🍃" --/ 2025
+    EmojiList["06 19"] = "🐉" --/ 2026
     EmojiList["10 06"] = "🥮" --/ 2025
     EmojiList["04 04"] = "🪦"
     EmojiList["04 05"] = "🪦"
     EmojiList["04 06"] = "🪦"
-    EmojiList["10 06"] = "🥮" --/ 2025
 
     for Date = 17, 22 do
         EmojiList[`02 {Date}`] = "🧧" --/ 2026
