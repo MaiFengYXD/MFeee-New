@@ -14,9 +14,9 @@ type ConfigManager = {
     Get: (self: ConfigInstance, Key: string) -> any,
     Set: (self: ConfigInstance, Key: string, Value: any) -> (),
 
-    InitialFile: (self: ConfigInstance, Relativepath: string?) -> (),
-    Save:        (self: ConfigInstance, RelativePath: string?) -> (),
-    Load:        (self: ConfigInstance, RelativePath: string?) -> (),
+    Initialize: (self: ConfigInstance, Relativepath: string?) -> (),
+    Save:       (self: ConfigInstance, RelativePath: string?) -> (),
+    Load:       (self: ConfigInstance, RelativePath: string?) -> (),
 
     Replace: (self: ConfigInstance, NewConfig: hash) -> (),
     Merge:   (self: ConfigInstance, NewConfig: hash, Priority: "New" | "Current") -> (),
@@ -80,7 +80,7 @@ local Config = {} :: ConfigManager;do
             end
         })
 
-        self:InitialFile()
+        self:Initialize()
         self:Load()
 
         Instances[Index] = self
@@ -96,7 +96,7 @@ local Config = {} :: ConfigManager;do
         TryToAutoSave(self)
     end
 
-    function Config.InitialFile(self: ConfigInstance, RelativePath: string?): ()
+    function Config.Initialize(self: ConfigInstance, RelativePath: string?): ()
         local Path    = ValidatePath(self, RelativePath)
         local Content = IsFile(FileHelper, Path)
 
