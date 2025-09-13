@@ -345,7 +345,6 @@ shared.ScriptVersion = "Build 1"
 do
     local Gui = require("@self/Gui")
 
-    shared.Gui    = Gui
     shared.Window = Gui.Window
 
     Gui:AddMainTab({}, {})
