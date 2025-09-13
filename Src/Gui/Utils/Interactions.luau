@@ -16,12 +16,16 @@ local IsClickInput = Input.IsClickInput
 local MISC          = require("MISC")
 local SafeCallback  = MISC.SafeCallback
 -- local IsOutOfBounds = MISC.IsOutOfBounds
+local UDim2ToOffset = MISC.UDim2ToOffset
 
 local EasingLibrary = shared.EasingLibrary
 local Ease          = EasingLibrary.Ease :: Ease
 
 local Connect    = shared.Connect
-local GiveSignal = Connect.GiveSignall
+local GiveSignal = Connect.GiveSignal
+
+local LibraryConfig = Library.Config
+local CurrentConfig = Library.CurrentConfig
 
 local UserInputService = shared.UserInputService :: UserInputService
 
@@ -34,7 +38,6 @@ local TextboxFocuseReleased = UserInputService.TextBoxFocusReleased
 local TextboxFocused        = UserInputService.TextBoxFocused
 
 local End = Enum.UserInputState.End
-local Inf = (1 / 0)
 
 local Disconnect = game.Close:Once(function() end).Disconnect
 
@@ -77,7 +80,7 @@ local Interactions = {};do
     function Interactions.MakeDraggable(
         Targets:  {GuiObject},
         Bounding: GuiObject?,
-        Event:    EventStore,
+        Event:    EventStore?,
         Offset:   UDim2?
 
         -- TODO: constrain to viewport
@@ -138,17 +141,17 @@ local Interactions = {};do
             local StartPosition  = InputObject.Position
             local FramePositions = {} :: {[GuiObject]: UDim2};do
                 if OnlyOneTarget then
-                    FramePositions[FirstTarget] = FirstTarget.Position
+                    FramePositions[FirstTarget] = UDim2ToOffset(FirstTarget.Position, (FirstTarget.Parent :: GuiObject).AbsoluteSize)
                 else
                     for _, Target in Targets do
-                        FramePositions[Target] = Target.Position
+                        FramePositions[Target] = UDim2ToOffset(Target.Position, (Target.Parent :: GuiObject).AbsoluteSize)
                     end
                 end
             end
 
             local Changed, Ended, Focused1, Focused2, Released1, Released2
 
-            local function DisconnectAll(Disconnect: typeof(Disconnect))
+            local function DisconnectAll()
                 Disconnect(Changed)
                 Disconnect(Ended)
                 Disconnect(Focused1)
@@ -166,14 +169,14 @@ local Interactions = {};do
                 local CorrectedOffset
                     = CorrectedOffset
 
-                local Delta = (InputObject.Position - StartPosition) / Library.DPIScale
+                local Delta = (InputObject.Position - StartPosition) / LibraryConfig.DPIScale
                 local IDs   = IDs
 
                 for Target, Position in FramePositions do
                     Ease(EasingLibrary, Target, "Position", UDim2_fromOffset(
-                        Delta.X + Position.X,
-                        Delta.Y + Position.Y
-                    ) + CorrectedOffset, IDs[Target], 0.25)
+                        Delta.X,
+                        Delta.Y
+                    ) + Position + CorrectedOffset, IDs[Target], 0.25)
                 end
 
                 if Event then Fire(Event) end
@@ -181,7 +184,7 @@ local Interactions = {};do
 
             Ended = GiveSignal(Connect, nil, GetPropertyChangedSignal(InputObject, "UserInputState"), function()
                 if InputObject.UserInputState ~= End then return end
-                DisconnectAll(Disconnect)
+                DisconnectAll()
             end)
 
             Focused1  = GiveSignal(Connect, nil, WindowFocused,         DisconnectAll)
@@ -194,7 +197,7 @@ local Interactions = {};do
     function Interactions.MakeResizable(
         Targets:  {GuiObject},
         Bounding: GuiObject?,
-        Event:    EventStore,
+        Event:    EventStore?,
         Offset:   UDim2?,
         MaxSize:  typeof({480, 240})?,
         MinSize:  typeof({300, 150})?
@@ -237,21 +240,31 @@ local Interactions = {};do
 
         local CorrectedOffset = Offset or UDim2_new()
 
-        local MaxSizeX, MaxSizeY, MinSizeX, MinSizeY;do
+        local GetMaxSize, GetMinSize;do
             if MaxSize then
-                MaxSizeX = MaxSize[1]
-                MaxSizeY = MaxSize[2]
+                function GetMaxSize(): typeof({480, 240})
+                    return MaxSize
+                end
             else
-                MaxSizeX = Inf
-                MaxSizeY = Inf
+                function GetMaxSize(): typeof({480, 240})
+                    return {
+                        CurrentConfig.MaxSizeX,
+                        CurrentConfig.MaxSizeY
+                    }
+                end
             end
 
             if MinSize then
-                MinSizeX = MinSize[1]
-                MinSizeY = MinSize[2]
+                function GetMinSize(): typeof({300, 150})
+                    return MinSize
+                end
             else
-                MinSizeX = -Inf
-                MinSizeY = -Inf
+                function GetMinSize(): typeof({300, 150})
+                    return {
+                        CurrentConfig.MinSizeX,
+                        CurrentConfig.MinSizeY
+                    }
+                end
             end
         end
 
@@ -282,7 +295,7 @@ local Interactions = {};do
 
             local Changed, Ended, Focused1, Focused2, Released1, Released2
 
-            local function DisconnectAll(Disconnect: typeof(Disconnect))
+            local function DisconnectAll()
                 Disconnect(Changed)
                 Disconnect(Ended)
                 Disconnect(Focused1)
@@ -300,8 +313,11 @@ local Interactions = {};do
                 local CorrectedOffset
                     = CorrectedOffset
 
-                local Delta = (InputObject.Position - StartPosition) / Library.DPIScale
+                local Delta = (InputObject.Position - StartPosition) / LibraryConfig.DPIScale
                 local IDs   = IDs
+
+                local MaxSize = GetMaxSize()
+                local MinSize = GetMinSize()
 
                 for Target, Size in FrameSizes do
                     -- TODO: Improve the current scaling effect.
@@ -309,8 +325,8 @@ local Interactions = {};do
                     -- It should scale up to the maximum value, stop immediately, and not scale up to the new value.
 
                     Ease(EasingLibrary, Target, "Size", UDim2_fromOffset(
-                        math_clamp(Delta.X + Size.X, MinSizeX, MaxSizeX),
-                        math_clamp(Delta.Y + Size.Y, MinSizeY, MaxSizeY)
+                        math_clamp(Delta.X + Size.X.Offset, MinSize[1], MaxSize[1]),
+                        math_clamp(Delta.Y + Size.Y.Offset, MinSize[2], MaxSize[2])
                     ) + CorrectedOffset, IDs[Target], 0.25)
                 end
 
@@ -319,7 +335,7 @@ local Interactions = {};do
 
             Ended = GiveSignal(Connect, nil, GetPropertyChangedSignal(InputObject, "UserInputState"), function()
                 if InputObject.UserInputState ~= End then return end
-                DisconnectAll(Disconnect)
+                DisconnectAll()
             end)
 
             Focused1  = GiveSignal(Connect, nil, WindowFocused,         DisconnectAll)
