@@ -1,8 +1,9 @@
 local Library = shared.Gui.Library
+local LibraryConfig = Library.Config
 
 local Unscaling = {};do
     function Unscaling.GetUnscaledTextBounds(TextElement: TextLabel | TextButton, Latitude: ("X" | "Y")?): Vector2 | number
-        local TextBounds = TextElement.TextBounds / Library.DPIScale
+        local TextBounds = TextElement.TextBounds / LibraryConfig.DPIScale
 
         return (
             Latitude == "X" and TextBounds.X or
@@ -12,7 +13,7 @@ local Unscaling = {};do
     end
 
     function Unscaling.GetUnscaledContentSize(UIListLayout: UIListLayout, Latitude: ("X" | "Y")?): Vector2 | number
-        local ContentSize = UIListLayout.AbsoluteContentSize / Library.DPIScale
+        local ContentSize = UIListLayout.AbsoluteContentSize / LibraryConfig.DPIScale
 
         return (
             Latitude == "X" and ContentSize.X or
