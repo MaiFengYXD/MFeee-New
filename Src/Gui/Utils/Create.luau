@@ -1,5 +1,8 @@
-local Instance_new, pcall, randomstring, next, typeof
-    = Instance.new, pcall, randomstring, next, typeof
+local Instance_new, pcall, randomstring, next, typeof, Color3_fromHex, Font_new
+    = Instance.new, pcall, randomstring, next, typeof, Color3.fromHex, Font.new
+
+local Enum_FontWeight = Enum.FontWeight
+local Enum_FontStyle  = Enum.FontStyle
 
 local Library = shared.Gui.Library
 
@@ -19,7 +22,7 @@ local Templates = {
     },
 
     UIStroke = {
-        Color = "OutlineColor"
+        Color = "BorderColor"
     },
 
     ImageLabel = {
@@ -46,7 +49,7 @@ local Templates = {
         FontFace = "Font",
         RichText = true,
         Text = "",
-        TextColor3 = "FontColor"
+        TextColor3 = "TextColor1"
     },
 
     TextButton = {
@@ -55,16 +58,16 @@ local Templates = {
         FontFace = "Font",
         RichText = true,
         Text = "",
-        TextColor3 = "FontColor"
+        TextColor3 = "TextColor1"
     },
 
     TextBox = {
         BorderSizePixel = 0,
         FontFace = "Font",
         Text = "",
-        TextColor3 = "FontColor",
+        TextColor3 = "TextColor2",
         PlaceholderColor3 = function()
-            return GetDarkerColor(Scheme.FontColor)
+            return GetDarkerColor(Scheme.TextColor2)
         end
     }
 }
@@ -89,7 +92,16 @@ local function Fill(
             ThemeProperties[Property] = nil
         elseif Property ~= "Text" and (Scheme[Value] or typeof(Value) == "function") then
             ThemeProperties[Property] = Value
-            __newindex(Instance, Property, Scheme[Value] or Value())
+            if Value == "Font" then
+                local FontConfig = Scheme[Value]
+                __newindex(Instance, Property, Font_new(
+                    `rbxasset://fonts/families/{FontConfig[1]}.json`,
+                    (Enum_FontWeight :: any)[FontConfig[2]],
+                    (Enum_FontStyle  :: any)[FontConfig[3]]
+                ))
+            else
+                __newindex(Instance, Property, Color3_fromHex(Scheme[Value]) or Value())
+            end
         elseif Property ~= "Parent" and Property ~= "Name" then
             __newindex(Instance, Property, Value)
         end
